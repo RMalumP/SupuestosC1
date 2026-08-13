@@ -3,73 +3,100 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Menú de Supuestos | Plantilla Examen</title>
+    <title>Menú de Supuestos | Comunidad ECAP ASS C1</title>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,600;1,8..60,300&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 
     <style>
         :root {
-            --navy:     #0a1628;
-            --navy-mid: #112240;
-            --gold:     #c9a84c;
-            --gold-lt:  #e8c97a;
-            --cream:    #fdf8f0;
-            --parch:    #f5ede0;
-            --crimson:  #8b1a1a;
-            --forest:   #1a4731;
-            --slate:    #4a5568;
-            --ink:      #1a1a2e;
-            --paper:    #fffef9;
-            --shadow:   rgba(10,22,40,0.18);
-            --radius:   4px;
+            --brown-dark: #3d2a20;
+            --brown:      #5c4033;
+            --brown-mid:  #7a5b47;
+            --tan:        #c9a58a;
+            --blue:       #8fc4d9;
+            --blue-lt:    #b8dceb;
+            --cream:      #fdf8f0;
+            --pink-bg:    #f7ece7;
+            --ink:        #2b2118;
+            --slate:      #6b5d52;
+            --paper:      #fffefb;
+            --shadow:     rgba(61,42,32,0.16);
+            --radius:     4px;
         }
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
             font-family: 'Source Serif 4', Georgia, serif;
-            background: var(--navy);
+            background: var(--cream);
             color: var(--ink);
             min-height: 100vh;
             overflow-x: hidden;
         }
-        body::before {
-            content: '';
-            position: fixed; inset: 0;
-            background:
-                repeating-linear-gradient(0deg, transparent, transparent 60px,
-                    rgba(201,168,76,0.03) 60px, rgba(201,168,76,0.03) 61px),
-                radial-gradient(ellipse at 20% 80%, rgba(201,168,76,0.08) 0%, transparent 50%),
-                radial-gradient(ellipse at 80% 20%, rgba(139,26,26,0.06) 0%, transparent 50%);
-            pointer-events: none; z-index: 0;
-        }
 
-        .container { max-width: 860px; margin: 0 auto; padding: 60px 24px 80px; position: relative; z-index: 1; }
-
-        /* CABECERA INSTITUCIONAL (idéntica al examen) */
-        .inst-header {
-            background: var(--navy-mid);
-            border: 1.5px solid rgba(201,168,76,0.35);
-            border-radius: var(--radius);
-            padding: 32px 24px;
-            text-align: center;
+        .hero {
+            background: linear-gradient(135deg, var(--brown-dark) 0%, var(--brown) 55%, var(--brown-mid) 100%);
             position: relative;
-            margin-bottom: 40px;
-            box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+            overflow: hidden;
         }
-        .inst-header::before {
+        .hero::before {
             content: '';
-            position: absolute; inset: 6px;
-            border: 1px solid rgba(201,168,76,0.2);
-            border-radius: 2px; pointer-events: none;
+            position: absolute; inset: 0;
+            background:
+                radial-gradient(ellipse at 15% 90%, rgba(143,196,217,0.12) 0%, transparent 45%),
+                radial-gradient(ellipse at 85% 10%, rgba(201,165,138,0.15) 0%, transparent 50%);
+            pointer-events: none;
         }
-        .inst-header .escudo { font-size: 2.4rem; margin-bottom: 8px; display: block; }
-        .inst-header .organismo { font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; letter-spacing: 0.3em; color: var(--gold); opacity: 0.8; }
-        .inst-header h1 { font-family: 'Playfair Display', serif; font-size: 1.7rem; font-weight: 900; color: var(--cream); margin: 10px 0 6px; letter-spacing: 0.04em; }
-        .inst-header p { font-family: 'Source Serif 4', serif; font-size: 0.9rem; color: rgba(253,248,240,0.65); font-style: italic; }
+
+        .container { max-width: 900px; margin: 0 auto; padding: 60px 24px 80px; position: relative; z-index: 1; }
+        .hero-inner { max-width: 900px; margin: 0 auto; padding: 56px 24px 64px; position: relative; z-index: 1; text-align: center; }
+
+        .logo-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 40px;
+        }
+        .logo-wrap img {
+            max-height: 90px;
+            width: auto;
+            filter: drop-shadow(0 4px 14px rgba(0,0,0,0.35));
+        }
+        .logo-subtitle {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            letter-spacing: 0.35em;
+            text-transform: uppercase;
+            color: var(--blue-lt);
+            border-top: 1px solid rgba(184,220,235,0.35);
+            padding-top: 12px;
+        }
+
+        .hero h1 {
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+            font-weight: 400;
+            font-size: 2.4rem;
+            color: var(--blue);
+            line-height: 1.25;
+        }
+        .hero h1 strong {
+            display: block;
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+            font-weight: 900;
+            color: var(--paper);
+        }
+        .hero p {
+            margin-top: 18px;
+            font-family: 'Source Serif 4', serif;
+            font-size: 1rem;
+            color: rgba(253,248,240,0.8);
+        }
 
         /* CUADRÍCULA DE SUPUESTOS */
         .grid-title {
             font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; letter-spacing: 0.3em;
-            color: var(--gold-lt); text-align: center; margin-bottom: 20px; opacity: 0.85;
+            color: var(--brown-mid); text-align: center; margin-bottom: 24px; opacity: 0.85;
         }
         .supuestos-grid {
             display: grid;
@@ -79,7 +106,7 @@
         .supuesto-card {
             display: block;
             background: var(--paper);
-            border: 1.5px solid rgba(201,168,76,0.3);
+            border: 1.5px solid rgba(92,64,51,0.2);
             border-radius: var(--radius);
             padding: 22px 20px;
             text-decoration: none;
@@ -89,33 +116,32 @@
         }
         .supuesto-card:hover {
             transform: translateY(-4px);
-            border-color: var(--gold);
-            box-shadow: 0 14px 30px rgba(0,0,0,0.35);
+            border-color: var(--blue);
+            box-shadow: 0 14px 30px rgba(61,42,32,0.22);
         }
         .supuesto-card .exp-number {
             width: 46px; height: 46px;
-            background: var(--navy); color: var(--gold);
+            background: var(--brown); color: var(--blue-lt);
             display: flex; align-items: center; justify-content: center;
             font-family: 'Playfair Display', serif; font-size: 1.25rem; font-weight: 900;
             border-radius: var(--radius); margin-bottom: 14px;
         }
         .supuesto-card h2 {
             font-family: 'Playfair Display', serif; font-size: 1.05rem; font-weight: 700;
-            color: var(--navy); line-height: 1.3; margin-bottom: 8px;
+            color: var(--brown-dark); line-height: 1.3; margin-bottom: 8px;
         }
         .supuesto-card .ref {
             font-family: 'JetBrains Mono', monospace; font-size: 0.58rem; letter-spacing: 0.15em;
-            color: var(--gold); text-transform: uppercase; display: block; margin-bottom: 10px;
+            color: var(--brown-mid); text-transform: uppercase; display: block; margin-bottom: 10px;
         }
         .supuesto-card .desc {
             font-family: 'Source Serif 4', serif; font-size: 0.85rem; color: var(--slate); line-height: 1.5;
         }
         .supuesto-card .go {
             margin-top: 14px; font-family: 'JetBrains Mono', monospace; font-size: 0.65rem;
-            letter-spacing: 0.15em; color: var(--crimson); text-transform: uppercase; font-weight: 700;
+            letter-spacing: 0.15em; color: var(--brown); text-transform: uppercase; font-weight: 700;
         }
 
-        /* Placeholder para cuando aún no existe el archivo del supuesto */
         .supuesto-card.disabled {
             opacity: 0.5; cursor: not-allowed; pointer-events: none;
         }
@@ -123,25 +149,30 @@
         footer {
             text-align: center; margin-top: 50px;
             font-family: 'JetBrains Mono', monospace; font-size: 0.6rem;
-            letter-spacing: 0.2em; color: rgba(253,248,240,0.35);
+            letter-spacing: 0.2em; color: var(--brown-mid);
+            opacity: 0.6;
         }
 
         @media (max-width: 480px) {
-            .inst-header h1 { font-size: 1.3rem; }
+            .hero h1 { font-size: 1.7rem; }
             .supuestos-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
 
-<div class="container">
-
-    <header class="inst-header">
-        <span class="escudo">⚖️</span>
-        <div class="organismo">BANCO DE SUPUESTOS PRÁCTICOS</div>
-        <h1>Menú principal de exámenes</h1>
+<div class="hero">
+    <div class="hero-inner">
+        <div class="logo-wrap">
+            <img src="https://academia.ecap.es/pluginfile.php?file=%2F1%2Fcore_admin%2Flogo%2F0x200%2F1782109950%2FACADEMIA%20VIRTUAL%20%281%29.png" alt="ECAP - Escuela Ciudadana de Administración Pública">
+            <span class="logo-subtitle">Comunidad ECAP ASS C1</span>
+        </div>
+        <h1>Menú principal<strong>de supuestos</strong></h1>
         <p>Selecciona el supuesto que quieras practicar</p>
-    </header>
+    </div>
+</div>
+
+<div class="container">
 
     <div class="grid-title">SUPUESTOS DISPONIBLES</div>
 
@@ -155,6 +186,7 @@
             <div class="go">Comenzar →</div>
         </a>
 
+ 
         <!--
             Para añadir un nuevo supuesto:
             1. Copia una de estas tarjetas <a class="supuesto-card">...</a>
