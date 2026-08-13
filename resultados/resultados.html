@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resultados | Comunidad ECAP ASS C1</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,600;1,8..60,300&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --brown-dark: #3d2a20;
+            --brown:      #5c4033;
+            --brown-mid:  #7a5b47;
+            --tan:        #c9a58a;
+            --blue:       #8fc4d9;
+            --blue-lt:    #b8dceb;
+            --cream:      #fdf8f0;
+            --pink-bg:    #f7ece7;
+            --ink:        #2b2118;
+            --slate:      #6b5d52;
+            --paper:      #fffefb;
+            --shadow:     rgba(61,42,32,0.16);
+            --radius:     4px;
+            --gold:       #b8894f;
+            --green:      #5f8b6a;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Source Serif 4', Georgia, serif;
+            background: var(--cream);
+            color: var(--ink);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, var(--brown-dark) 0%, var(--brown) 55%, var(--brown-mid) 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute; inset: 0;
+            background:
+                radial-gradient(ellipse at 15% 90%, rgba(143,196,217,0.12) 0%, transparent 45%),
+                radial-gradient(ellipse at 85% 10%, rgba(201,165,138,0.15) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .container { max-width: 1100px; margin: 0 auto; padding: 60px 24px 80px; position: relative; z-index: 1; }
+        .hero-inner { max-width: 900px; margin: 0 auto; padding: 56px 24px 64px; position: relative; z-index: 1; text-align: center; }
+
+        .logo-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 40px;
+        }
+        .logo-wrap img {
+            max-height: 90px;
+            width: auto;
+            filter: drop-shadow(0 4px 14px rgba(0,0,0,0.35));
+        }
+        .logo-subtitle {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            letter-spacing: 0.35em;
+            text-transform: uppercase;
+            color: var(--blue-lt);
+            border-top: 1px solid rgba(184,220,235,0.35);
+            padding-top: 12px;
+        }
+
+        .hero h1 {
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+            font-weight: 400;
+            font-size: 2.4rem;
+            color: var(--blue);
+            line-height: 1.25;
+        }
+        .hero h1 strong {
+            display: block;
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+            font-weight: 900;
+            color: var(--paper);
+        }
+        .hero p {
+            margin-top: 18px;
+            font-family: 'Source Serif 4', serif;
+            font-size: 1rem;
+            color: rgba(253,248,240,0.8);
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--blue-lt);
+            text-decoration: none;
+            margin-bottom: 26px;
+            opacity: 0.85;
+            transition: opacity 0.2s;
+        }
+        .back-link:hover { opacity: 1; }
+
+        .grid-title {
+            font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; letter-spacing: 0.3em;
+            color: var(--brown-mid); text-align: center; margin-bottom: 24px; opacity: 0.85;
+        }
+
+        /* SELECTOR DE TESTS */
+        .tests-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 52px;
+        }
+        .test-card {
+            background: var(--paper);
+            border: 1.5px solid rgba(92,64,51,0.2);
+            border-radius: var(--radius);
+            padding: 18px 18px;
+            cursor: pointer;
+            text-align: left;
+            font-family: inherit;
+            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+            box-shadow: 0 6px 18px var(--shadow);
+        }
+        .test-card:hover {
+            transform: translateY(-3px);
+            border-color: var(--blue);
+            box-shadow: 0 14px 30px rgba(61,42,32,0.22);
+        }
+        .test-card.active {
+            border-color: var(--brown);
+            background: linear-gradient(135deg, var(--paper), var(--pink-bg));
+            box-shadow: 0 10px 24px rgba(61,42,32,0.28);
+        }
+        .test-card h3 {
+            font-family: 'Playfair Display', serif; font-size: 0.98rem; font-weight: 700;
+            color: var(--brown-dark); line-height: 1.35; margin-bottom: 10px;
+        }
+        .test-card .meta-row {
+            display: flex; justify-content: space-between; align-items: baseline;
+            font-family: 'JetBrains Mono', monospace; font-size: 0.6rem;
+            letter-spacing: 0.08em; color: var(--brown-mid); text-transform: uppercase;
+            margin-top: 6px;
+        }
+        .test-card .meta-row strong {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--brown-dark); font-size: 0.75rem;
+        }
+
+        /* PANEL DE RESULTADOS */
+        .results-panel {
+            background: var(--paper);
+            border: 1.5px solid rgba(92,64,51,0.2);
+            border-radius: var(--radius);
+            box-shadow: 0 6px 18px var(--shadow);
+            padding: 28px 26px 32px;
+        }
+        .results-header {
+            display: flex; flex-wrap: wrap; gap: 14px; justify-content: space-between; align-items: flex-end;
+            margin-bottom: 22px; padding-bottom: 18px; border-bottom: 1px solid rgba(92,64,51,0.15);
+        }
+        .results-header h2 {
+            font-family: 'Playfair Display', serif; font-size: 1.3rem; font-style: italic; font-weight: 700;
+            color: var(--brown-dark);
+        }
+        .results-header .sub {
+            font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; letter-spacing: 0.15em;
+            color: var(--brown-mid); text-transform: uppercase; margin-top: 4px;
+        }
+        .refresh-btn {
+            font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; letter-spacing: 0.1em;
+            text-transform: uppercase; color: var(--brown); background: var(--pink-bg);
+            border: 1px solid rgba(92,64,51,0.25); border-radius: var(--radius);
+            padding: 9px 16px; cursor: pointer; transition: background 0.2s, color 0.2s;
+        }
+        .refresh-btn:hover { background: var(--brown); color: var(--cream); }
+
+        .table-scroll { overflow-x: auto; }
+        table.results-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'Source Serif 4', serif;
+            font-size: 0.88rem;
+            min-width: 860px;
+        }
+        table.results-table thead th {
+            font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; letter-spacing: 0.08em;
+            text-transform: uppercase; color: var(--cream); background: var(--brown);
+            text-align: left; padding: 12px 14px; cursor: pointer; user-select: none;
+            white-space: nowrap; position: relative; transition: background 0.2s;
+        }
+        table.results-table thead th:hover { background: var(--brown-dark); }
+        table.results-table thead th.sorted { background: var(--brown-dark); color: var(--blue-lt); }
+        table.results-table thead th .arrow { margin-left: 5px; opacity: 0.7; font-size: 0.6rem; }
+        table.results-table tbody td {
+            padding: 11px 14px; border-bottom: 1px solid rgba(92,64,51,0.12);
+            color: var(--ink); white-space: nowrap;
+        }
+        table.results-table tbody tr:hover { background: rgba(143,196,217,0.08); }
+        table.results-table tbody tr:nth-child(1) td.rank-cell { color: var(--gold); font-weight: 700; }
+        table.results-table tbody tr:nth-child(2) td.rank-cell { color: var(--brown-mid); font-weight: 700; }
+        table.results-table tbody tr:nth-child(3) td.rank-cell { color: var(--tan); font-weight: 700; }
+        td.rank-cell { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; }
+        td.nota-cell { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--brown-dark); }
+        td.name-cell { font-family: 'Playfair Display', serif; font-weight: 700; color: var(--brown-dark); }
+
+        .state-msg {
+            text-align: center; padding: 50px 20px; font-family: 'Source Serif 4', serif;
+            color: var(--slate); font-size: 0.95rem;
+        }
+        .state-msg .spinner {
+            width: 30px; height: 30px; border: 3px solid rgba(92,64,51,0.2); border-top-color: var(--brown);
+            border-radius: 50%; margin: 0 auto 16px; animation: spin 0.9s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .state-msg.error { color: #a34a3a; }
+        .state-msg a.retry {
+            display: inline-block; margin-top: 14px; font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--brown);
+            border: 1px solid var(--brown); border-radius: var(--radius); padding: 8px 16px;
+            text-decoration: none; cursor: pointer;
+        }
+
+        footer {
+            text-align: center; margin-top: 50px;
+            font-family: 'JetBrains Mono', monospace; font-size: 0.6rem;
+            letter-spacing: 0.2em; color: var(--brown-mid);
+            opacity: 0.6;
+        }
+
+        @media (max-width: 480px) {
+            .hero h1 { font-size: 1.7rem; }
+            .tests-grid { grid-template-columns: 1fr; }
+            .results-panel { padding: 20px 14px 24px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="hero">
+    <div class="hero-inner">
+        <div class="logo-wrap">
+            <img src="https://academia.ecap.es/pluginfile.php?file=%2F1%2Fcore_admin%2Flogo%2F0x200%2F1782109950%2FACADEMIA%20VIRTUAL%20%281%29.png" alt="ECAP - Escuela Ciudadana de Administración Pública">
+            <span class="logo-subtitle">Comunidad ECAP ASS C1</span>
+        </div>
+        <h1>Tabla de<strong>resultados</strong></h1>
+        <p>Clasificación dinámica de las puntuaciones de la comunidad</p>
+    </div>
+</div>
+
+<div class="container">
+
+    <a class="back-link" href="../index.html">&larr; Volver al menú de supuestos</a>
+
+    <div class="grid-title">SELECCIONA UN TEST</div>
+    <div class="tests-grid" id="tests-grid">
+        <div class="state-msg" id="tests-loading" style="grid-column: 1 / -1;">
+            <div class="spinner"></div>
+            Cargando tests disponibles…
+        </div>
+    </div>
+
+    <div class="grid-title">CLASIFICACIÓN</div>
+    <div class="results-panel">
+        <div class="results-header">
+            <div>
+                <h2 id="active-test-title">—</h2>
+                <div class="sub" id="active-test-sub">Selecciona un test para ver la clasificación</div>
+            </div>
+            <button class="refresh-btn" id="refresh-btn">↻ Actualizar datos</button>
+        </div>
+
+        <div id="results-body">
+            <div class="state-msg" id="initial-loading">
+                <div class="spinner"></div>
+                Cargando resultados desde la hoja de cálculo…
+            </div>
+        </div>
+    </div>
+
+    <footer>DATOS CARGADOS EN TIEMPO REAL DESDE GOOGLE SHEETS · ECAP ASS C1</footer>
+
+</div>
+
+<script>
+(function () {
+    var SHEET_ID = '19HZy6JZlljrvuEWdryuxWFqGHMf15qjsCVFe6OvLtLo';
+    var GID = '408413850';
+
+    // Índices de columna (0 = A)
+    var COL_MARCA      = 0; // A - Marca temporal
+    var COL_TEST       = 1; // B - Identificador / test
+    var COL_NOMBRE     = 2; // C - Nombre del usuario
+    var COL_PREGUNTAS  = 3; // D - Número de preguntas
+    var COL_ACIERTOS   = 4; // E - Número de aciertos
+    var COL_FALLOS     = 5; // F - Número de fallos
+    var COL_BLANCO     = 6; // G - Número en blanco
+    var COL_T_ASIGNADO = 7; // H - Tiempo de reloj asignado
+    var COL_T_REAL     = 8; // I - Tiempo de realización
+
+    var allRows = [];
+    var selectedTest = null; // null => "todos"
+    var sortField = 'nota';
+    var sortDir = 'desc';
+    var callbackCounter = 0;
+
+    function cellText(cell) {
+        if (!cell) return '';
+        if (cell.f !== undefined && cell.f !== null) return String(cell.f).trim();
+        if (cell.v === undefined || cell.v === null) return '';
+        return String(cell.v).trim();
+    }
+    function toNumber(str) {
+        if (str === '' || str === null || str === undefined) return 0;
+        var n = parseFloat(String(str).replace(',', '.'));
+        return isNaN(n) ? 0 : n;
+    }
+    function round2(n) {
+        return Math.round(n * 100) / 100;
+    }
+    function fmtNum(n) {
+        // muestra sin decimales innecesarios, máx 2
+        var r = round2(n);
+        return (r % 1 === 0) ? String(r) : String(r.toFixed(2)).replace(/0$/, '').replace(/\.$/, '');
+    }
+
+    function processTable(table) {
+        var rows = table.rows || [];
+        var out = [];
+        for (var i = 0; i < rows.length; i++) {
+            var c = rows[i].c || [];
+            var marca = cellText(c[COL_MARCA]);
+            var test = cellText(c[COL_TEST]);
+            var nombre = cellText(c[COL_NOMBRE]);
+            if (!marca && !test && !nombre) continue; // fila vacía
+
+            var preguntas = toNumber(cellText(c[COL_PREGUNTAS]));
+            var aciertos = toNumber(cellText(c[COL_ACIERTOS]));
+            var fallos = toNumber(cellText(c[COL_FALLOS]));
+            var blanco = toNumber(cellText(c[COL_BLANCO]));
+            var tAsignado = cellText(c[COL_T_ASIGNADO]);
+            var tReal = cellText(c[COL_T_REAL]);
+
+            var resultado = aciertos - 0.25 * fallos;
+            if (resultado < 0) resultado = 0;
+            var nota10 = preguntas > 0 ? round2((resultado / preguntas) * 10) : 0;
+
+            out.push({
+                marca: marca,
+                test: test || '(sin identificar)',
+                nombre: nombre || '—',
+                preguntas: preguntas,
+                aciertos: aciertos,
+                fallos: fallos,
+                blanco: blanco,
+                tAsignado: tAsignado,
+                tReal: tReal,
+                resultado: round2(resultado),
+                resultadoStr: fmtNum(resultado) + '/' + fmtNum(preguntas),
+                nota: nota10
+            });
+        }
+        return out;
+    }
+
+    function buildTestCards() {
+        var grid = document.getElementById('tests-grid');
+        grid.innerHTML = '';
+
+        var byTest = {};
+        allRows.forEach(function (r) {
+            if (!byTest[r.test]) byTest[r.test] = [];
+            byTest[r.test].push(r);
+        });
+        var testNames = Object.keys(byTest).sort(function (a, b) { return a.localeCompare(b, 'es'); });
+
+        // Tarjeta "Todos los tests"
+        grid.appendChild(makeTestCard(null, 'Todos los tests', allRows.length, allRows));
+
+        testNames.forEach(function (name) {
+            grid.appendChild(makeTestCard(name, name, byTest[name].length, byTest[name]));
+        });
+
+        if (testNames.length === 0) {
+            var msg = document.createElement('div');
+            msg.className = 'state-msg';
+            msg.style.gridColumn = '1 / -1';
+            msg.textContent = 'Todavía no hay resultados registrados.';
+            grid.appendChild(msg);
+        }
+
+        highlightActiveCard();
+    }
+
+    function makeTestCard(testKey, label, count, rowsForTest) {
+        var best = 0;
+        rowsForTest.forEach(function (r) { if (r.nota > best) best = r.nota; });
+        var preguntasSet = {};
+        rowsForTest.forEach(function (r) { preguntasSet[r.preguntas] = true; });
+        var preguntasKeys = Object.keys(preguntasSet);
+        var preguntasLabel = preguntasKeys.length === 1 ? preguntasKeys[0] : 'varía';
+
+        var btn = document.createElement('button');
+        btn.className = 'test-card' + (selectedTest === testKey ? ' active' : '');
+        btn.setAttribute('data-test-key', testKey === null ? '__ALL__' : testKey);
+        btn.innerHTML =
+            '<h3>' + escapeHtml(label) + '</h3>' +
+            '<div class="meta-row"><span>Intentos</span><strong>' + count + '</strong></div>' +
+            '<div class="meta-row"><span>Nº preguntas</span><strong>' + escapeHtml(String(preguntasLabel)) + '</strong></div>' +
+            '<div class="meta-row"><span>Mejor nota</span><strong>' + fmtNum(best) + ' / 10</strong></div>';
+        btn.addEventListener('click', function () {
+            selectedTest = testKey;
+            highlightActiveCard();
+            renderTable();
+        });
+        return btn;
+    }
+
+    function highlightActiveCard() {
+        var cards = document.querySelectorAll('.test-card');
+        cards.forEach(function (c) {
+            var key = c.getAttribute('data-test-key');
+            var isActive = (selectedTest === null && key === '__ALL__') || (key === selectedTest);
+            c.classList.toggle('active', isActive);
+        });
+        var title = document.getElementById('active-test-title');
+        var sub = document.getElementById('active-test-sub');
+        if (selectedTest === null) {
+            title.textContent = 'Todos los tests';
+            sub.textContent = 'Clasificación general por nota sobre 10';
+        } else {
+            title.textContent = selectedTest;
+            sub.textContent = 'Clasificación de este test, ordenada de mejor a peor puntuación';
+        }
+    }
+
+    function escapeHtml(str) {
+        return String(str)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    var columns = [
+        { key: 'rank',      label: '#',                type: 'none' },
+        { key: 'nombre',    label: 'Nombre',            type: 'string' },
+        { key: 'test',      label: 'Test',              type: 'string', onlyAll: true },
+        { key: 'preguntas', label: 'Preguntas',         type: 'number' },
+        { key: 'aciertos',  label: 'Aciertos',          type: 'number' },
+        { key: 'fallos',    label: 'Fallos',            type: 'number' },
+        { key: 'blanco',    label: 'En blanco',         type: 'number' },
+        { key: 'tAsignado', label: 'Tiempo asignado',   type: 'string' },
+        { key: 'tReal',     label: 'Tiempo realización',type: 'string' },
+        { key: 'resultado', label: 'Resultado',         type: 'number', display: 'resultadoStr' },
+        { key: 'nota',      label: 'Nota /10',          type: 'number' },
+        { key: 'marca',     label: 'Marca temporal',    type: 'string' }
+    ];
+
+    function renderTable() {
+        var body = document.getElementById('results-body');
+
+        var filtered = selectedTest === null ? allRows.slice() : allRows.filter(function (r) { return r.test === selectedTest; });
+
+        if (filtered.length === 0) {
+            body.innerHTML = '<div class="state-msg">No hay resultados todavía para este test.</div>';
+            return;
+        }
+
+        // Ranking siempre calculado sobre la nota (mejor a peor), independientemente del orden de columna visible
+        var byNota = filtered.slice().sort(function (a, b) { return b.nota - a.nota; });
+        var rankMap = new Map();
+        var rank = 0, lastNota = null;
+        byNota.forEach(function (r, idx) {
+            if (lastNota === null || r.nota !== lastNota) {
+                rank = idx + 1;
+                lastNota = r.nota;
+            }
+            rankMap.set(r, rank);
+        });
+
+        var sorted = filtered.slice().sort(function (a, b) {
+            var av, bv;
+            if (sortField === 'rank') { av = rankMap.get(a); bv = rankMap.get(b); }
+            else { av = a[sortField]; bv = b[sortField]; }
+
+            var cmp;
+            if (typeof av === 'number' && typeof bv === 'number') {
+                cmp = av - bv;
+            } else {
+                cmp = String(av).localeCompare(String(bv), 'es', { numeric: true });
+            }
+            return sortDir === 'asc' ? cmp : -cmp;
+        });
+
+        var visibleColumns = columns.filter(function (c) { return !c.onlyAll || selectedTest === null; });
+
+        var html = '<div class="table-scroll"><table class="results-table"><thead><tr>';
+        visibleColumns.forEach(function (c) {
+            var isSorted = sortField === c.key;
+            html += '<th data-key="' + c.key + '" class="' + (isSorted ? 'sorted' : '') + '">' +
+                escapeHtml(c.label) +
+                (isSorted ? '<span class="arrow">' + (sortDir === 'asc' ? '▲' : '▼') + '</span>' : '') +
+                '</th>';
+        });
+        html += '</tr></thead><tbody>';
+
+        sorted.forEach(function (r) {
+            html += '<tr>';
+            visibleColumns.forEach(function (c) {
+                if (c.key === 'rank') {
+                    html += '<td class="rank-cell">' + rankMap.get(r) + '</td>';
+                } else if (c.key === 'nombre') {
+                    html += '<td class="name-cell">' + escapeHtml(r.nombre) + '</td>';
+                } else if (c.key === 'nota') {
+                    html += '<td class="nota-cell">' + fmtNum(r.nota) + '</td>';
+                } else if (c.display) {
+                    html += '<td>' + escapeHtml(r[c.display]) + '</td>';
+                } else {
+                    html += '<td>' + escapeHtml(r[c.key]) + '</td>';
+                }
+            });
+            html += '</tr>';
+        });
+
+        html += '</tbody></table></div>';
+        body.innerHTML = html;
+
+        var ths = body.querySelectorAll('thead th');
+        ths.forEach(function (th) {
+            th.addEventListener('click', function () {
+                var key = th.getAttribute('data-key');
+                if (sortField === key) {
+                    sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+                } else {
+                    sortField = key;
+                    sortDir = key === 'nota' ? 'desc' : 'asc';
+                }
+                renderTable();
+            });
+        });
+    }
+
+    function showError() {
+        document.getElementById('tests-grid').innerHTML =
+            '<div class="state-msg error" style="grid-column: 1 / -1;">No se han podido cargar los datos de la hoja de cálculo.<br>' +
+            'Comprueba que el enlace para compartir esté como "Cualquier persona con el enlace puede ver".<br>' +
+            '<a class="retry" id="retry-link">Reintentar</a></div>';
+        document.getElementById('results-body').innerHTML = '';
+        var retry = document.getElementById('retry-link');
+        if (retry) retry.addEventListener('click', loadData);
+    }
+
+    function loadData() {
+        document.getElementById('tests-grid').innerHTML =
+            '<div class="state-msg" style="grid-column: 1 / -1;"><div class="spinner"></div>Cargando tests disponibles…</div>';
+        document.getElementById('results-body').innerHTML =
+            '<div class="state-msg"><div class="spinner"></div>Cargando resultados desde la hoja de cálculo…</div>';
+
+        callbackCounter++;
+        var cbName = 'onSheetData_' + callbackCounter;
+        var timeoutId = setTimeout(function () {
+            if (window[cbName]) { showError(); delete window[cbName]; }
+        }, 12000);
+
+        window[cbName] = function (json) {
+            clearTimeout(timeoutId);
+            try {
+                allRows = processTable(json.table);
+                buildTestCards();
+                renderTable();
+            } catch (e) {
+                showError();
+            }
+            delete window[cbName];
+            var script = document.getElementById('sheet-jsonp-script');
+            if (script) script.remove();
+        };
+
+        var oldScript = document.getElementById('sheet-jsonp-script');
+        if (oldScript) oldScript.remove();
+
+        var script = document.createElement('script');
+        script.id = 'sheet-jsonp-script';
+        script.src = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq' +
+            '?gid=' + GID +
+            '&headers=1' +
+            '&tqx=out:json;responseHandler:' + cbName +
+            '&_=' + Date.now();
+        script.onerror = function () {
+            clearTimeout(timeoutId);
+            showError();
+        };
+        document.body.appendChild(script);
+    }
+
+    document.getElementById('refresh-btn').addEventListener('click', loadData);
+
+    loadData();
+})();
+</script>
+
+</body>
+</html>
