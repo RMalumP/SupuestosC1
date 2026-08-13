@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menú de Supuestos | Plantilla Examen</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,600;1,8..60,300&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --navy:     #0a1628;
+            --navy-mid: #112240;
+            --gold:     #c9a84c;
+            --gold-lt:  #e8c97a;
+            --cream:    #fdf8f0;
+            --parch:    #f5ede0;
+            --crimson:  #8b1a1a;
+            --forest:   #1a4731;
+            --slate:    #4a5568;
+            --ink:      #1a1a2e;
+            --paper:    #fffef9;
+            --shadow:   rgba(10,22,40,0.18);
+            --radius:   4px;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Source Serif 4', Georgia, serif;
+            background: var(--navy);
+            color: var(--ink);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        body::before {
+            content: '';
+            position: fixed; inset: 0;
+            background:
+                repeating-linear-gradient(0deg, transparent, transparent 60px,
+                    rgba(201,168,76,0.03) 60px, rgba(201,168,76,0.03) 61px),
+                radial-gradient(ellipse at 20% 80%, rgba(201,168,76,0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(139,26,26,0.06) 0%, transparent 50%);
+            pointer-events: none; z-index: 0;
+        }
+
+        .container { max-width: 860px; margin: 0 auto; padding: 60px 24px 80px; position: relative; z-index: 1; }
+
+        /* CABECERA INSTITUCIONAL (idéntica al examen) */
+        .inst-header {
+            background: var(--navy-mid);
+            border: 1.5px solid rgba(201,168,76,0.35);
+            border-radius: var(--radius);
+            padding: 32px 24px;
+            text-align: center;
+            position: relative;
+            margin-bottom: 40px;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+        }
+        .inst-header::before {
+            content: '';
+            position: absolute; inset: 6px;
+            border: 1px solid rgba(201,168,76,0.2);
+            border-radius: 2px; pointer-events: none;
+        }
+        .inst-header .escudo { font-size: 2.4rem; margin-bottom: 8px; display: block; }
+        .inst-header .organismo { font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; letter-spacing: 0.3em; color: var(--gold); opacity: 0.8; }
+        .inst-header h1 { font-family: 'Playfair Display', serif; font-size: 1.7rem; font-weight: 900; color: var(--cream); margin: 10px 0 6px; letter-spacing: 0.04em; }
+        .inst-header p { font-family: 'Source Serif 4', serif; font-size: 0.9rem; color: rgba(253,248,240,0.65); font-style: italic; }
+
+        /* CUADRÍCULA DE SUPUESTOS */
+        .grid-title {
+            font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; letter-spacing: 0.3em;
+            color: var(--gold-lt); text-align: center; margin-bottom: 20px; opacity: 0.85;
+        }
+        .supuestos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 18px;
+        }
+        .supuesto-card {
+            display: block;
+            background: var(--paper);
+            border: 1.5px solid rgba(201,168,76,0.3);
+            border-radius: var(--radius);
+            padding: 22px 20px;
+            text-decoration: none;
+            position: relative;
+            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+            box-shadow: 0 6px 18px var(--shadow);
+        }
+        .supuesto-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--gold);
+            box-shadow: 0 14px 30px rgba(0,0,0,0.35);
+        }
+        .supuesto-card .exp-number {
+            width: 46px; height: 46px;
+            background: var(--navy); color: var(--gold);
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Playfair Display', serif; font-size: 1.25rem; font-weight: 900;
+            border-radius: var(--radius); margin-bottom: 14px;
+        }
+        .supuesto-card h2 {
+            font-family: 'Playfair Display', serif; font-size: 1.05rem; font-weight: 700;
+            color: var(--navy); line-height: 1.3; margin-bottom: 8px;
+        }
+        .supuesto-card .ref {
+            font-family: 'JetBrains Mono', monospace; font-size: 0.58rem; letter-spacing: 0.15em;
+            color: var(--gold); text-transform: uppercase; display: block; margin-bottom: 10px;
+        }
+        .supuesto-card .desc {
+            font-family: 'Source Serif 4', serif; font-size: 0.85rem; color: var(--slate); line-height: 1.5;
+        }
+        .supuesto-card .go {
+            margin-top: 14px; font-family: 'JetBrains Mono', monospace; font-size: 0.65rem;
+            letter-spacing: 0.15em; color: var(--crimson); text-transform: uppercase; font-weight: 700;
+        }
+
+        /* Placeholder para cuando aún no existe el archivo del supuesto */
+        .supuesto-card.disabled {
+            opacity: 0.5; cursor: not-allowed; pointer-events: none;
+        }
+
+        footer {
+            text-align: center; margin-top: 50px;
+            font-family: 'JetBrains Mono', monospace; font-size: 0.6rem;
+            letter-spacing: 0.2em; color: rgba(253,248,240,0.35);
+        }
+
+        @media (max-width: 480px) {
+            .inst-header h1 { font-size: 1.3rem; }
+            .supuestos-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <header class="inst-header">
+        <span class="escudo">⚖️</span>
+        <div class="organismo">BANCO DE SUPUESTOS PRÁCTICOS</div>
+        <h1>Menú principal de exámenes</h1>
+        <p>Selecciona el supuesto que quieras practicar</p>
+    </header>
+
+    <div class="grid-title">SUPUESTOS DISPONIBLES</div>
+
+    <div class="supuestos-grid" id="supuestos-grid">
+
+        <a class="supuesto-card" href="supuestos/supuesto-1.html">
+            <div class="exp-number">1</div>
+            <span class="ref">REF: EXP-001</span>
+            <h2>Título del Supuesto 1</h2>
+            <div class="desc">Breve descripción de la materia y el contenido del expediente.</div>
+            <div class="go">Comenzar →</div>
+        </a>
+
+        <a class="supuesto-card" href="supuestos/supuesto-2.html">
+            <div class="exp-number">2</div>
+            <span class="ref">REF: EXP-002</span>
+            <h2>Título del Supuesto 2</h2>
+            <div class="desc">Breve descripción de la materia y el contenido del expediente.</div>
+            <div class="go">Comenzar →</div>
+        </a>
+
+        <a class="supuesto-card" href="supuestos/supuesto-3.html">
+            <div class="exp-number">3</div>
+            <span class="ref">REF: EXP-003</span>
+            <h2>Título del Supuesto 3</h2>
+            <div class="desc">Breve descripción de la materia y el contenido del expediente.</div>
+            <div class="go">Comenzar →</div>
+        </a>
+
+        <!--
+            Para añadir un nuevo supuesto:
+            1. Copia una de estas tarjetas <a class="supuesto-card">...</a>
+            2. Cambia el número, la REF, el título y la descripción
+            3. Cambia el href para que apunte al archivo .html correspondiente
+               dentro de la carpeta /supuestos
+        -->
+
+    </div>
+
+    <footer>ÍNDICE GENERADO · ACTUALIZA ESTA PÁGINA AL AÑADIR NUEVOS SUPUESTOS</footer>
+
+</div>
+
+</body>
+</html>
