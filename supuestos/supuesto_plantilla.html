@@ -701,6 +701,43 @@
      JAVASCRIPT
 ══════════════════════════════════════════ -->
 <script>
+/* ═══════════════════════════════════════════════════════════
+   GUÍA DE TRANSCRIPCIÓN: DEL WORD DE ORIGEN A ESTA PLANTILLA
+   ───────────────────────────────────────────────────────────
+   Criterios acordados con el autor de los supuestos para rellenar
+   STATEMENTS_BANK/QUESTIONS_BANK a partir del .docx que envía.
+   Se documentan aquí (como comentario, sin efecto en el examen)
+   para que cualquier sesión futura —de este chatbot o de otro—
+   pueda seguir el mismo criterio sin tener que volver a preguntarlo.
+
+   1) ENUNCIADOS Y BLOQUES OCULTABLES
+      Cada enunciado admite factBlocks[] y timeline[] con
+      "hidden:true" en cualquier bloque/hito para omitirlo del
+      renderizado sin borrar el dato (útil si el Word marca partes
+      que no deben mostrarse en una variante del supuesto). Si el
+      Word indica que ese supuesto no lleva línea de tiempo (p.ej.
+      "Sin tl-item y tl-item red-event"), se deja "timeline: []".
+      Los títulos de bloque tipo "Título del bloque de hechos N.
+      Preguntas X a Y" NO se transcriben como texto visible: solo
+      indican qué "statementId" corresponde a qué preguntas.
+
+   2) RESPUESTA CORRECTA
+      En el Word la opción correcta se transcribe siempre en primer
+      lugar. Se copia tal cual en "a[0]" y se pone "c: 0"; la
+      plantilla baraja el orden de las opciones para cada usuario,
+      así que en pantalla la correcta nunca es siempre la A.
+
+   3) ETIQUETA DE PREGUNTA ("tag" / q-tag)
+      NO se debe rellenar "tag" a partir de la motivación legal por
+      iniciativa propia. Solo se añade si el propio Word marca esa
+      pregunta como "(sí q-tag)"; si marca "(No q-tag)", o no dice
+      nada al respecto, se deja "tag: ''" (la plantilla ya omite el
+      hueco del q-tag por completo cuando está vacío, no deja un
+      espacio en blanco). El usuario también puede ocultar todas
+      las q-tag existentes desde el panel ⚙ ("Ocultar etiquetas de
+      pregunta"), así que ante la duda es preferible dejarla vacía.
+═══════════════════════════════════════════════════════════ */
+
 /* ═══════════════════════════════════════════
    BANCO DE ENUNCIADOS
    ───────────────────────────────────────────
@@ -776,7 +813,9 @@ const STATEMENTS_BANK = [
                    pertenece esta pregunta, o null si es una
                    pregunta suelta sin enunciado asociado.
      tag : etiqueta corta (materia · artículo) que aparece
-           encima del enunciado de la pregunta.
+           encima del enunciado de la pregunta. Déjala vacía
+           ("") si el Word no marca esta pregunta como
+           "(sí q-tag)" — ver GUÍA DE TRANSCRIPCIÓN arriba.
      q   : texto de la pregunta.
      a   : array con las 4 opciones de respuesta. En el documento
            de origen la opción correcta siempre se transcribe en
@@ -1194,7 +1233,7 @@ function init(mode = 'default', sourceBank = null) {
             <div class="q-header">
                 <div class="q-num">${String(i+1).padStart(2,'0')}</div>
                 <div class="q-body">
-                    <span class="q-tag">${q.tag}</span>
+                    ${q.tag ? `<span class="q-tag">${q.tag}</span>` : ''}
                     <div class="q-text">${q.q}</div>
                 </div>
             </div>

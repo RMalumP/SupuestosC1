@@ -1435,7 +1435,7 @@ function init(mode = 'default', sourceBank = null) {
             <div class="q-header">
                 <div class="q-num">${String(i+1).padStart(2,'0')}</div>
                 <div class="q-body">
-                    <span class="q-tag">${q.tag}</span>
+                    ${q.tag ? `<span class="q-tag">${q.tag}</span>` : ''}
                     <div class="q-text">${q.q}</div>
                 </div>
             </div>
