@@ -96,6 +96,19 @@
             cursor: pointer; transition: all 0.25s;
         }
         #settings-toggle:hover, #settings-toggle.open { border-color: var(--gold); color: var(--gold-lt); background: rgba(143,196,217,0.1); }
+
+        /* Botón volver al menú principal (cabecera) */
+        .home-btn {
+            width: 36px; height: 36px; flex-shrink: 0;
+            border: 1.5px solid rgba(143,196,217,0.35);
+            border-radius: var(--radius);
+            background: rgba(255,255,255,0.04);
+            color: rgba(255,255,255,0.7);
+            font-size: 1.05rem; text-decoration: none;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.25s;
+        }
+        .home-btn:hover { border-color: var(--gold); color: var(--gold-lt); background: rgba(143,196,217,0.1); }
         #settings-panel {
             display: none;
             position: absolute; top: 44px; right: 0;
@@ -305,6 +318,32 @@
         #overlay-close:hover { background: var(--crimson); border-color: var(--crimson); color: #fff; transform: rotate(90deg); }
 
         /* ════════════════════════════════════════
+           MODAL — ELECCIÓN DE ALEATORIEDAD AL REPETIR
+        ════════════════════════════════════════ */
+        #random-modal {
+            display: none; position: fixed; inset: 0; z-index: 10500;
+            background: rgba(26,26,46,0.72);
+            align-items: center; justify-content: center; padding: 24px;
+        }
+        #random-modal.show { display: flex; animation: fadeIn 0.2s ease; }
+        .modal-box {
+            background: var(--navy-mid); border: 1.5px solid var(--gold);
+            border-radius: var(--radius); padding: 28px 30px; max-width: 440px; width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5); text-align: center;
+        }
+        .modal-box h3 { font-family:'Playfair Display',serif; color: var(--cream); font-size: 1.2rem; margin-bottom: 10px; }
+        .modal-box p { color: rgba(255,255,255,0.7); font-size: 0.85rem; margin-bottom: 20px; line-height: 1.5; }
+        .modal-box .btn { width: 100%; margin-bottom: 10px; white-space: normal; line-height: 1.4; display: inline-flex; align-items: center; justify-content: center; }
+        .modal-box .btn:last-child { margin-bottom: 0; }
+        /* Variantes propias del modal (las clases .btn-info / .btn-danger están
+           ocultas por defecto fuera de aquí, ya que se controlan por JS en la
+           botonera principal, así que no se reutilizan dentro del modal). */
+        .btn-modal-a { background: var(--navy); color: var(--gold); border-color: var(--navy-mid); }
+        .btn-modal-a:hover { background: var(--navy-mid); }
+        .btn-modal-b { background: var(--crimson); color: var(--cream); border-color: var(--crimson); }
+        .btn-modal-b:hover { background: #a01515; border-color: #a01515; color: #fff; }
+
+        /* ════════════════════════════════════════
            GREMLIN SVG ANIMADO
         ════════════════════════════════════════ */
         #gremlin-wrap {
@@ -392,7 +431,7 @@
         ════════════════════════════════════════ */
         @media print {
             body { background: white !important; color: black !important; }
-            #nav-header, #timer, #overlay, .btn-zone, body::before { display:none !important; }
+            #nav-header, #timer, #overlay, #random-modal, .btn-zone, body::before { display:none !important; }
             .container { max-width:100%; padding:20px; }
             .statement { box-shadow:none; border:1px solid #ccc; }
             .question-card { display:block !important; box-shadow:none; border:1px solid #ccc; page-break-inside:avoid; margin-bottom:16px; }
@@ -431,6 +470,8 @@
 <!-- NAVEGACIÓN -->
 <nav id="nav-header">
     <div id="nav-boxes"></div>
+
+    <button class="home-btn" onclick="goHome()" title="Volver al menú principal" aria-label="Volver al menú principal">🏠</button>
 
     <div class="settings-wrap">
         <button id="settings-toggle" onclick="toggleSettings()" title="Configuración del temporizador" aria-label="Configuración">⚙</button>
@@ -486,49 +527,21 @@
 
     <!-- ENUNCIADO -->
     <!--
-        Esta sección es opcional: úsala si el examen se basa en un supuesto práctico
-        con hechos comunes a todas las preguntas. Si no la necesitas, elimina
-        toda la <section class="statement">...</section>.
+        Este contenedor lo rellena JS (renderStatementHTML) a partir de
+        STATEMENTS_BANK. Cada pregunta de QUESTIONS_BANK indica a qué
+        enunciado pertenece mediante "statementId"; el panel del enunciado
+        solo se actualiza cuando, al navegar, se pasa a una pregunta de un
+        enunciado distinto al que se está mostrando (no en cada pregunta).
+        Una pregunta con statementId null/ausente es una "pregunta suelta"
+        y no muestra ningún bloque de hechos.
 
-        Estructura disponible:
-        - .fact-block               → bloque de hechos (borde dorado)
-        - .fact-block.red           → bloque de hechos críticos/desencadenantes (borde rojo)
-        - .timeline / .tl-item      → línea de tiempo de hitos del caso
-        - .tl-item.red-event        → hito crítico dentro de la línea de tiempo
+        Estructura disponible dentro de cada enunciado (ver STATEMENTS_BANK):
+        - factBlocks[]  → bloques de hechos (borde dorado; "red:true" = borde rojo/crítico)
+        - timeline[]    → hitos de la línea de tiempo ("red:true" = hito crítico)
+        - "hidden:true" en cualquier factBlock/hito lo omite del renderizado
+          (útil para preparar variantes de un mismo supuesto sin borrar datos).
     -->
-    <section class="statement">
-        <div class="statement-header">
-            <div class="exp-number">E</div>
-            <div class="statement-title-block">
-                <h2>[Título del supuesto/expediente]</h2>
-                <span class="ref">REF: [código de referencia] · ÁMBITO: [materias que abarca]</span>
-            </div>
-        </div>
-
-        <div class="fact-block">
-            <div class="fact-title">📋 [Título del bloque de hechos]</div>
-            <p>[Narrativa de hechos 1.]</p>
-            <p>[Narrativa de hechos 2, si procede.]</p>
-        </div>
-
-        <div class="fact-block">
-            <div class="fact-title">📋 [Título de otro bloque de hechos]</div>
-            <p>[Narrativa de hechos.]</p>
-        </div>
-
-        <div class="fact-block red">
-            <div class="fact-title">⚠️ [Título del bloque de hechos críticos]</div>
-            <p>[Hecho desencadenante 1.]</p>
-            <p>[Hecho desencadenante 2.]</p>
-        </div>
-
-        <div class="timeline">
-            <div class="tl-item"><span class="tl-date">[FECHA]</span>[Hito 1]</div>
-            <div class="tl-item"><span class="tl-date">[FECHA]</span>[Hito 2]</div>
-            <div class="tl-item"><span class="tl-date">[FECHA]</span>[Hito 3]</div>
-            <div class="tl-item red-event"><span class="tl-date">[FECHA]</span>[Hito crítico final]</div>
-        </div>
-    </section>
+    <div id="statement-container"></div>
 
     <!-- BARRA DE PROGRESO -->
     <div class="progress-bar-wrap">
@@ -544,8 +557,9 @@
         <button class="btn btn-primary" onclick="move(1)">Siguiente →</button>
         <button id="check-btn"   class="btn btn-danger"   onclick="evaluateExam()">✓ Corregir Expediente</button>
         <button id="print-btn"   class="btn btn-success"  onclick="printResults()">🖨 Imprimir / PDF</button>
-        <button id="restart-btn" class="btn btn-info"     onclick="restartExam()">🔀 Nuevo Intento (Aleatorio)</button>
+        <button id="restart-btn" class="btn btn-info"     onclick="openRandomModal()">🔀 Nuevo Intento (Aleatorio)</button>
         <button id="send-btn"    class="btn btn-send"     onclick="enviarResultados()">📤 Enviar Resultados</button>
+        <button id="home-btn-bottom" class="btn btn-info" style="display:none;" onclick="goHome()">🏠 Volver al Menú Principal</button>
     </div>
 </div>
 
@@ -641,8 +655,9 @@
         <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-bottom:20px;">
             <button class="btn btn-danger" style="display:inline-flex;" onclick="showCorrectionPanel()">✓ Ver Corrección Completa</button>
             <button class="btn btn-success" style="display:inline-flex;" onclick="printResults()">🖨 Imprimir / PDF</button>
-            <button class="btn btn-info" style="display:inline-flex;" onclick="restartExam()">🔀 Repetir (Aleatorio)</button>
+            <button class="btn btn-info" style="display:inline-flex;" onclick="openRandomModal()">🔀 Repetir (Aleatorio)</button>
             <button class="btn btn-send" style="display:inline-flex;" onclick="enviarResultados()">📤 Enviar Resultados</button>
+            <button class="btn btn-info" style="display:inline-flex;" onclick="goHome()">🏠 Menú Principal</button>
         </div>
 
         <!-- Score banner -->
@@ -655,54 +670,148 @@
 </div>
 
 <!-- ══════════════════════════════════════════
+     MODAL — ELECCIÓN DE ALEATORIEDAD AL REPETIR
+══════════════════════════════════════════ -->
+<div id="random-modal" onclick="if (event.target === this) closeRandomModal();">
+    <div class="modal-box">
+        <h3>🔀 Nuevo intento aleatorio</h3>
+        <p>¿Cómo quieres repetir el expediente?</p>
+        <button class="btn btn-modal-a" onclick="confirmRestart('answers')">🔁 Mismas preguntas y mismo orden<br><small style="font-weight:400;opacity:0.8;">solo cambia el orden de las respuestas</small></button>
+        <button class="btn btn-modal-b" onclick="confirmRestart('full')">🎲 También cambiar qué preguntas salen<br><small style="font-weight:400;opacity:0.8;">y su orden, respetando cada enunciado</small></button>
+        <button class="btn" onclick="closeRandomModal()">Cancelar</button>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════
      JAVASCRIPT
 ══════════════════════════════════════════ -->
 <script>
+/* ═══════════════════════════════════════════
+   BANCO DE ENUNCIADOS
+   ───────────────────────────────────────────
+   Un enunciado es el bloque de hechos común a un grupo de
+   preguntas consecutivas (p.ej. "Título del bloque de hechos 1.
+   Preguntas 1 a 4" en el documento de origen). Ese título/rango
+   NO se muestra tal cual: solo sirve para saber qué preguntas
+   se vinculan a qué enunciado mediante "statementId".
+
+     id         : identificador único (ej. "E1"). Se referencia
+                  desde QUESTIONS_BANK con "statementId".
+     number     : texto corto para la insignia cuadrada (ej. "1").
+     title      : título del supuesto/expediente.
+     ref        : código de referencia.
+     ambito     : materias/temas que abarca.
+     factBlocks : bloques de hechos, en orden narrativo:
+                    { title, paragraphs: [...], red (bool, opcional),
+                      hidden (bool, opcional) }
+     timeline   : hitos de la línea de tiempo, en orden:
+                    { date, text, red (bool, opcional),
+                      hidden (bool, opcional) }
+
+   "red:true" marca un bloque/hito crítico o desencadenante
+   (se resalta en rojo). "hidden:true" omite ese bloque/hito
+   del renderizado sin necesidad de borrarlo.
+═══════════════════════════════════════════ */
+const STATEMENTS_BANK = [
+    {
+        id: "E1",
+        number: "1",
+        title: "[Título del supuesto/expediente]",
+        ref: "[código de referencia]",
+        ambito: "[materias que abarca]",
+        factBlocks: [
+            {
+                title: "[Título del bloque de hechos]",
+                paragraphs: [
+                    "[Narrativa de hechos 1.]",
+                    "[Narrativa de hechos 2, si procede.]"
+                ]
+            },
+            {
+                title: "[Título de otro bloque de hechos]",
+                paragraphs: [
+                    "[Narrativa de hechos.]"
+                ]
+            },
+            {
+                title: "[Título del bloque de hechos críticos]",
+                red: true,
+                paragraphs: [
+                    "[Hecho desencadenante 1.]",
+                    "[Hecho desencadenante 2.]"
+                ]
+            }
+        ],
+        timeline: [
+            { date: "[FECHA]", text: "[Hito 1]" },
+            { date: "[FECHA]", text: "[Hito 2]" },
+            { date: "[FECHA]", text: "[Hito 3]" },
+            { date: "[FECHA]", text: "[Hito crítico final]", red: true }
+        ]
+    }
+];
+
 /* ═══════════════════════════════════════════
    BANCO DE PREGUNTAS
    ───────────────────────────────────────────
    Rellena este array con tus propias preguntas siguiendo la
    misma estructura. Cada objeto es una pregunta:
 
+     statementId : id del enunciado (STATEMENTS_BANK) al que
+                   pertenece esta pregunta, o null si es una
+                   pregunta suelta sin enunciado asociado.
      tag : etiqueta corta (materia · artículo) que aparece
            encima del enunciado de la pregunta.
      q   : texto de la pregunta.
-     a   : array con las 4 opciones de respuesta (A, B, C, D).
-     c   : índice (0-3) de la opción correcta dentro de "a".
+     a   : array con las 4 opciones de respuesta. En el documento
+           de origen la opción correcta siempre se transcribe en
+           primer lugar (posición A); en pantalla las opciones se
+           barajan de forma aleatoria para cada usuario, así que
+           el orden final que ve cada persona nunca es fijo.
+     c   : índice (0-3) de la opción correcta dentro de "a" (por
+           convención del documento de origen, normalmente 0).
      law : motivación legal/normativa que se muestra como
            feedback tras responder.
      tip : consejo práctico o aclaración breve (aparece
            destacado con 💡 debajo de "law").
 
+   El orden de este array es el orden "por defecto" del examen:
+   se respeta tal cual salvo que el usuario pida un intento
+   aleatorio (ver botón "Nuevo Intento"). Las preguntas de un
+   mismo enunciado deben ir consecutivas en el array para que el
+   panel de hechos se muestre correctamente.
+
    Puedes añadir tantas preguntas como necesites; el nº de
    preguntas y el nº de minutos en las "meta-pill" de la
    cabecera son solo informativos y no están vinculados al
-   temporizador (ver "timeLeft = 30 * 60" más abajo).
+   temporizador (ver "examDurationSeconds" más abajo).
 ═══════════════════════════════════════════ */
 const QUESTIONS_BANK = [
     {
+        statementId: "E1",
         tag: "[Materia · Artículo de referencia]",
         q: "[Texto de la pregunta 1.]",
         a: [
-            "[Opción A]",
-            "[Opción B — puede ser la correcta]",
+            "[Opción A — la correcta en el documento de origen]",
+            "[Opción B]",
             "[Opción C]",
             "[Opción D]"
         ],
-        c: 1,
+        c: 0,
         law: "[Motivación legal: normativa aplicable y razonamiento de por qué la opción correcta lo es y las demás no.]",
         tip: "[Consejo práctico, matiz o error frecuente relacionado con esta pregunta.]"
     },
     {
+        statementId: "E1",
         tag: "[Materia · Artículo de referencia]",
         q: "[Texto de la pregunta 2.]",
         a: [
-            "[Opción A]",
+            "[Opción A — la correcta en el documento de origen]",
             "[Opción B]",
-            "[Opción C — puede ser la correcta]",
+            "[Opción C]",
             "[Opción D]"
         ],
-        c: 2,
+        c: 0,
         law: "[Motivación legal: normativa aplicable y razonamiento de por qué la opción correcta lo es y las demás no.]",
         tip: "[Consejo práctico, matiz o error frecuente relacionado con esta pregunta.]"
     }
@@ -725,6 +834,7 @@ let alerted5             = false;
 let alerted5b            = false;
 let alerted1             = false;
 let instantFeedback      = false;    // Modo "corregir pregunta a pregunta"
+let currentStatementId   = undefined; // Enunciado mostrado actualmente en #statement-container
 
 /* ═══════════════════════════════════════════
    SHUFFLE (Fisher-Yates)
@@ -736,6 +846,96 @@ function shuffle(arr) {
         [a[i], a[j]] = [a[j], a[i]];
     }
     return a;
+}
+
+/* ═══════════════════════════════════════════
+   ENUNCIADOS — render y agrupación por statementId
+═══════════════════════════════════════════ */
+function renderStatementHTML(stmt) {
+    if (!stmt) return '';
+
+    let factsHtml = '';
+    (stmt.factBlocks || []).forEach(fb => {
+        if (fb.hidden) return;
+        const cls   = fb.red ? 'fact-block red' : 'fact-block';
+        const icon  = fb.red ? '⚠️' : '📋';
+        const paras = (fb.paragraphs || []).map(p => `<p>${p}</p>`).join('');
+        factsHtml += `<div class="${cls}"><div class="fact-title">${icon} ${fb.title}</div>${paras}</div>`;
+    });
+
+    const tlItems = (stmt.timeline || []).filter(t => !t.hidden);
+    const timelineHtml = tlItems.length
+        ? `<div class="timeline">${tlItems.map(t =>
+            `<div class="tl-item${t.red ? ' red-event' : ''}"><span class="tl-date">${t.date}</span>${t.text}</div>`
+          ).join('')}</div>`
+        : '';
+
+    return `
+        <section class="statement" id="stmt-${stmt.id}">
+            <div class="statement-header">
+                <div class="exp-number">${stmt.number || 'E'}</div>
+                <div class="statement-title-block">
+                    <h2>${stmt.title}</h2>
+                    <span class="ref">REF: ${stmt.ref} · ÁMBITO: ${stmt.ambito}</span>
+                </div>
+            </div>
+            ${factsHtml}
+            ${timelineHtml}
+        </section>`;
+}
+
+// Solo repinta el panel de enunciado cuando cambia respecto al que ya se
+// está mostrando (es decir, al pasar a la primera pregunta de otro
+// enunciado), nunca en cada pregunta dentro del mismo bloque.
+function updateStatementPanel(statementId) {
+    if (statementId === currentStatementId) return;
+    currentStatementId = statementId;
+
+    const container = document.getElementById('statement-container');
+    if (!statementId) { container.innerHTML = ''; return; }
+
+    const stmt = STATEMENTS_BANK.find(s => s.id === statementId);
+    container.innerHTML = renderStatementHTML(stmt);
+}
+
+// Agrupa un banco de preguntas por statementId, conservando el orden de
+// aparición de cada grupo y el orden interno de sus preguntas. Las
+// preguntas sin enunciado forman cada una su propio grupo de tamaño 1.
+function groupByStatement(bank) {
+    const groups = [];
+    const indexByKey = new Map();
+    bank.forEach((q, idx) => {
+        const key = q.statementId ? q.statementId : `__solo_${idx}`;
+        if (!indexByKey.has(key)) {
+            indexByKey.set(key, groups.length);
+            groups.push({ key, statementId: q.statementId || null, items: [] });
+        }
+        groups[indexByKey.get(key)].items.push(q);
+    });
+    return groups;
+}
+
+// Construye el listado final de preguntas para un intento según el modo:
+//   'default' → orden proporcionado tal cual (QUESTIONS_BANK).
+//   'answers' → reutiliza exactamente el mismo conjunto/orden que el
+//               intento anterior (sourceBank); solo cambian las opciones.
+//   'full'    → baraja el orden de los enunciados y, dentro de cada uno,
+//               incluye un subconjunto aleatorio de sus preguntas (sin
+//               desvincular nunca una pregunta de su enunciado), y
+//               conserva el orden narrativo interno de cada grupo.
+function buildQuestionOrder(mode, sourceBank) {
+    if (mode === 'answers') return [...sourceBank];
+    if (mode !== 'full') return [...QUESTIONS_BANK];
+
+    const groups = shuffle(groupByStatement(QUESTIONS_BANK));
+    const result = [];
+    groups.forEach(g => {
+        const count  = g.items.length === 1 ? 1 : 1 + Math.floor(Math.random() * g.items.length);
+        const picked = shuffle(g.items).slice(0, count);
+        picked.sort((a, b) => g.items.indexOf(a) - g.items.indexOf(b));
+        result.push(...picked);
+    });
+    return result;
 }
 
 /* ═══════════════════════════════════════════
@@ -821,6 +1021,7 @@ function closeOverlay() {
         document.getElementById('print-btn').style.display   = 'inline-flex';
         document.getElementById('restart-btn').style.display = 'inline-flex';
         document.getElementById('send-btn').style.display    = 'inline-flex';
+        document.getElementById('home-btn-bottom').style.display = 'inline-flex';
         if (!document.getElementById('inline-score-banner')) {
             buildInlineScore();
         }
@@ -897,9 +1098,9 @@ function speakText(text) {
 /* ═══════════════════════════════════════════
    INICIALIZACIÓN
 ═══════════════════════════════════════════ */
-function init(shuffled = false) {
+function init(mode = 'default', sourceBank = null) {
     // Resetear estado
-    questions  = shuffled ? shuffle(QUESTIONS_BANK) : [...QUESTIONS_BANK];
+    questions  = buildQuestionOrder(mode, sourceBank || questions);
     timeLeft   = examDurationSeconds;
     current    = 0;
     userAns    = {};
@@ -909,6 +1110,7 @@ function init(shuffled = false) {
     alerted5b  = false;
     alerted1   = false;
     timerPaused = false;
+    currentStatementId = undefined; // fuerza a repintar el enunciado de la primera pregunta
 
     // Limpiar DOM (solo las preguntas; el ⚙ de configuración se conserva)
     document.getElementById('nav-boxes').innerHTML  = '';
@@ -925,6 +1127,7 @@ function init(shuffled = false) {
     document.getElementById('send-btn').style.display    = 'none';
     document.getElementById('send-btn').disabled = false;
     document.getElementById('send-btn').textContent = '📤 Enviar Resultados';
+    document.getElementById('home-btn-bottom').style.display = 'none';
     document.getElementById('correction-panel').innerHTML = '';
     document.getElementById('score-banner').style.display = 'none';
     closeSettings();
@@ -946,10 +1149,10 @@ function init(shuffled = false) {
         box.onclick  = () => jump(i);
         nav.appendChild(box);
 
-        // Opciones (siempre barajan posición)
-        const shuffledOpts = shuffled
-            ? shuffle(q.a.map((txt, idx) => ({ txt, idx })))
-            : q.a.map((txt, idx) => ({ txt, idx }));
+        // Opciones: siempre se barajan, para cada usuario/carga de la página,
+        // independientemente del modo de intento (que solo afecta a qué
+        // preguntas y en qué orden aparecen, no al orden de sus opciones).
+        const shuffledOpts = shuffle(q.a.map((txt, idx) => ({ txt, idx })));
 
         // Crear mapa de idx original → nuevo
         const answerMap = {}; // newIdx → origIdx
@@ -986,6 +1189,9 @@ function init(shuffled = false) {
             </div>`;
         cont.appendChild(card);
     });
+
+    // Mostrar el enunciado correspondiente a la primera pregunta
+    updateStatementPanel(questions.length ? questions[0].statementId || null : null);
 
     // Actualizar progress
     updateProgress();
@@ -1043,6 +1249,9 @@ function jump(i) {
     document.getElementById(`qcard-${i}`).classList.add('active');
     document.getElementById(`nav-${i}`).classList.add('active');
     current = i;
+    // El panel de enunciado solo se repinta si la pregunta destino
+    // pertenece a un enunciado distinto al que ya se está mostrando.
+    updateStatementPanel(questions[i].statementId || null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 function move(d) { const n = current + d; if (n >= 0 && n < questions.length) jump(n); }
@@ -1145,11 +1354,12 @@ function evaluateExam() {
         }
     });
 
-    // Ocultar botón corregir, mostrar imprimir, repetir y enviar
+    // Ocultar botón corregir, mostrar imprimir, repetir, enviar y menú
     document.getElementById('check-btn').style.display   = 'none';
     document.getElementById('print-btn').style.display   = 'inline-flex';
     document.getElementById('restart-btn').style.display = 'inline-flex';
     document.getElementById('send-btn').style.display    = 'inline-flex';
+    document.getElementById('home-btn-bottom').style.display = 'inline-flex';
 
     // Banner de resultado inline
     buildInlineScore();
@@ -1271,6 +1481,7 @@ function showCorrectionPanel() {
     // Mostrar botones en overlay
     document.getElementById('print-btn').style.display   = 'inline-flex';
     document.getElementById('restart-btn').style.display = 'inline-flex';
+    document.getElementById('home-btn-bottom').style.display = 'inline-flex';
 }
 
 /* ═══════════════════════════════════════════
@@ -1288,6 +1499,33 @@ function printResults() {
         f.style.display = 'block';
     });
 
+    // Reconstruir temporalmente el documento para impresión: cada enunciado
+    // aparece justo antes del bloque de preguntas al que está vinculado
+    // (en pantalla solo se muestra un enunciado a la vez).
+    const statementContainer = document.getElementById('statement-container');
+    const quizContainer      = document.getElementById('quiz-container');
+    const printWrap = document.createElement('div');
+    printWrap.id = 'print-wrap';
+    let lastStatementId;
+    questions.forEach((q, i) => {
+        const sid = q.statementId || null;
+        if (sid !== lastStatementId) {
+            lastStatementId = sid;
+            if (sid) {
+                const stmt = STATEMENTS_BANK.find(s => s.id === sid);
+                if (stmt) {
+                    const tmp = document.createElement('div');
+                    tmp.innerHTML = renderStatementHTML(stmt);
+                    printWrap.appendChild(tmp.firstElementChild);
+                }
+            }
+        }
+        printWrap.appendChild(document.getElementById(`qcard-${i}`));
+    });
+    statementContainer.style.display = 'none';
+    quizContainer.style.display = 'none';
+    quizContainer.insertAdjacentElement('afterend', printWrap);
+
     // Ocultar el overlay temporalmente (sin tocar el display inline,
     // para no romper el cierre posterior con classList en closeOverlay)
     const overlayWasShown = document.getElementById('overlay').classList.contains('show');
@@ -1295,8 +1533,15 @@ function printResults() {
 
     window.print();
 
-    // Restaurar tras impresión
+    // Restaurar tras impresión: devolver cada tarjeta a quiz-container en
+    // su orden original y eliminar el contenedor temporal de impresión.
     setTimeout(() => {
+        questions.forEach((q, i) => {
+            quizContainer.appendChild(document.getElementById(`qcard-${i}`));
+        });
+        printWrap.remove();
+        quizContainer.style.display = '';
+        statementContainer.style.display = '';
         document.querySelectorAll('.question-card').forEach((c, i) => {
             c.style.display = i === current ? 'block' : '';
         });
@@ -1392,17 +1637,46 @@ function enviarResultados() {
 }
 
 /* ═══════════════════════════════════════════
-   REINICIAR (con barajado)
+   REINICIAR (elección de aleatoriedad)
 ═══════════════════════════════════════════ */
-function restartExam() {
+function openRandomModal() {
+    document.getElementById('random-modal').classList.add('show');
+}
+
+function closeRandomModal() {
+    document.getElementById('random-modal').classList.remove('show');
+}
+
+// mode: 'answers' → mismas preguntas y mismo orden, solo cambian las
+//                    opciones de respuesta.
+//       'full'    → también se baraja qué preguntas salen y en qué orden
+//                    (respetando siempre el vínculo pregunta-enunciado y
+//                    renumerando 1..N de forma correlativa y visible).
+function confirmRestart(mode) {
+    closeRandomModal();
     if (timerInt) clearInterval(timerInt);
     // Limpiar banner inline
     const old = document.getElementById('inline-score-banner');
     if (old) old.remove();
     // Ocultar overlay
     document.getElementById('overlay').classList.remove('show');
-    // Reinicializar con preguntas barajadas
-    init(true);
+    // Reinicializar el intento. Para 'answers' se reutiliza el conjunto de
+    // preguntas ya cargado (questions); para 'full' se recalcula desde cero
+    // a partir de QUESTIONS_BANK dentro de buildQuestionOrder().
+    init(mode, questions);
+}
+
+/* ═══════════════════════════════════════════
+   VOLVER AL MENÚ PRINCIPAL
+═══════════════════════════════════════════ */
+function goHome() {
+    if (!evaluated) {
+        const leave = confirm(
+            'Vas a salir del expediente dejando el test a medias: se perderá el progreso del intento actual.\n\n¿Seguro que quieres volver al menú principal?'
+        );
+        if (!leave) return;
+    }
+    window.location.href = '../index.html';
 }
 
 /* ═══════════════════════════════════════════
@@ -1413,7 +1687,7 @@ document.addEventListener('click', () => {
     try { getAudioCtx(); } catch(e) {}
 }, { once: true });
 
-init(false);
+init('default');
 </script>
 
 </body>
