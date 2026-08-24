@@ -251,6 +251,7 @@
         .q-num { flex-shrink:0; font-family:'Playfair Display',serif; font-size:2.5rem; font-weight:900; color:rgba(0,0,0,0.15); line-height:1; min-width:50px; }
         .q-body { flex: 1; }
         .q-tag { font-family:'JetBrains Mono',monospace; font-size:0.55rem; letter-spacing:0.25em; color:#000000; text-transform:uppercase; margin-bottom:8px; display:block; }
+        body.hide-qtags .q-tag { display: none; }
         .q-text { font-family:'Source Serif 4',serif; font-size:1.0rem; font-weight:600; color:#000000; line-height:1.6; }
 
         .options-grid { display:flex; flex-direction:column; gap:10px; margin-top:20px; }
@@ -496,6 +497,12 @@
                 <label>
                     <input type="checkbox" id="instant-feedback-toggle" onchange="toggleInstantFeedback(this.checked)">
                     Corregir pregunta a pregunta
+                </label>
+            </div>
+            <div class="settings-row settings-check">
+                <label>
+                    <input type="checkbox" id="hide-qtags-toggle" onchange="toggleHideQTags(this.checked)">
+                    Ocultar etiquetas de pregunta (q-tag)
                 </label>
             </div>
         </div>
@@ -1257,6 +1264,10 @@ function applyTimer() {
 
 function toggleInstantFeedback(checked) {
     instantFeedback = checked;
+}
+
+function toggleHideQTags(checked) {
+    document.body.classList.toggle('hide-qtags', checked);
 }
 
 function closeOverlay() {
