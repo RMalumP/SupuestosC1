@@ -1255,11 +1255,16 @@ function jump(i) {
     document.querySelectorAll('.question-card').forEach(c => c.classList.remove('active'));
     document.querySelectorAll('.nav-box').forEach(b => b.classList.remove('active'));
     document.getElementById(`qcard-${i}`).classList.add('active');
-    document.getElementById(`nav-${i}`).classList.add('active');
+    const navBox = document.getElementById(`nav-${i}`);
+    navBox.classList.add('active');
     current = i;
     // El panel de enunciado solo se repinta si la pregunta destino
     // pertenece a un enunciado distinto al que ya se está mostrando.
     updateStatementPanel(questions[i].statementId || null);
+    // En móvil la fila de preguntas se desplaza en horizontal: al cambiar
+    // de pregunta (avanzando/retrocediendo o tras moverla manualmente) la
+    // casilla activa siempre vuelve a quedar visible dentro de esa fila.
+    navBox.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 function move(d) { const n = current + d; if (n >= 0 && n < questions.length) jump(n); }
