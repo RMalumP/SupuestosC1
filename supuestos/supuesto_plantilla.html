@@ -1339,6 +1339,22 @@ function updateProgress() {
 }
 
 /* ═══════════════════════════════════════════
+   COLOR DE LAS CASILLAS DE NAVEGACIÓN TRAS CORREGIR
+   ───────────────────────────────────────────
+   Acierto → verde ("answered"). Fallo → rojo ("nav-wrong").
+   Sin responder → sin clase, aspecto neutro ("en blanco").
+═══════════════════════════════════════════ */
+function updateNavResultColors() {
+    questions.forEach((q, i) => {
+        const correctNew = parseInt(document.getElementById(`qcard-${i}`).dataset.correct);
+        const navBox = document.getElementById(`nav-${i}`);
+        navBox.classList.remove('answered', 'nav-wrong');
+        if (userAns[i] === undefined) return;
+        navBox.classList.add(userAns[i] === correctNew ? 'answered' : 'nav-wrong');
+    });
+}
+
+/* ═══════════════════════════════════════════
    CORRECCIÓN DEL EXAMEN (desde botón principal)
    Puede lanzarse en cualquier momento, incluso desde la
    pregunta 1 y sin haber respondido todas las preguntas.
@@ -1366,6 +1382,7 @@ function evaluateExam() {
             document.getElementById(`opt-${i}-${userAns[i]}`).classList.add('wrong');
         }
     });
+    updateNavResultColors();
 
     // Ocultar botón corregir, mostrar imprimir, repetir, enviar y menú
     document.getElementById('check-btn').style.display   = 'none';
@@ -1441,6 +1458,7 @@ function buildInlineScore() {
 ═══════════════════════════════════════════ */
 function showCorrectionPanel() {
     buildScoreBanner();
+    updateNavResultColors();
 
     const panel  = document.getElementById('correction-panel');
     const letters = ['A','B','C','D'];
