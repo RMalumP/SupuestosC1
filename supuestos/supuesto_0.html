@@ -462,6 +462,14 @@
             .timeline { grid-template-columns:1fr 1fr; }
             #settings-panel { width: 240px; right: -8px; }
             #overlay-close { top: 12px; right: 12px; width: 38px; height: 38px; }
+
+            /* La cabecera nunca baja de línea: los botones de casa y
+               configuración quedan siempre visibles, y las casillas de
+               pregunta pasan a desplazarse en horizontal dentro de su fila. */
+            #nav-header { flex-wrap: nowrap; }
+            #nav-boxes { flex-wrap: nowrap; overflow-x: auto; min-width: 0; scrollbar-width: thin; -webkit-overflow-scrolling: touch; }
+            .nav-box { flex-shrink: 0; }
+            .home-btn, .settings-wrap { flex-shrink: 0; }
         }
     </style>
 </head>
