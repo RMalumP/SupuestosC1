@@ -116,6 +116,40 @@
             color: var(--brown-mid); text-align: center; margin-bottom: 24px; opacity: 0.85;
         }
 
+        /* SELECTOR DE CATEGORÍA (Supuestos / Test / Simulacros) */
+        .category-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 40px;
+        }
+        .category-btn {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--brown);
+            background: var(--paper);
+            border: 1.5px solid rgba(92,64,51,0.25);
+            border-radius: var(--radius);
+            padding: 13px 26px;
+            cursor: pointer;
+            font-weight: 700;
+            transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.2s;
+            box-shadow: 0 4px 12px var(--shadow);
+        }
+        .category-btn:hover {
+            border-color: var(--brown);
+            transform: translateY(-2px);
+        }
+        .category-btn.active {
+            background: var(--brown);
+            color: var(--cream);
+            border-color: var(--brown-dark);
+            box-shadow: 0 8px 20px rgba(61,42,32,0.3);
+        }
+
         /* SELECTOR DE TESTS */
         .tests-grid {
             display: grid;
@@ -244,6 +278,7 @@
             .hero h1 { font-size: 1.7rem; }
             .tests-grid { grid-template-columns: 1fr; }
             .results-panel { padding: 20px 14px 24px; }
+            .category-btn { flex: 1 1 auto; text-align: center; padding: 13px 10px; }
         }
     </style>
 </head>
@@ -263,6 +298,9 @@
 <div class="container">
 
     <a class="back-link" href="../index.html">&larr; Volver al menú de supuestos</a>
+
+    <div class="grid-title">TIPO DE PRUEBA</div>
+    <div class="category-tabs" id="category-tabs"></div>
 
     <div class="grid-title">SELECCIONA UN TEST</div>
     <div class="tests-grid" id="tests-grid">
@@ -297,18 +335,40 @@
 <script>
 (function () {
     var SHEET_ID = '19HZy6JZlljrvuEWdryuxWFqGHMf15qjsCVFe6OvLtLo';
-    var GID = '408413850';
 
-    // Índices de columna (0 = A)
-    var COL_MARCA      = 0; // A - Marca temporal
-    var COL_TEST       = 1; // B - Identificador / test
-    var COL_NOMBRE     = 2; // C - Nombre del usuario
+    // Tres pestañas de la misma hoja de cálculo, cada una con su propio botón superior
+    var CATEGORIES = {
+        supuestos:  { label: 'Supuestos',  gid: '408413850', format: 'simple' },
+        test:       { label: 'Test',       sheetName: 'Respuestas de formulario 2', format: 'simple' },
+        simulacros: { label: 'Simulacros', sheetName: 'Respuestas de formulario 3', format: 'combined' }
+    };
+    var CATEGORY_ORDER = ['supuestos', 'test', 'simulacros'];
+    var selectedCategory = 'supuestos';
+
+    // Índices de columna comunes a ambos formatos (0 = A)
+    var COL_MARCA  = 0; // A - Marca temporal
+    var COL_TEST   = 1; // B - Identificador / test
+    var COL_NOMBRE = 2; // C - Nombre del usuario
+
+    // Formato "simple" (Supuestos y Test): una sola tanda de preguntas
     var COL_PREGUNTAS  = 3; // D - Número de preguntas
     var COL_ACIERTOS   = 4; // E - Número de aciertos
     var COL_FALLOS     = 5; // F - Número de fallos
     var COL_BLANCO     = 6; // G - Número en blanco
     var COL_T_ASIGNADO = 7; // H - Tiempo de reloj asignado
     var COL_T_REAL     = 8; // I - Tiempo de realización
+
+    // Formato "combined" (Simulacros): bloque de supuesto (D-G) + bloque de test (H-K)
+    var COL_SUP_PREGUNTAS  = 3;  // D
+    var COL_SUP_ACIERTOS   = 4;  // E
+    var COL_SUP_FALLOS     = 5;  // F
+    var COL_SUP_BLANCO     = 6;  // G
+    var COL_TST_PREGUNTAS  = 7;  // H
+    var COL_TST_ACIERTOS   = 8;  // I
+    var COL_TST_FALLOS     = 9;  // J
+    var COL_TST_BLANCO     = 10; // K
+    var COL_COMB_T_ASIGNADO = 11; // L
+    var COL_COMB_T_REAL     = 12; // M
 
     var allRows = [];
     var selectedTest = null; // null => "todos"
@@ -336,7 +396,7 @@
         return (r % 1 === 0) ? String(r) : String(r.toFixed(2)).replace(/0$/, '').replace(/\.$/, '');
     }
 
-    function processTable(table) {
+    function processTable(table, format) {
         var rows = table.rows || [];
         var out = [];
         for (var i = 0; i < rows.length; i++) {
@@ -346,12 +406,24 @@
             var nombre = cellText(c[COL_NOMBRE]);
             if (!marca && !test && !nombre) continue; // fila vacía
 
-            var preguntas = toNumber(cellText(c[COL_PREGUNTAS]));
-            var aciertos = toNumber(cellText(c[COL_ACIERTOS]));
-            var fallos = toNumber(cellText(c[COL_FALLOS]));
-            var blanco = toNumber(cellText(c[COL_BLANCO]));
-            var tAsignado = cellText(c[COL_T_ASIGNADO]);
-            var tReal = cellText(c[COL_T_REAL]);
+            var preguntas, aciertos, fallos, blanco, tAsignado, tReal;
+
+            if (format === 'combined') {
+                // Simulacros: suma del bloque de supuesto (D-G) y del bloque de test (H-K)
+                preguntas = toNumber(cellText(c[COL_SUP_PREGUNTAS])) + toNumber(cellText(c[COL_TST_PREGUNTAS]));
+                aciertos  = toNumber(cellText(c[COL_SUP_ACIERTOS]))  + toNumber(cellText(c[COL_TST_ACIERTOS]));
+                fallos    = toNumber(cellText(c[COL_SUP_FALLOS]))    + toNumber(cellText(c[COL_TST_FALLOS]));
+                blanco    = toNumber(cellText(c[COL_SUP_BLANCO]))    + toNumber(cellText(c[COL_TST_BLANCO]));
+                tAsignado = cellText(c[COL_COMB_T_ASIGNADO]);
+                tReal     = cellText(c[COL_COMB_T_REAL]);
+            } else {
+                preguntas = toNumber(cellText(c[COL_PREGUNTAS]));
+                aciertos  = toNumber(cellText(c[COL_ACIERTOS]));
+                fallos    = toNumber(cellText(c[COL_FALLOS]));
+                blanco    = toNumber(cellText(c[COL_BLANCO]));
+                tAsignado = cellText(c[COL_T_ASIGNADO]);
+                tReal     = cellText(c[COL_T_REAL]);
+            }
 
             var resultado = aciertos - 0.25 * fallos;
             if (resultado < 0) resultado = 0;
@@ -373,6 +445,32 @@
             });
         }
         return out;
+    }
+
+    function buildCategoryTabs() {
+        var wrap = document.getElementById('category-tabs');
+        wrap.innerHTML = '';
+        CATEGORY_ORDER.forEach(function (key) {
+            var btn = document.createElement('button');
+            btn.className = 'category-btn' + (selectedCategory === key ? ' active' : '');
+            btn.setAttribute('data-category', key);
+            btn.textContent = CATEGORIES[key].label;
+            btn.addEventListener('click', function () {
+                if (selectedCategory === key) return;
+                selectedCategory = key;
+                selectedTest = null;
+                highlightCategoryTabs();
+                loadData();
+            });
+            wrap.appendChild(btn);
+        });
+    }
+
+    function highlightCategoryTabs() {
+        var btns = document.querySelectorAll('.category-btn');
+        btns.forEach(function (b) {
+            b.classList.toggle('active', b.getAttribute('data-category') === selectedCategory);
+        });
     }
 
     function buildTestCards() {
@@ -437,11 +535,12 @@
         });
         var title = document.getElementById('active-test-title');
         var sub = document.getElementById('active-test-sub');
+        var catLabel = CATEGORIES[selectedCategory].label;
         if (selectedTest === null) {
-            title.textContent = 'Todos los tests';
+            title.textContent = catLabel + ' · Todos los tests';
             sub.textContent = 'Clasificación general por nota sobre 10';
         } else {
-            title.textContent = selectedTest;
+            title.textContent = catLabel + ' · ' + selectedTest;
             sub.textContent = 'Clasificación de este test, ordenada de mejor a peor puntuación';
         }
     }
@@ -573,10 +672,12 @@
             if (window[cbName]) { showError(); delete window[cbName]; }
         }, 12000);
 
+        var category = CATEGORIES[selectedCategory];
+
         window[cbName] = function (json) {
             clearTimeout(timeoutId);
             try {
-                allRows = processTable(json.table);
+                allRows = processTable(json.table, category.format);
                 buildTestCards();
                 renderTable();
             } catch (e) {
@@ -590,10 +691,12 @@
         var oldScript = document.getElementById('sheet-jsonp-script');
         if (oldScript) oldScript.remove();
 
+        var sheetParam = category.gid ? ('gid=' + category.gid) : ('sheet=' + encodeURIComponent(category.sheetName));
+
         var script = document.createElement('script');
         script.id = 'sheet-jsonp-script';
         script.src = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq' +
-            '?gid=' + GID +
+            '?' + sheetParam +
             '&headers=1' +
             '&tqx=out:json;responseHandler:' + cbName +
             '&_=' + Date.now();
@@ -606,6 +709,7 @@
 
     document.getElementById('refresh-btn').addEventListener('click', loadData);
 
+    buildCategoryTabs();
     loadData();
 })();
 </script>
