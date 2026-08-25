@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SUPUESTO 0. HAY QUE ESPABILAR QUE EL VERANO SE OS VA A COMER</title>
+    <title>[TÍTULO DE LA EVALUACIÓN]</title>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,600;1,8..60,300&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 
     <style>
@@ -11,6 +11,15 @@
            VARIABLES Y RESET
         ════════════════════════════════════════ */
         :root {
+            /* Versión "r,g,b" de los colores base: permite construir
+               transparencias — rgba(var(--gold-rgb),0.3) — de modo que al
+               cambiar la paleta desde el editor cambie TODA la página y no
+               solo los colores planos. */
+            --gold-rgb:    143,196,217;
+            --navy-rgb:    61,42,32;
+            --crimson-rgb: 139,26,26;
+            --forest-rgb:  26,71,49;
+
             --navy:     #3d2a20;
             --navy-mid: #5c4033;
             --gold:     #8fc4d9;
@@ -23,7 +32,7 @@
             --slate:    #4a5568;
             --ink:      #1a1a2e;
             --paper:    #fffef9;
-            --shadow:   rgba(61,42,32,0.18);
+            --shadow:   rgba(var(--navy-rgb),0.18);
             --radius:   4px;
         }
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -40,9 +49,9 @@
             position: fixed; inset: 0;
             background:
                 repeating-linear-gradient(0deg, transparent, transparent 60px,
-                    rgba(143,196,217,0.03) 60px, rgba(143,196,217,0.03) 61px),
-                radial-gradient(ellipse at 20% 80%, rgba(143,196,217,0.08) 0%, transparent 50%),
-                radial-gradient(ellipse at 80% 20%, rgba(139,26,26,0.06) 0%, transparent 50%);
+                    rgba(var(--gold-rgb),0.03) 60px, rgba(var(--gold-rgb),0.03) 61px),
+                radial-gradient(ellipse at 20% 80%, rgba(var(--gold-rgb),0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(var(--crimson-rgb),0.06) 0%, transparent 50%);
             pointer-events: none; z-index: 0;
         }
 
@@ -54,19 +63,32 @@
             padding: 14px 20px;
             position: sticky; top: 0; z-index: 1000;
             border-bottom: 3px solid var(--gold);
-            display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+            display: flex; align-items: flex-start; gap: 6px; flex-wrap: nowrap;
             box-shadow: 0 4px 20px rgba(0,0,0,0.5);
         }
-        #nav-header::before {
-            content: 'PREGUNTAS';
+        /* Rótulo de cada bloque dentro de la cabecera de navegación.
+           Sustituye al antiguo rótulo fijo "PREGUNTAS": ahora cada bloque
+           (supuesto o teoría) pone su propio nombre en su propio color. */
+        .nav-group-label {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.6rem; letter-spacing: 0.2em; color: var(--gold);
-            margin-right: 8px; opacity: 0.7; white-space: nowrap;
+            font-size: 0.58rem; letter-spacing: 0.18em; text-transform: uppercase;
+            opacity: 0.9; line-height: 1.2; cursor: pointer;
+            flex: 0 0 150px; text-align: right;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
-        #nav-boxes { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; flex: 1; }
+        .nav-group-label:hover { opacity: 1; text-decoration: underline; }
+        /* Cada bloque del examen ocupa su propia fila: nombre a la izquierda
+           y sus casillas numeradas a la derecha. */
+        #nav-boxes { display: flex; flex-direction: column; align-items: stretch; gap: 8px; flex: 1; min-width: 0; }
+        .nav-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+        .nav-row + .nav-row { border-top: 1px solid rgba(var(--gold-rgb),0.18); padding-top: 8px; }
+        /* Cabecera plegada: solo queda a la vista la fila del bloque actual */
+        body.nav-plegada .nav-row { display: none; border-top: none; padding-top: 0; }
+        body.nav-plegada .nav-row.fila-actual { display: flex; }
+        .nav-row-boxes { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; flex: 1; min-width: 0; }
         .nav-box {
             width: 36px; height: 36px;
-            border: 1.5px solid rgba(143,196,217,0.35);
+            border: 1.5px solid rgba(var(--gold-rgb),0.35);
             color: rgba(255,255,255,0.6);
             display: flex; align-items: center; justify-content: center;
             font-family: 'JetBrains Mono', monospace;
@@ -74,12 +96,12 @@
             cursor: pointer; transition: all 0.25s; border-radius: var(--radius);
             background: rgba(255,255,255,0.04); user-select: none;
         }
-        .nav-box:hover { border-color: var(--gold); color: var(--gold-lt); background: rgba(143,196,217,0.1); transform: translateY(-2px); }
-        .nav-box.active { background: var(--gold); color: var(--navy); border-color: var(--gold); box-shadow: 0 0 12px rgba(143,196,217,0.4); }
-        .nav-box.answered { background: rgba(26,71,49,0.7); color: #6fcf97; border-color: #2d8c5a; }
-        .nav-box.answered.active { background: var(--gold); color: var(--navy); }
-        .nav-box.nav-wrong { background: rgba(139,26,26,0.75) !important; color: #fecaca !important; border-color: var(--crimson) !important; }
-        .nav-box.nav-wrong.active { background: var(--gold) !important; color: var(--navy) !important; }
+        .nav-box:hover { border-color: var(--gold); color: var(--gold-lt); background: rgba(var(--gold-rgb),0.1); transform: translateY(-2px); }
+        .nav-box.active { background: var(--gold); color: var(--ink); border-color: var(--gold); box-shadow: 0 0 12px rgba(var(--gold-rgb),0.4); }
+        .nav-box.answered { background: rgba(var(--forest-rgb),0.7); color: #6fcf97; border-color: #2d8c5a; }
+        .nav-box.answered.active { background: var(--gold); color: var(--ink); }
+        .nav-box.nav-wrong { background: rgba(var(--crimson-rgb),0.75) !important; color: #fecaca !important; border-color: var(--crimson) !important; }
+        .nav-box.nav-wrong.active { background: var(--gold) !important; color: var(--ink) !important; }
 
         /* ════════════════════════════════════════
            PANEL DE CONFIGURACIÓN (temporizador + modo corrección)
@@ -87,7 +109,7 @@
         .settings-wrap { position: relative; margin-left: auto; flex-shrink: 0; }
         #settings-toggle {
             width: 36px; height: 36px;
-            border: 1.5px solid rgba(143,196,217,0.35);
+            border: 1.5px solid rgba(var(--gold-rgb),0.35);
             border-radius: var(--radius);
             background: rgba(255,255,255,0.04);
             color: rgba(255,255,255,0.7);
@@ -95,12 +117,12 @@
             display: flex; align-items: center; justify-content: center;
             cursor: pointer; transition: all 0.25s;
         }
-        #settings-toggle:hover, #settings-toggle.open { border-color: var(--gold); color: var(--gold-lt); background: rgba(143,196,217,0.1); }
+        #settings-toggle:hover, #settings-toggle.open { border-color: var(--gold); color: var(--gold-lt); background: rgba(var(--gold-rgb),0.1); }
 
         /* Botón volver al menú principal (cabecera) */
         .home-btn {
             width: 36px; height: 36px; flex-shrink: 0;
-            border: 1.5px solid rgba(143,196,217,0.35);
+            border: 1.5px solid rgba(var(--gold-rgb),0.35);
             border-radius: var(--radius);
             background: rgba(255,255,255,0.04);
             color: rgba(255,255,255,0.7);
@@ -108,7 +130,7 @@
             display: flex; align-items: center; justify-content: center;
             cursor: pointer; transition: all 0.25s;
         }
-        .home-btn:hover { border-color: var(--gold); color: var(--gold-lt); background: rgba(143,196,217,0.1); }
+        .home-btn:hover { border-color: var(--gold); color: var(--gold-lt); background: rgba(var(--gold-rgb),0.1); }
         #settings-panel {
             display: none;
             position: absolute; top: 44px; right: 0;
@@ -131,7 +153,7 @@
         .settings-row .time-edit-line { display: flex; gap: 8px; }
         #time-input {
             flex: 1; min-width: 0; background: rgba(255,255,255,0.06);
-            border: 1.5px solid rgba(143,196,217,0.3); border-radius: var(--radius);
+            border: 1.5px solid rgba(var(--gold-rgb),0.3); border-radius: var(--radius);
             color: var(--cream); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;
             padding: 8px 10px; text-align: center;
         }
@@ -140,7 +162,7 @@
             font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; font-weight: 700;
             letter-spacing: 0.1em; text-transform: uppercase; padding: 8px 12px;
             border: 1.5px solid var(--gold); border-radius: var(--radius);
-            background: var(--gold); color: var(--navy); cursor: pointer; white-space: nowrap;
+            background: var(--gold); color: var(--ink); cursor: pointer; white-space: nowrap;
             transition: all 0.2s;
         }
         .btn-mini:hover { background: var(--gold-lt); }
@@ -152,18 +174,18 @@
            TEMPORIZADOR
         ════════════════════════════════════════ */
         #timer {
-            position: fixed; right: 24px; top: 80px;
+            position: fixed; right: 24px; top: calc(var(--nav-h, 64px) + 16px);
             font-family: 'JetBrains Mono', monospace;
             font-size: 2rem; font-weight: 700; color: var(--gold);
             background: var(--navy-mid); padding: 10px 18px;
             border: 2px solid var(--gold); border-radius: var(--radius);
-            z-index: 999; box-shadow: 0 0 30px rgba(143,196,217,0.2), 0 8px 32px rgba(0,0,0,0.4);
+            z-index: 999; box-shadow: 0 0 30px rgba(var(--gold-rgb),0.2), 0 8px 32px rgba(0,0,0,0.4);
             letter-spacing: 0.05em; line-height: 1; text-align: center;
             min-width: 110px;
         }
         #timer .timer-label {
             display: block; font-size: 0.45rem; letter-spacing: 0.3em;
-            color: rgba(143,196,217,0.6); margin-bottom: 4px;
+            color: rgba(var(--gold-rgb),0.6); margin-bottom: 4px;
         }
         #timer.warn10 { color: #f59e0b; border-color: #f59e0b; }
         #timer.warn5  { color: #ef4444; border-color: #ef4444; animation: pulse-timer 0.7s infinite; }
@@ -182,7 +204,7 @@
         .container { max-width: 860px; margin: 0 auto; padding: 40px 24px 80px; position: relative; z-index: 1; }
 
         .inst-header {
-            background: var(--navy-mid); border: 1px solid rgba(143,196,217,0.25);
+            background: var(--navy-mid); border: 1px solid rgba(var(--gold-rgb),0.25);
             border-radius: var(--radius); padding: 28px 36px; margin-bottom: 8px;
             text-align: center; position: relative; overflow: hidden;
         }
@@ -195,35 +217,35 @@
         .inst-header .organismo { font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; letter-spacing: 0.3em; color: var(--gold); opacity: 0.8; padding-top: 8px; border-top: 1px solid rgba(184,220,235,0.3); display: inline-block; }
         .inst-header h1 { font-family: 'Playfair Display', serif; font-size: 1.35rem; font-weight: 900; color: var(--cream); margin: 8px 0 4px; letter-spacing: 0.04em; }
         .inst-header .meta-strip { display: flex; justify-content: center; gap: 12px; margin-top: 14px; flex-wrap: wrap; }
-        .meta-pill { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; letter-spacing: 0.15em; color: rgba(143,196,217,0.8); background: rgba(143,196,217,0.08); border: 1px solid rgba(143,196,217,0.2); padding: 5px 14px; border-radius: 2px; }
+        .meta-pill { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; letter-spacing: 0.15em; color: rgba(var(--gold-rgb),0.8); background: rgba(var(--gold-rgb),0.08); border: 1px solid rgba(var(--gold-rgb),0.2); padding: 5px 14px; border-radius: 2px; }
 
         /* ════════════════════════════════════════
            ENUNCIADO
         ════════════════════════════════════════ */
         .statement {
-            background: var(--paper); border: 1px solid rgba(143,196,217,0.2);
+            background: var(--paper); border: 1px solid rgba(var(--gold-rgb),0.2);
             border-radius: var(--radius); padding: 48px 52px; margin-bottom: 32px;
             position: relative; box-shadow: 0 16px 48px var(--shadow), inset 0 1px 0 rgba(255,255,255,0.8);
             line-height: 1.9;
         }
         .statement::after {
             content: ''; position: absolute; inset: 0;
-            background: repeating-linear-gradient(transparent, transparent 31px, rgba(143,196,217,0.06) 31px, rgba(143,196,217,0.06) 32px);
+            background: repeating-linear-gradient(transparent, transparent 31px, rgba(var(--gold-rgb),0.06) 31px, rgba(var(--gold-rgb),0.06) 32px);
             pointer-events: none; border-radius: var(--radius);
         }
         .statement-header { display: flex; align-items: flex-start; gap: 24px; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 2px solid var(--gold); position: relative; z-index: 1; }
-        .exp-number { flex-shrink: 0; width: 64px; height: 64px; background: var(--navy); color: var(--gold); display: flex; align-items: center; justify-content: center; font-family: 'Playfair Display', serif; font-size: 1.6rem; font-weight: 900; border-radius: var(--radius); }
-        .statement-title-block h2 { font-family: 'Playfair Display', serif; font-size: 1.15rem; font-weight: 700; color: var(--navy); line-height: 1.3; text-transform: uppercase; letter-spacing: 0.05em; }
+        .exp-number { flex-shrink: 0; width: 64px; height: 64px; background: var(--navy-mid); color: var(--gold); display: flex; align-items: center; justify-content: center; font-family: 'Playfair Display', serif; font-size: 1.6rem; font-weight: 900; border-radius: var(--radius); }
+        .statement-title-block h2 { font-family: 'Playfair Display', serif; font-size: 1.15rem; font-weight: 700; color: var(--ink); line-height: 1.3; text-transform: uppercase; letter-spacing: 0.05em; }
         .statement-title-block .ref { font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; letter-spacing: 0.2em; color: var(--blue-deep); margin-top: 4px; display: block; }
         .statement p { font-size: 0.95rem; color: #2d3748; margin-bottom: 18px; position: relative; z-index: 1; }
-        .statement strong { color: var(--navy); font-weight: 600; }
+        .statement strong { color: var(--ink); font-weight: 600; }
         .statement em { color: var(--crimson); font-style: italic; }
-        .fact-block { background: rgba(61,42,32,0.04); border-left: 4px solid var(--gold); padding: 16px 20px; margin: 20px 0; border-radius: 0 var(--radius) var(--radius) 0; position: relative; z-index: 1; }
-        .fact-block.red { border-left-color: var(--crimson); background: rgba(139,26,26,0.04); }
+        .fact-block { background: rgba(var(--navy-rgb),0.04); border-left: 4px solid var(--gold); padding: 16px 20px; margin: 20px 0; border-radius: 0 var(--radius) var(--radius) 0; position: relative; z-index: 1; }
+        .fact-block.red { border-left-color: var(--crimson); background: rgba(var(--crimson-rgb),0.04); }
         .fact-block .fact-title { font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; letter-spacing: 0.25em; color: var(--blue-deep); text-transform: uppercase; margin-bottom: 8px; font-weight: 700; }
         .fact-block.red .fact-title { color: var(--crimson); }
         .timeline { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 2px; margin: 24px 0; position: relative; z-index: 1; }
-        .tl-item { background: var(--navy); color: var(--cream); padding: 12px 14px; text-align: center; font-size: 0.75rem; line-height: 1.4; }
+        .tl-item { background: var(--navy-mid); color: var(--cream); padding: 12px 14px; text-align: center; font-size: 0.75rem; line-height: 1.4; }
         .tl-item:first-child { border-radius: var(--radius) 0 0 var(--radius); }
         .tl-item:last-child  { border-radius: 0 var(--radius) var(--radius) 0; }
         .tl-item .tl-date { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; color: var(--gold); font-weight: 700; display: block; margin-bottom: 4px; }
@@ -237,7 +259,7 @@
            TARJETAS PREGUNTA
         ════════════════════════════════════════ */
         .question-card {
-            background: var(--paper); border: 1px solid rgba(143,196,217,0.15);
+            background: var(--paper); border: 1px solid rgba(var(--gold-rgb),0.15);
             border-radius: var(--radius); padding: 36px 44px;
             display: none; margin-bottom: 24px;
             box-shadow: 0 8px 32px var(--shadow);
@@ -245,49 +267,101 @@
         }
         .question-card::before { content: ''; position: absolute; top:0; left:0; width:6px; height:100%; background: linear-gradient(180deg, var(--gold), var(--crimson)); }
         .question-card.active { display: block; }
+        /* Modo "en cadena": se ven varias tarjetas del mismo bloque a la vez.
+           La tarjeta en la que está el usuario se resalta con un halo. */
+        .question-card.visible { display: block; }
+        .question-card.encadenada.active { box-shadow: 0 8px 32px var(--shadow), 0 0 0 2px var(--gold); }
+
+        /* Cabecera de sección de cada bloque (encima de sus preguntas) */
+        .block-header {
+            display: none; align-items: center; gap: 14px; flex-wrap: wrap;
+            background: var(--paper); border-left: 6px solid var(--gold);
+            border-radius: var(--radius); padding: 14px 20px; margin-bottom: 20px;
+            box-shadow: 0 6px 24px var(--shadow); position: relative; z-index: 1;
+        }
+        .block-header.visible { display: flex; }
+        .block-header .bh-tipo {
+            font-family: 'JetBrains Mono', monospace; font-size: 0.55rem;
+            letter-spacing: 0.2em; text-transform: uppercase;
+            border: 1.5px solid; border-radius: var(--radius); padding: 4px 8px;
+        }
+        .block-header h3 {
+            font-family: 'Playfair Display', serif; font-size: 1.15rem;
+            color: var(--ink); font-weight: 700; margin: 0; flex: 1;
+        }
+        .block-header .bh-datos {
+            font-family: 'JetBrains Mono', monospace; font-size: 0.6rem;
+            letter-spacing: 0.08em; color: var(--slate); text-align: right; line-height: 1.6;
+        }
+
+        /* Desglose por bloques dentro del marcador */
+        .score-bloques { margin-top: 16px; display: flex; flex-direction: column; gap: 6px; }
+        .score-bloques .sb-fila {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            background: rgba(255,255,255,0.05); border-left: 4px solid var(--gold);
+            border-radius: var(--radius); padding: 8px 12px; text-align: left;
+        }
+        .score-bloques .sb-nombre {
+            font-family: 'JetBrains Mono', monospace; font-size: 0.62rem;
+            letter-spacing: 0.14em; text-transform: uppercase; flex: 1; min-width: 120px;
+        }
+        .score-bloques .sb-detalle {
+            font-family: 'JetBrains Mono', monospace; font-size: 0.62rem;
+            color: rgba(255,255,255,0.65); letter-spacing: 0.06em;
+        }
+        .score-bloques .sb-puntos {
+            font-family: 'Playfair Display', serif; font-size: 1.1rem;
+            font-weight: 700; color: var(--cream); min-width: 92px; text-align: right;
+        }
+        /* Separador de bloque dentro de la corrección completa */
+        .corr-bloque {
+            font-family: 'JetBrains Mono', monospace; font-size: 0.62rem;
+            letter-spacing: 0.2em; text-transform: uppercase;
+            border-bottom: 2px solid; padding: 14px 4px 6px; margin: 22px 0 12px;
+        }
         @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
 
-        .q-header { display: flex; align-items: flex-start; gap: 18px; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid rgba(143,196,217,0.2); }
+        .q-header { display: flex; align-items: flex-start; gap: 18px; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid rgba(var(--gold-rgb),0.2); }
         .q-num { flex-shrink:0; font-family:'Playfair Display',serif; font-size:2.5rem; font-weight:900; color:rgba(0,0,0,0.15); line-height:1; min-width:50px; }
         .q-body { flex: 1; }
-        .q-tag { font-family:'JetBrains Mono',monospace; font-size:0.55rem; letter-spacing:0.25em; color:#000000; text-transform:uppercase; margin-bottom:8px; display:block; }
+        .q-tag { font-family:'JetBrains Mono',monospace; font-size:0.55rem; letter-spacing:0.25em; color:var(--ink); text-transform:uppercase; margin-bottom:8px; display:block; }
         body.hide-qtags .q-tag { display: none; }
-        .q-text { font-family:'Source Serif 4',serif; font-size:1.0rem; font-weight:600; color:#000000; line-height:1.6; }
+        .q-text { font-family:'Source Serif 4',serif; font-size:1.0rem; font-weight:600; color:var(--ink); line-height:1.6; }
 
         .options-grid { display:flex; flex-direction:column; gap:10px; margin-top:20px; }
-        .option { display:flex; align-items:flex-start; gap:14px; padding:14px 18px; border:1.5px solid rgba(143,196,217,0.15); border-radius:var(--radius); cursor:pointer; transition:all 0.2s; font-size:0.9rem; color:#2d3748; line-height:1.5; background:rgba(255,255,255,0.5); }
-        .option:hover { border-color:var(--blue-deep); background:rgba(143,196,217,0.1); transform:translateX(4px); }
-        .option.selected { border-color:var(--navy); background:rgba(61,42,32,0.06); font-weight:500; }
-        .option.correct { border-color:#2d8c5a; background:rgba(45,140,90,0.08); color:var(--forest); font-weight:600; }
-        .option.wrong   { border-color:var(--crimson); background:rgba(139,26,26,0.07); color:var(--crimson); text-decoration:line-through; }
-        .opt-letter { flex-shrink:0; width:26px; height:26px; border-radius:50%; background:var(--navy); color:var(--gold); font-family:'JetBrains Mono',monospace; font-size:0.7rem; font-weight:700; display:flex; align-items:center; justify-content:center; margin-top:1px; }
-        .option.correct .opt-letter { background:var(--forest); color:#a7f3d0; }
-        .option.wrong   .opt-letter { background:var(--crimson); color:#fecaca; }
+        .option { display:flex; align-items:flex-start; gap:14px; padding:14px 18px; border:1.5px solid rgba(var(--gold-rgb),0.15); border-radius:var(--radius); cursor:pointer; transition:all 0.2s; font-size:0.9rem; color:var(--ink); line-height:1.5; background:rgba(255,255,255,0.5); }
+        .option:hover { border-color:var(--blue-deep); background:rgba(var(--gold-rgb),0.1); transform:translateX(4px); }
+        .option.selected { border-color:var(--navy-mid); background:rgba(var(--navy-rgb),0.06); font-weight:500; }
+        .option.correct { border-color:var(--forest); background:rgba(var(--forest-rgb),0.10); color:var(--forest); font-weight:600; }
+        .option.wrong   { border-color:var(--crimson); background:rgba(var(--crimson-rgb),0.07); color:var(--crimson); text-decoration:line-through; }
+        .opt-letter { flex-shrink:0; width:26px; height:26px; border-radius:50%; background:var(--navy-mid); color:var(--gold); font-family:'JetBrains Mono',monospace; font-size:0.7rem; font-weight:700; display:flex; align-items:center; justify-content:center; margin-top:1px; }
+        .option.correct .opt-letter { background:var(--forest); color:var(--cream); }
+        .option.wrong   .opt-letter { background:var(--crimson); color:var(--cream); }
 
         /* FEEDBACK */
         .feedback { display:none; margin-top:24px; border-radius:var(--radius); overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,0.08); }
-        .feedback-header { background:var(--navy); padding:12px 20px; display:flex; align-items:center; gap:10px; }
+        .feedback-header { background:var(--navy-mid); padding:12px 20px; display:flex; align-items:center; gap:10px; }
         .feedback-header span { font-family:'JetBrains Mono',monospace; font-size:0.6rem; letter-spacing:0.2em; color:var(--gold); text-transform:uppercase; }
-        .feedback-body { background:var(--parch); padding:18px 20px; font-size:0.875rem; line-height:1.7; color:#374151; border:1px solid rgba(143,196,217,0.15); border-top:none; }
-        .feedback-body .tip { margin-top:10px; padding:10px 14px; background:rgba(26,71,49,0.08); border-left:3px solid #2d8c5a; border-radius:0 var(--radius) var(--radius) 0; font-size:0.83rem; color:var(--forest); }
+        .feedback-body { background:var(--parch); padding:18px 20px; font-size:0.875rem; line-height:1.7; color:var(--slate); border:1px solid rgba(var(--gold-rgb),0.15); border-top:none; }
+        .feedback-body .tip { margin-top:10px; padding:10px 14px; background:rgba(var(--forest-rgb),0.08); border-left:3px solid #2d8c5a; border-radius:0 var(--radius) var(--radius) 0; font-size:0.83rem; color:var(--forest); }
         .feedback-body .tip::before { content:'💡 '; }
 
         /* BARRA DE PROGRESO */
-        .progress-bar-wrap { height:4px; background:rgba(143,196,217,0.1); border-radius:2px; margin-bottom:28px; overflow:hidden; }
+        .progress-bar-wrap { height:4px; background:rgba(var(--gold-rgb),0.1); border-radius:2px; margin-bottom:28px; overflow:hidden; }
         .progress-bar-fill { height:100%; background:linear-gradient(90deg, var(--gold), var(--crimson)); border-radius:2px; transition:width 0.4s; }
 
         /* BOTONES */
         .btn-zone { display:flex; justify-content:center; align-items:center; gap:12px; margin-top:32px; flex-wrap:wrap; }
         .btn { font-family:'JetBrains Mono',monospace; font-size:0.72rem; letter-spacing:0.15em; text-transform:uppercase; font-weight:700; padding:14px 22px; border:1.5px solid var(--blue-deep); border-radius:var(--radius); cursor:pointer; transition:all 0.2s; background:transparent; color:var(--blue-deep); white-space:nowrap; }
         .btn:hover { background:var(--blue-deep); color:var(--cream); transform:translateY(-2px); box-shadow:0 6px 20px rgba(47,111,147,0.3); }
-        .btn-primary { background:var(--navy); color:var(--gold); border-color:var(--navy-mid); }
+        .btn-primary { background:var(--navy-mid); color:var(--gold); border-color:var(--navy-mid); }
         .btn-primary:hover { background:var(--navy-mid); }
         .btn-danger { background:var(--crimson); color:var(--cream); border-color:var(--crimson); display:none; }
         .btn-danger:hover { background:#a01515; border-color:#a01515; color:#fff; }
         .btn-success { background:var(--forest); color:#a7f3d0; border-color:var(--forest); display:none; }
         .btn-success:hover { background:#1f5c3a; }
-        .btn-info { background:var(--navy-mid); color:var(--gold-lt); border-color:rgba(143,196,217,0.4); display:none; }
-        .btn-info:hover { background:rgba(143,196,217,0.15); }
+        .btn-info { background:var(--navy-mid); color:var(--gold-lt); border-color:rgba(var(--gold-rgb),0.4); display:none; }
+        .btn-info:hover { background:rgba(var(--gold-rgb),0.15); }
         .btn-send { background:var(--blue-deep); color:var(--cream); border-color:var(--blue-deep); display:none; }
         .btn-send:hover { background:#24576f; }
         .btn-send:disabled { opacity:0.55; cursor:not-allowed; }
@@ -297,7 +371,7 @@
         ════════════════════════════════════════ */
         #overlay {
             display:none; position:fixed; inset:0;
-            background:rgba(61,42,32,0.98); z-index:9999;
+            background:rgba(var(--navy-rgb),0.98); z-index:9999;
             flex-direction:column; align-items:center; justify-content:center;
             text-align:center; padding:40px; overflow-y:auto;
         }
@@ -309,7 +383,7 @@
         #overlay-close {
             position: fixed; top: 20px; right: 24px;
             width: 42px; height: 42px;
-            border: 1.5px solid rgba(143,196,217,0.5); border-radius: 50%;
+            border: 1.5px solid rgba(var(--gold-rgb),0.5); border-radius: 50%;
             background: var(--navy-mid); color: var(--gold-lt);
             font-size: 1.4rem; line-height: 1; font-family: 'JetBrains Mono', monospace;
             display: flex; align-items: center; justify-content: center;
@@ -339,7 +413,7 @@
         /* Variantes propias del modal (las clases .btn-info / .btn-danger están
            ocultas por defecto fuera de aquí, ya que se controlan por JS en la
            botonera principal, así que no se reutilizan dentro del modal). */
-        .btn-modal-a { background: var(--navy); color: var(--gold); border-color: var(--navy-mid); }
+        .btn-modal-a { background: var(--navy-mid); color: var(--gold); border-color: var(--navy-mid); }
         .btn-modal-a:hover { background: var(--navy-mid); }
         .btn-modal-b { background: var(--crimson); color: var(--cream); border-color: var(--crimson); }
         .btn-modal-b:hover { background: #a01515; border-color: #a01515; color: #fff; }
@@ -401,22 +475,22 @@
             background: var(--paper); border-radius: var(--radius);
             padding: 0; margin-top: 24px;
             max-height: 55vh; overflow-y: auto;
-            border: 1px solid rgba(143,196,217,0.2);
+            border: 1px solid rgba(var(--gold-rgb),0.2);
         }
-        .corr-item { padding: 20px 24px; border-bottom: 1px solid rgba(143,196,217,0.1); }
+        .corr-item { padding: 20px 24px; border-bottom: 1px solid rgba(var(--gold-rgb),0.1); }
         .corr-item:last-child { border-bottom: none; }
         .corr-item .ci-header { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
         .ci-badge { width: 32px; height: 32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace; font-size:0.75rem; font-weight:700; flex-shrink:0; }
-        .ci-badge.ok  { background:#166534; color:#bbf7d0; }
-        .ci-badge.err { background:#991b1b; color:#fecaca; }
+        .ci-badge.ok  { background:var(--forest); color:var(--cream); }
+        .ci-badge.err { background:var(--crimson); color:var(--cream); }
         .ci-badge.skip { background:#374151; color:#9ca3af; }
-        .ci-q { font-size:0.88rem; font-weight:600; color:var(--navy); line-height:1.4; }
+        .ci-q { font-size:0.88rem; font-weight:600; color:var(--ink); line-height:1.4; }
         .ci-answers { font-size:0.82rem; color:#374151; margin: 6px 0 10px 44px; }
         .ci-answers .given { margin-bottom:3px; }
         .ci-answers .given.wrong { color:var(--crimson); }
         .ci-answers .correct-ans { color:var(--forest); font-weight:600; }
-        .ci-law { margin-left:44px; font-size:0.8rem; background:rgba(61,42,32,0.05); border-left:3px solid var(--gold); padding:10px 14px; border-radius:0 var(--radius) var(--radius) 0; color:#374151; line-height:1.6; }
-        .ci-tip { margin: 8px 0 0 44px; font-size:0.78rem; background:rgba(26,71,49,0.07); border-left:3px solid #2d8c5a; padding:8px 12px; border-radius:0 var(--radius) var(--radius) 0; color:var(--forest); }
+        .ci-law { margin-left:44px; font-size:0.8rem; background:rgba(var(--navy-rgb),0.05); border-left:3px solid var(--gold); padding:10px 14px; border-radius:0 var(--radius) var(--radius) 0; color:var(--slate); line-height:1.6; }
+        .ci-tip { margin: 8px 0 0 44px; font-size:0.78rem; background:rgba(var(--forest-rgb),0.07); border-left:3px solid #2d8c5a; padding:8px 12px; border-radius:0 var(--radius) var(--radius) 0; color:var(--forest); }
         .ci-tip::before { content:'💡 '; }
 
         /* Score banner dentro del overlay */
@@ -436,6 +510,10 @@
             .container { max-width:100%; padding:20px; }
             .statement { box-shadow:none; border:1px solid #ccc; }
             .question-card { display:block !important; box-shadow:none; border:1px solid #ccc; page-break-inside:avoid; margin-bottom:16px; }
+            .block-header { display:flex !important; box-shadow:none; border:1px solid #ccc; page-break-after:avoid; }
+            .block-header h3 { color:#000 !important; }
+            .score-bloques .sb-fila { background:#f3f4f6 !important; }
+            .score-bloques .sb-nombre, .score-bloques .sb-detalle, .score-bloques .sb-puntos { color:#111827 !important; }
             .question-card::before { display:none; }
             .feedback { display:block !important; }
             .inst-header { background:#f0f0f0 !important; color:black !important; }
@@ -458,7 +536,7 @@
         @media (max-width: 680px) {
             .statement { padding: 28px 24px; }
             .question-card { padding: 24px 20px; }
-            #timer { font-size:1.4rem; padding:8px 12px; top:68px; right:10px; min-width:90px; }
+            #timer { font-size:1.4rem; padding:8px 12px; top:calc(var(--nav-h, 56px) + 12px); right:10px; min-width:90px; }
             .statement-header { flex-direction:column; gap:12px; }
             .timeline { grid-template-columns:1fr 1fr; }
             #settings-panel { width: 240px; right: -8px; }
@@ -468,8 +546,10 @@
                configuración quedan siempre visibles, y las casillas de
                pregunta pasan a desplazarse en horizontal dentro de su fila. */
             #nav-header { flex-wrap: nowrap; }
-            #nav-boxes { flex-wrap: nowrap; overflow-x: auto; min-width: 0; scrollbar-width: thin; -webkit-overflow-scrolling: touch; }
+            #nav-boxes { gap: 6px; }
+            .nav-row-boxes { flex-wrap: nowrap; overflow-x: auto; min-width: 0; scrollbar-width: thin; -webkit-overflow-scrolling: touch; }
             .nav-box { flex-shrink: 0; }
+            .nav-group-label { flex-basis: 68px; font-size: 0.48rem; letter-spacing: 0.08em; white-space: normal; }
             .home-btn, .settings-wrap { flex-shrink: 0; }
         }
     </style>
@@ -480,29 +560,40 @@
 <nav id="nav-header">
     <div id="nav-boxes"></div>
 
-    <button class="home-btn" onclick="goHome()" title="Volver al menú principal" aria-label="Volver al menú principal">🏠</button>
+    <button id="fold-btn" class="home-btn" onclick="togglePlegado()"
+            title="Plegar: ver solo el bloque actual" aria-label="Plegar bloques"
+            style="display:none;">⌃</button>
+
+    <button id="home-btn-top" class="home-btn" onclick="goHome()"
+            title="Volver al menú principal" aria-label="Volver al menú principal">🏠</button>
 
     <div class="settings-wrap">
         <button id="settings-toggle" onclick="toggleSettings()" title="Configuración del temporizador" aria-label="Configuración">⚙</button>
         <div id="settings-panel">
-            <div class="settings-title">Configuración</div>
-            <div class="settings-row">
-                <label for="time-input">Duración del examen (mm:ss)</label>
+            <div class="settings-title" id="settings-title">Configuración</div>
+            <div class="settings-row" id="row-tiempo">
+                <label for="time-input"><span id="lbl-tiempo">Duración del examen (mm:ss)</span></label>
                 <div class="time-edit-line">
                     <input type="text" id="time-input" placeholder="30:00">
                     <button class="btn-mini" onclick="applyTimer()">Aplicar</button>
                 </div>
             </div>
-            <div class="settings-row settings-check">
+            <div class="settings-row settings-check" id="row-corregir">
                 <label>
                     <input type="checkbox" id="instant-feedback-toggle" onchange="toggleInstantFeedback(this.checked)">
-                    Corregir pregunta a pregunta
+                    <span id="lbl-corregir">Corregir pregunta a pregunta</span>
                 </label>
             </div>
-            <div class="settings-row settings-check">
+            <div class="settings-row settings-check" id="row-una">
+                <label>
+                    <input type="checkbox" id="una-en-una-toggle" onchange="toggleUnaEnUna(this.checked)">
+                    <span id="lbl-una">Ver las preguntas de una en una</span>
+                </label>
+            </div>
+            <div class="settings-row settings-check" id="row-qtags">
                 <label>
                     <input type="checkbox" id="hide-qtags-toggle" onchange="toggleHideQTags(this.checked)">
-                    Ocultar etiquetas de pregunta (q-tag)
+                    <span id="lbl-qtags">Ocultar etiquetas de pregunta (q-tag)</span>
                 </label>
             </div>
         </div>
@@ -520,23 +611,32 @@
 ══════════════════════════════════════════ -->
 <div class="container">
 
+    <!--
+        Título, referencia, ámbito y minutos NO se editan aquí: se rellenan
+        automáticamente en el arranque a partir de EXAM_CONFIG (al principio
+        de la ZONA EDITABLE del bloque de JavaScript, al final de la
+        página). El nº de preguntas se calcula solo, contando
+        QUESTIONS_BANK. Así solo hay un sitio donde tocar
+        estos datos y nunca queda desactualizado un lugar y otro no.
+    -->
+
     <!-- Título para impresión -->
     <div id="print-title" style="text-align:center; margin-bottom:24px; font-family:'Playfair Display',serif;">
-        <h1 style="font-size:1.4rem; color:#3d2a20;">SUPUESTO 0. HAY QUE ESPABILAR QUE EL VERANO SE OS VA A COMER</h1>
-        <p style="font-size:0.85rem; color:#555; margin-top:4px;">Temas 1 al 13 · Legislación a 28 de agosto de 2026 · Corrección con motivación legal completa</p>
+        <h1 id="print-title-h1" style="font-size:1.4rem; color:#3d2a20;"></h1>
+        <p id="print-title-sub" style="font-size:0.85rem; color:#555; margin-top:4px;"></p>
         <p id="print-fecha" style="font-size:0.8rem; color:#777; margin-top:4px;"></p>
     </div>
 
     <!-- CABECERA INSTITUCIONAL -->
     <header class="inst-header">
-        <img class="logo-img" src="https://academia.ecap.es/pluginfile.php?file=%2F1%2Fcore_admin%2Flogo%2F0x200%2F1782109950%2FACADEMIA%20VIRTUAL%20%281%29.png" alt="ECAP - Escuela Ciudadana de Administración Pública">
-        <div class="organismo">Comunidad ECAP ASS C1</div>
-        <h1>SUPUESTO 0. HAY QUE ESPABILAR QUE EL VERANO SE OS VA A COMER</h1>
+        <img id="inst-logo" class="logo-img" src="" alt="">
+        <div class="organismo" id="inst-organismo"></div>
+        <h1 id="inst-title"></h1>
         <div class="meta-strip">
-            <span class="meta-pill">15 PREGUNTAS</span>
-            <span class="meta-pill">30 MINUTOS</span>
-            <span class="meta-pill">LEGISLACIÓN VIGENTE A 28 DE AGOSTO DE 2026</span>
-            <span class="meta-pill">REF: S000 · TEMAS 1 AL 13</span>
+            <span class="meta-pill" id="meta-preguntas"></span>
+            <span class="meta-pill" id="meta-minutos"></span>
+            <span class="meta-pill" id="meta-legislacion"></span>
+            <span class="meta-pill" id="meta-referencia"></span>
         </div>
     </header>
 
@@ -568,8 +668,8 @@
 
     <!-- BOTONERA -->
     <div class="btn-zone">
-        <button class="btn btn-primary" onclick="move(-1)">← Anterior</button>
-        <button class="btn btn-primary" onclick="move(1)">Siguiente →</button>
+        <button id="prev-btn" class="btn btn-primary" onclick="move(-1)">← Anterior</button>
+        <button id="next-btn" class="btn btn-primary" onclick="move(1)">Siguiente →</button>
         <button id="check-btn"   class="btn btn-danger"   onclick="evaluateExam()">✓ Corregir Expediente</button>
         <button id="print-btn"   class="btn btn-success"  onclick="printResults()">🖨 Imprimir / PDF</button>
         <button id="restart-btn" class="btn btn-info"     onclick="openRandomModal()">🔀 Nuevo Intento (Aleatorio)</button>
@@ -668,11 +768,11 @@
 
         <!-- Botones en overlay -->
         <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-bottom:20px;">
-            <button class="btn btn-danger" style="display:inline-flex;" onclick="showCorrectionPanel()">✓ Ver Corrección Completa</button>
-            <button class="btn btn-success" style="display:inline-flex;" onclick="printResults()">🖨 Imprimir / PDF</button>
-            <button class="btn btn-info" style="display:inline-flex;" onclick="openRandomModal()">🔀 Repetir (Aleatorio)</button>
-            <button class="btn btn-send" style="display:inline-flex;" onclick="enviarResultados()">📤 Enviar Resultados</button>
-            <button class="btn btn-info" style="display:inline-flex;" onclick="goHome()">🏠 Menú Principal</button>
+            <button class="btn btn-danger" id="ov-corr-btn" style="display:inline-flex;" onclick="showCorrectionPanel()">✓ Ver Corrección Completa</button>
+            <button class="btn btn-success" id="ov-print-btn" style="display:inline-flex;" onclick="printResults()">🖨 Imprimir / PDF</button>
+            <button class="btn btn-info" id="ov-restart-btn" style="display:inline-flex;" onclick="openRandomModal()">🔀 Repetir (Aleatorio)</button>
+            <button class="btn btn-send" id="ov-send-btn" style="display:inline-flex;" onclick="enviarResultados()">📤 Enviar Resultados</button>
+            <button class="btn btn-info" id="ov-home-btn" style="display:inline-flex;" onclick="goHome()">🏠 Menú Principal</button>
         </div>
 
         <!-- Score banner -->
@@ -692,392 +792,615 @@
         <h3>🔀 Nuevo intento aleatorio</h3>
         <p>¿Cómo quieres repetir el expediente?</p>
         <button class="btn btn-modal-a" onclick="confirmRestart('answers')">🔁 Mismas preguntas y mismo orden<br><small style="font-weight:400;opacity:0.8;">solo cambia el orden de las respuestas</small></button>
-        <button class="btn btn-modal-b" onclick="confirmRestart('full')">🎲 También cambiar qué preguntas salen<br><small style="font-weight:400;opacity:0.8;">y su orden, respetando cada enunciado</small></button>
+        <button class="btn btn-modal-b" onclick="confirmRestart('full')">🎲 También cambiar qué preguntas salen<br><small style="font-weight:400;opacity:0.8;">y su orden, respetando cada bloque y cada enunciado</small></button>
         <button class="btn" onclick="closeRandomModal()">Cancelar</button>
     </div>
 </div>
 
 <!-- ══════════════════════════════════════════
      JAVASCRIPT
+══════════════════════════════════════════ --><!-- ══════════════════════════════════════════
+     DATOS DEL SUPUESTO  (ZONA EDITABLE)
+     ──────────────────────────────────────────
+     Este bloque JSON es lo ÚNICO que hay que cambiar para crear un
+     supuesto nuevo, y lo edita automáticamente el programa Python
+     "editor_supuestos.py" (interfaz gráfica). No hace falta tocarlo
+     a mano; si se toca, respetar el formato JSON:
+       · los textos van entre comillas dobles "así"
+       · las comillas dobles DENTRO de un texto se escriben \"
+       · true / false / null se escriben en minúscula y sin comillas
+     Estructura:
+       config     → título, referencia, ámbito, minutos, % para APTO y el
+                    encabezado (logo y organismo)
+       tema       → colores de toda la página (fondos, textos, acentos)
+       interfaz   → qué botones se ven y cómo se llaman
+       envio      → dirección del formulario y casilla de cada dato
+       bloques    → secciones del examen, en el orden en que salen:
+                    tipo "supuesto" (con enunciados) o tipo "test" (teoría),
+                    con su color, su forma de verse y su baremo
+       enunciados → bloques de hechos comunes a un grupo de preguntas
+       preguntas  → cada pregunta, con el bloque al que pertenece
+══════════════════════════════════════════ -->
+<script type="application/json" id="datos-supuesto">
+{
+  "config": {
+    "titulo": "SUPUESTO 0. HAY QUE ESPABILAR QUE EL VERANO SE OS VA A COMER",
+    "referencia": "REF: S000 · TEMAS 1 AL 13",
+    "ambito": "LEGISLACIÓN VIGENTE A 28 DE AGOSTO DE 2026",
+    "minutos": 30,
+    "aptoPorcentaje": 60.0,
+    "logo": "https://academia.ecap.es/pluginfile.php?file=%2F1%2Fcore_admin%2Flogo%2F0x200%2F1782109950%2FACADEMIA%20VIRTUAL%20%281%29.png",
+    "logoAlt": "ECAP - Escuela Ciudadana de Administración Pública",
+    "organismo": "Comunidad ECAP ASS C1"
+  },
+  "tema": {
+    "fondo": "#3d2a20",
+    "barra": "#5c4033",
+    "acento": "#8fc4d9",
+    "acentoClaro": "#b8dceb",
+    "azulProfundo": "#2f6f93",
+    "textoClaro": "#fdf8f0",
+    "tarjeta": "#fffef9",
+    "fondoHechos": "#f7ece7",
+    "texto": "#1a1a2e",
+    "gris": "#4a5568",
+    "rojo": "#8b1a1a",
+    "verde": "#1a4731"
+  },
+  "interfaz": {
+    "botonCasa": {
+      "visible": true,
+      "texto": "🏠",
+      "titulo": "Volver al menú principal",
+      "url": "../index.html"
+    },
+    "botonConfig": {
+      "visible": true,
+      "titulo": "Configuración"
+    },
+    "botonPlegar": {
+      "visible": true,
+      "titulo": "Plegar: ver solo el bloque actual",
+      "plegado": false
+    },
+    "opcionTiempo": {
+      "visible": true,
+      "texto": "Duración del examen (mm:ss)"
+    },
+    "opcionCorregir": {
+      "visible": true,
+      "texto": "Corregir pregunta a pregunta",
+      "activa": false
+    },
+    "opcionUnaEnUna": {
+      "visible": true,
+      "texto": "Ver las preguntas de una en una",
+      "activa": false
+    },
+    "opcionQtags": {
+      "visible": true,
+      "texto": "Ocultar las etiquetas de pregunta",
+      "activa": false
+    },
+    "btnAnterior": {
+      "visible": true,
+      "texto": "← Anterior"
+    },
+    "btnSiguiente": {
+      "visible": true,
+      "texto": "Siguiente →"
+    },
+    "btnCorregir": {
+      "visible": true,
+      "texto": "✓ Corregir Expediente"
+    },
+    "btnVerCorreccion": {
+      "visible": true,
+      "texto": "✓ Ver Corrección Completa"
+    },
+    "btnImprimir": {
+      "visible": true,
+      "texto": "🖨 Imprimir / PDF"
+    },
+    "btnReintentar": {
+      "visible": true,
+      "texto": "🔀 Nuevo Intento (Aleatorio)"
+    },
+    "btnEnviar": {
+      "visible": true,
+      "texto": "📤 Enviar Resultados"
+    },
+    "btnMenu": {
+      "visible": true,
+      "texto": "🏠 Volver al Menú Principal"
+    }
+  },
+  "envio": {
+    "url": "https://docs.google.com/forms/d/e/1FAIpQLSd9h52UH7XzaRDRSIxSevScmqKZC28Fvtfnp39drKtC5SiwGA/formResponse",
+    "examen": "entry.241409513",
+    "usuario": "entry.1810433543",
+    "tiempoAsignado": "entry.1069013600",
+    "tiempoEmpleado": "entry.815398067"
+  },
+  "bloques": [
+    {
+      "id": "B1",
+      "tipo": "supuesto",
+      "titulo": "Supuesto práctico",
+      "color": "#8fc4d9",
+      "modo": "individual",
+      "porIntento": 0,
+      "acierto": 1.0,
+      "fallo": 0.0,
+      "blanco": 0.0,
+      "envio": {
+        "preguntas": "entry.771114786",
+        "aciertos": "entry.1903892811",
+        "fallos": "entry.1155230396",
+        "blancos": "entry.943386498",
+        "puntos": ""
+      }
+    }
+  ],
+  "enunciados": [
+    {
+      "id": "E1",
+      "number": "1",
+      "title": "Enunciado 1",
+      "ref": "S000",
+      "ambito": "Temas 1 al 13",
+      "factBlocks": [
+        {
+          "title": "Hecho desencadenante",
+          "paragraphs": [
+            "Pepe es un agricultor que ha estado trabajando junto a su familia en las tierras que heredaron de su padre desde que cumplió los 18 años. Ahora que se le acerca la deseada y bendita jubilación, se pregunta qué será de su pensión y de su futuro. Pepe sabe que su pensión, que se ha ganado cotizando, la tiene asegurada por derecho constitucional. Pero se plantea algunas dudas sobre su futuro y el de su familia."
+          ],
+          "red": true,
+          "hidden": false
+        }
+      ],
+      "timeline": []
+    },
+    {
+      "id": "E2",
+      "number": "2",
+      "title": "Enunciado 2",
+      "ref": "S000",
+      "ambito": "Temas 1 al 13",
+      "factBlocks": [
+        {
+          "title": "Hecho desencadenante",
+          "paragraphs": [
+            "Como eres nuevo en la Seguridad Social, tus compañeros te ponen a prueba sobre tus conocimientos teóricos."
+          ],
+          "red": true,
+          "hidden": false
+        }
+      ],
+      "timeline": []
+    },
+    {
+      "id": "E3",
+      "number": "3",
+      "title": "Enunciado 3",
+      "ref": "S000",
+      "ambito": "Temas 1 al 13",
+      "factBlocks": [
+        {
+          "title": "Hecho desencadenante",
+          "paragraphs": [
+            "María de la Cruz de todos los Santos ha cobrado estando de baja fraudulenta por IT. Tras ser pillada infraganti, es despedida sin paro y además la Seguridad Social le solicita la devolución a través de una reclamación de deuda de los 6500 euros que percibió durante la baja. María de la Cruz solicita un aplazamiento, que es concedido por la tesorería de la Seguridad Social, a devolver cada mes el importe de 100€."
+          ],
+          "red": true,
+          "hidden": false
+        }
+      ],
+      "timeline": []
+    },
+    {
+      "id": "E4",
+      "number": "4",
+      "title": "Enunciado 4",
+      "ref": "S000",
+      "ambito": "Temas 1 al 13",
+      "factBlocks": [
+        {
+          "title": "Hecho desencadenante 1",
+          "paragraphs": [
+            "Horse Luis era un empresario recién jubilado. Se jubiló hace un par de meses, en el momento que cumplió la edad ordinaria de jubilación. Cobra la pensión mínima cobrando complemento a mínimos. Dejó la empresa que dirigía él en manos de su mujer. Horse Luis se entera de que han modificado la jubilación flexible recientemente. Como se aburre mucho en su casa y su pensión es muy pequeña quiere volver a trabajar, aunque le toque empaquetar cajas. El 1 de septiembre de 2026, acude un CAISS a informarse sobre sus posibilidades de trabajar, siempre compaginándola con la jubilación."
+          ],
+          "red": true,
+          "hidden": false
+        },
+        {
+          "title": "Hecho desencadenante 2",
+          "paragraphs": [
+            "Meses después María Muffins, mujer de Horse Luis, se queda viuda. Solicita la pensión de viudedad. Tiene un hijo de su difunto marido póstumo el 1 de mayo de 2027."
+          ],
+          "red": true,
+          "hidden": false
+        },
+        {
+          "title": "Hecho desencadenante 3",
+          "paragraphs": [
+            "La hija mayor del matrimonio, María Antonieta de 27 años. Vive de forma independiente con su pareja, Luis Augusto. Tienen dos hijos menores de edad, de 2 y 10 años. Uno de ellos con discapacidad del 33%. No disponen de propiedades ni de ingresos actualmente. El año pasado tuvieron unos ingresos superiores al límite del IMV. Pero tras quedarse ambos en el paro, fueron aguantando con la prestación por desempleo al superar entre los dos la cuantía del IMV. En el mes de julio se les acaban a ambos las prestaciones por desempleo. En agosto solicita la titular de la unidad familiar el IMV, sin la firma de su marido."
+          ],
+          "red": true,
+          "hidden": false
+        },
+        {
+          "title": "Hecho desencadenante 4",
+          "paragraphs": [
+            "El hijo menor del matrimonio, Alfonso Francisco de 25 años y su mujer María de las Mercedes de 27. Ambos trabajan por cuenta ajena a fecha de 15 de abril de 2027, el matrimonio da a luz a una pareja de gemelos, los dos con discapacidad del 33%. Ambos no cuentan con cotizaciones previas al 1 de enero de 2027."
+          ],
+          "red": true,
+          "hidden": false
+        },
+        {
+          "title": "Hecho desencadenante 5",
+          "paragraphs": [
+            "Eugenio, trabaja como empleado de hogar en la casa familiar de María Muffins desde 2022. Las contingencias están concertadas con el INSS. El 1 de abril de 2026, le dan la baja por problema de espalda. La baja dura mes y medio."
+          ],
+          "red": true,
+          "hidden": false
+        }
+      ],
+      "timeline": []
+    },
+    {
+      "id": "E5",
+      "number": "5",
+      "title": "Enunciado 5",
+      "ref": "S000",
+      "ambito": "Temas 1 al 13",
+      "factBlocks": [
+        {
+          "title": "Hecho desencadenante",
+          "paragraphs": [
+            "Como el tema 13 es difícil hacer una pregunta planteando un supuesto, piensa que trabajas en la Seguridad Social y que esta pregunta de teoría te sale en tu vida."
+          ],
+          "red": true,
+          "hidden": false
+        }
+      ],
+      "timeline": []
+    }
+  ],
+  "preguntas": [
+    {
+      "bloqueId": "B1",
+      "statementId": "E1",
+      "tag": "Estructura del sistema · Art. 41 CE",
+      "q": "¿Es la pensión de jubilación de PEPE un derecho constitucional del Art 41, dentro del nivel básico de Protección pública?",
+      "a": [
+        "No, la pensión de jubilación contributiva, no se considera dentro del nivel básico de protección pública.",
+        "Sí, la pensión de jubilación contributiva se caracteriza por ser universal y para todos los ciudadanos.",
+        "La pensión de jubilación del Régimen especial agrario es de nivel complementario.",
+        "Ninguna opción es correcta"
+      ],
+      "c": 0,
+      "law": "El derecho constitucional al mantenimiento de un sistema público de la Seguridad Social, la pensión de jubilación en su modalidad contributiva, está dentro del Nivel contributivo, dentro de los ciudadanos que ejercen una actividad profesional y hayan cotizado, no es universal per se.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E1",
+      "tag": "Campo de aplicación",
+      "q": "Pepe tiene un hijo pequeño, Pepe JR, con edad de 16 años cumplidos. Su mujer y otros hijos han trabajado alguna vez con él y quiere que su hijo se incorpore como él al negocio familiar. ¿Puede Pepe JR incorporarse al Sistema Especial de los trabajadores Agrarios por cuenta Propia?",
+      "a": [
+        "No, ya que no cumple los requisitos para su incorporación en este Sistema Especial",
+        "No, deberá incorporarse obligatoriamente en el RETA como familiar colaborador.",
+        "En este caso, a elección del titular de la explotación, puede elegir entre el Régimen General y el Régimen Especial de Trabajadores por cuenta Ajena",
+        "Todas las opciones son Correctas."
+      ],
+      "c": 0,
+      "law": "Los menores de 18 años no pueden inscribirse al RETA. El Art 305.1 LGSS, ya exige para la inclusión en este Régimen Especial la necesidad de tener al menos 18 años de edad. Igualmente, en el Art 324.3 LGSS sobre las reglas de inclusión en el SETA: “…siempre que sean mayores de dieciocho años”. Por lo tanto, al tener en cuenta las soluciones, la única correcta es la de que no reúne los requisitos de inclusión en el RETA.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E1",
+      "tag": "Afiliación · Art. 28 RIA",
+      "q": "Un trabajador de Pepe, Julián, se cambia en el registro civil su nombre y género, pasando a llamarse Julieta. ¿Cuál es el plazo para la variación de datos de Afiliación?",
+      "a": [
+        "El plazo para la variación de datos de afiliación es de 3 días naturales",
+        "El plazo para la variación de datos de afiliación es de 6 días naturales",
+        "El plazo para la variación de datos de afiliación es de 3 días hábiles",
+        "El plazo para la variación de datos de afiliación es de 6 días hábiles"
+      ],
+      "c": 0,
+      "law": "El art 28.1 del RIA, no ha sido modificado por el RD 643/2026, manteniéndose en 3 días naturales. El artículo modificado es el 32.3.1º RIA, que trata sobre la variación de datos de los trabajadores sobre su jornada, cambio de grupo de cotización, etc.",
+      "tip": "No confundir cuando te preguntas sobre variación de datos de afiliación (Art 28 RIA), con la variación de datos del Art 32 RIA."
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E1",
+      "tag": "Cotización RETA · Orden de Cotización 2026, Art. 19",
+      "q": "Pepe y las matemáticas no se llevan bien, si el mes de junio de 2026 tuvo unos ingresos de 2000 euros de rendimientos netos. Por lo que acude a un CAISS para asesorarse. ¿Como funcionario de la Seguridad Social, qué le indicas a PEPE?",
+      "a": [
+        "Pepe cotizará por los primeros 1.141,18 euros al 18,75% y por el resto al 26.5%, pudiendo voluntariamente mejorarse la IT.",
+        "Pepe cotizará por los primeros 2.000 euros por el resto al 28.3%, pudiendo voluntariamente mejorarse la IT.",
+        "Pepe cotizará según su tramo de cotización de las tablas de la Orden de cotización para los RETA, pudiendo voluntariamente mejorarse la IT.",
+        "Pepe cotizará por los primeros 1.141,18 euros al 18,75% y por el resto al 28.3%, no pudiendo mejorar voluntariamente la IT."
+      ],
+      "c": 0,
+      "law": "La Orden de Cotización de 2026, en su Art 19, fija para el Sistema Especial Agrario dentro del RETA: “Respecto de las contingencias de cobertura obligatoria, cuando la persona trabajadora haya optado por una base de cotización de hasta 1.141,18 euros mensuales, el tipo de cotización aplicable será el 18,75 por ciento. Si la persona trabajadora cotizará por una base de cotización superior a 1.141,18 euros mensuales, a la cuantía que exceda de esta última le será de aplicación el tipo de cotización del 26,50 por ciento”. Pudiendo mejorar la IT voluntariamente.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E2",
+      "tag": "Sistema RED · Art. 2 Orden ESS/484/2013",
+      "q": "¿Cuál de los siguientes oficios no está obligado a relacionarse obligatoriamente con el Sistema RED?",
+      "a": [
+        "Un percebeiro del Grupo 3.",
+        "Un empresario respecto a sus trabajadores.",
+        "Los encargados de la afiliación de los trabajadores del carbón.",
+        "Un Autónomo del Grupo 1 del REMAR"
+      ],
+      "c": 0,
+      "law": "El Art 2 de la Orden ESS/484/2013, especifica quién está obligado y quién no a comunicarse con el Sistema RED, del Régimen General, no está obligado los Profesionales taurinos y SEEH. Tampoco están obligados los RETAMAR cuenta propia grupos 2º y 3º. Un Percebeiro del Grupo 3 estaría encuadrado en este régimen.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E2",
+      "tag": "Aplazamientos · Art. 35.6 RD 1415/2004",
+      "q": "Juan, en septiembre de 2026, tiene una deuda con la Seguridad Social de 1222 euros. Solicita un aplazamiento a la Seguridad Social, para pagar el plazo en 13 cuotas. ¿se lo concederán?",
+      "a": [
+        "Sí, al ser la cantidad superior al mínimo exigido para su denegación.",
+        "No, al no superar dos veces el SMI vigente en 2026.",
+        "No, al no ser el mínimo por cuota superior a 100 euros mensuales.",
+        "Sí, los aplazamientos no tienen un mínimo por el cual se denieguen."
+      ],
+      "c": 0,
+      "law": "El Art 35.6 del Real decreto 1415/2004 sobre la denegación de los aplazamientos, fija desde la reforma por el Real Decreto 643/2026, la denegación de aplazamiento en la cuantía de un SMI. En 2026 es 1221€.",
+      "tip": "No confundir aplazamiento con reintegro de prestaciones indebidas. Que este último sí tiene un límite de reintegro de 100€ mensuales."
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E2",
+      "tag": "Recaudación · Tercerías · Art. 134.1 RD 1415/2004",
+      "q": "En casos de tercerías de buen dominio el tercerista…",
+      "a": [
+        "Alega la propiedad del bien, suspende el procedimiento sin presentar garantías",
+        "Tiene que justificar el crédito preferente, sin suspensión del procedimiento",
+        "Alega la propiedad del bien, sin suspensión del procedimiento",
+        "Tiene que justificar el crédito preferente, suspende el procedimiento sin presentar garantías"
+      ],
+      "c": 0,
+      "law": "El Art 134.1 del RDL 1415/2004, estipula en la tramitación de las tercerías que: “Si fuera de mejor derecho, se proseguirá el procedimiento hasta la realización de los bienes. Si fuera de dominio… suspenderá el procedimiento de apremio en cuanto a los bienes controvertidos, en tanto la tercería se resuelva”.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E3",
+      "tag": "Recaudación · Aplazamientos · Art. 80 Rgto. Recaudación",
+      "q": "Con los datos proporcionados, corrige el error que ha cometido la Tesorería.",
+      "a": [
+        "El tiempo concedido de aplazamiento, por normativa, debería ser inferior.",
+        "El importe mínimo mensual del aplazamiento, por normativa, debería ser superior.",
+        "Debería haber emitido un acta de liquidación, no una reclamación de deuda.",
+        "No ha cometido error alguno."
+      ],
+      "c": 0,
+      "law": "El Art 80 del reglamento de recaudación, establece que el fraccionamiento puede solicitarse por el sujeto obligado tras la reclamación de deuda con un plazo máximo de 60 mensualidades (5 años) y un importe mínimo de 100€ mes.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E3",
+      "tag": "Recaudación · Vía ejecutiva · Art. 80 RDL 1415/2004",
+      "q": "María de la Cruz de todos los Santos decide antes de pagar el primer mes cambiar la cuantía del aplazamiento a 250€ mensuales durante 26 meses, que es aceptado por la tesorería. En los meses 20 y 26 no puede hacer frente al pago del fraccionamiento, ingresando religiosamente el resto de las mensualidades. ¿Qué supone esto para María de la Cruz?",
+      "a": [
+        "Se iniciará automáticamente la vía ejecutiva, los intereses de demora se calcularán desde el último plazo del fraccionamiento.",
+        "Se iniciará automáticamente la vía ejecutiva, los intereses de demora se calcularán desde el primer plazo del fraccionamiento impagado.",
+        "Se iniciará automáticamente la vía ejecutiva, los intereses de demora se calcularán desde el primer plazo del fraccionamiento.",
+        "Se iniciará automáticamente la vía ejecutiva, los intereses de demora se calcularán desde la reclamación de deuda."
+      ],
+      "c": 0,
+      "law": "El Art 80 del RDL 1415/2004: “Concluido el período de pago del último de los plazos de fraccionamiento concedidos, si existiera alguna cantidad pendiente de abono, se iniciará igualmente, de manera automática, la vía ejecutiva, mediante la emisión de la correspondiente providencia de apremio. En este caso, y a efectos de determinar el cálculo de los intereses de demora que correspondan, se entenderá como plazo reglamentario de ingreso el correspondiente al último plazo del fraccionamiento.”",
+      "tip": "Estamos ante la finalización del fraccionamiento sin que el total de los impagos sea tres mensualidades, por lo que los intereses de demora se calculan desde el último plazo del fraccionamiento."
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E4",
+      "tag": "Jubilación",
+      "q": "¿Qué modalidad de jubilación compatible con el trabajo se puede acoger Horse Luis?",
+      "a": [
+        "Jubilación flexible, como asalariado.",
+        "Jubilación flexible como autónomo.",
+        "Jubilación activa.",
+        "No se puede acoger a ninguna modalidad de compatibilidad de la pensión con el trabajo. Si quiere trabajar, se le deberá suspender la pensión."
+      ],
+      "c": 0,
+      "law": "El nuevo Real Decreto 416/2026, sí permite el trabajo de asalariado compatible con la pensión, aun procediendo del RETA. Ahora bien, para poder acceder a la jubilación Flexible como autónomo, no hay que haber estado de alta en el Régimen Especial de Trabajadores por Cuenta Propia en los últimos 3 años. La jubilación activa no es posible porque no ha demorado 1 año la edad de jubilación a la edad ordinaria de jubilación.",
+      "tip": "Revisar el nuevo Real Decreto 416/2026. Art 4 a 9."
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E4",
+      "tag": "Muerte y supervivencia · Orfandad",
+      "q": "¿Cuándo surtirán los EFECTOS ECONOMICOS de la orfandad del hijo?",
+      "a": [
+        "Mismo día del nacimiento, como el hecho causante",
+        "Día después del nacimiento, día después del hecho causante",
+        "Solo cobra 12 mensualidades al ser póstumo.",
+        "No tendrá derecho a orfandad, al no estar el sujeto causante de alta en el momento de la muerte."
+      ],
+      "c": 0,
+      "law": "Pregunta típica que cada academia da una respuesta. La regla general es que los efectos económicos surgen el día siguiente al nacimiento del derecho. Pero el anterior tribunal de nuestra oposición dio por buena la de que surge con el mismo hecho, y la Seguridad Social aplica este principio también. Esto se debe a que no está bien puesta esta cuestión normativamente.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E4",
+      "tag": "Ingreso Mínimo Vital",
+      "q": "¿Con los datos presentados, se les otorgará la prestación del IMV?",
+      "a": [
+        "Sí, cumplen los requisitos de vulnerabilidad económica.",
+        "Se les concederá si subsanan la firma de todos los miembros de la unidad económica.",
+        "No, deberán esperar al siguiente año, entonces cumplirán los requisitos.",
+        "Sí, solo se tiene en cuenta para el requisito del IMV los ingresos para la prestación por desempleo, que en cómputo anual, sean inferiores al IMV."
+      ],
+      "c": 0,
+      "law": "De acuerdo con el art 11.5 LIMV, la situación de vulnerabilidad sobrevenida, se solicita a partir del segundo trimestre del año hasta la finalización de este. Solo se tienen en cuenta la parte proporcional de ingresos o declaración responsable, sin contar la prestación por desempleo o subsidios por desempleo que se haya agotado en el momento de la solicitud del IMV.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E4",
+      "tag": "Nacimiento y cuidado del menor",
+      "q": "¿Qué prestaciones y/o subsidios económicos tendrán el matrimonio por el nacimiento de sus hijos?",
+      "a": [
+        "Ella tendrá una prestación base de 42 días, aumentada en 14 días parto múltiple. Él tendrá la prestación de paternidad de 19 semanas base, incrementada en 1 semanas por parto múltiple y otra por cada uno de los hijos con discapacidad. Más un subsidio especial de 6 semanas de duración.",
+        "Ella tendrá una prestación base de 42 días, aumentada en 14 días por la disparidad de los hijos. Él tendrá la prestación de paternidad de 19 semanas base, incrementada en 2 semanas por uno de los hijos con discapacidad. Más un subsidio especial de 6 semanas de duración por cada hijo.",
+        "Ella tendrá una prestación base de 42 días, aumentada en 14 días parto múltiple. Él tendrá la prestación de paternidad de 19 semanas base, incrementada en 2 semanas por los hijos con discapacidad. Más un subsidio especial de 6 semanas de duración.",
+        "Ella tendrá una prestación base de 42 días, aumentada en 14 días parto múltiple y otros 14 días por discapacidad de los hijos. Él tendrá la prestación de paternidad de 19 semanas base, incrementada en 1 semanas por parto múltiple y otras 2 por cada uno de los hijos con discapacidad. Más un subsidio especial de 6 semanas de duración."
+      ],
+      "c": 0,
+      "law": "De acuerdo con el Capítulo 6 del Titulo II de la LGSS y al Real Decreto 295/2009. En caso de cumplir las condiciones para la prestación de nacimiento y cuidado del menor. De base son 19 semanas, incrementado una por parto múltiple y dos adicionales, una por cada hijo con discapacidad. Más un subsidio especial que equivale a 6 semanas de duración. María de las Mercedes, no cumple con los periodos de cotización mínimos que se exigen a las personas mayores de 26 años, por lo que se aplican los Art 181 y 182 de la LGSS. El cual da un subsidio del tiempo de duración del periodo obligatorio (6 semanas, que son 42 días), más un incremento único de 14 días por circunstancias especiales, en este caso parto múltiple.",
+      "tip": "En el subsidio por nacimiento y cuidado del menor no hay incremento por discapacidad del hijo"
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E4",
+      "tag": "Incapacidad Temporal",
+      "q": "¿Cómo se abonará la IT de Eugenio?",
+      "a": [
+        "A partir de 9 día de trabajo, estando a cargo del empleador del día 4 al 9 de la baja, ambos inclusive. A partir del 9 lo abonará el INSS, no procediendo el pago delegado.",
+        "A partir de 16 día de trabajo, estando a cargo del empleador del día 4 al 16 de la baja, ambos inclusive. A partir del 16 lo abonará el INSS, no procediendo el pago delegado.",
+        "A partir de 16 día de trabajo, estando a cargo del empleador del día 4 al 16 de la baja, ambos inclusive. A partir del 16 lo abonará el INSS, procediendo el pago delegado.",
+        "A partir de 9 día de trabajo, estando a cargo del empleador del día 4 al 9 de la baja, ambos inclusive. A partir del 9 lo abonará el INSS, procediendo el pago delegado."
+      ],
+      "c": 0,
+      "law": "El art 251.1 LGSS: “a) El subsidio por incapacidad temporal, en caso de enfermedad común o accidente no laboral, se abonará a partir del noveno día de la baja en el trabajo, estando a cargo del empleador el abono de la prestación al trabajador desde los días cuarto al octavo de la citada baja, ambos inclusive. b) El pago de subsidio por incapacidad temporal causado por los trabajadores incluidos en este sistema especial se efectuará directamente por la entidad a la que corresponda su gestión, no procediendo el pago delegado del mismo.”",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E5",
+      "tag": "Gestión financiera SS · Art. 14 RD 696/2018",
+      "q": "De acuerdo con el Real Decreto 696/2018, de 29 de junio, por el que se aprueba el Reglamento general de la gestión financiera de la Seguridad Social, ¿quiénes pueden ordenar pagos con carácter secundario en la Tesorería General de la Seguridad Social?",
+      "a": [
+        "Los titulares de los órganos de la Tesorería General de la Seguridad Social expresamente habilitados por su director general.",
+        "Exclusivamente el director general de la Tesorería General de la Seguridad Social.",
+        "Cualquier funcionario de la Seguridad Social con rango administrativo.",
+        "Solo la ministra de Inclusión, Seguridad Social y Migraciones."
+      ],
+      "c": 0,
+      "law": "Artículo 14. Ordenadores de pagos. 1. El Director General de la Tesorería General de la Seguridad Social ejercerá las funciones de Tesorero General y de Ordenador General de Pagos de la Seguridad Social, bajo la autoridad del Ministerio de Trabajo, Migraciones y Seguridad Social. 2. Podrán también ordenar pagos, con carácter secundario, los titulares de los órganos de la Tesorería General de la Seguridad Social expresamente habilitados para ello por su Director General, con cargo a las cuentas que se determinen. Las funciones de los ordenadores secundarios de pagos a que se refiere el párrafo anterior se determinarán por el Ministerio de Trabajo, Migraciones y Seguridad Social, sin perjuicio de aquellas otras que puedan ejercer mediante delegación de competencias o de firma del Ordenador General de Pagos de la Seguridad Social, en los términos establecidos, respectivamente, por los artículos 9 y 12 de la Ley 40/2015, de 1 de octubre, de Régimen Jurídico del Sector Público.",
+      "tip": "Ya lo siento por esta pregunta"
+    }
+  ]
+}
+</script>
+
+<!-- ══════════════════════════════════════════
+     JAVASCRIPT (MOTOR) — no hace falta tocar nada de aquí abajo
 ══════════════════════════════════════════ -->
 <script>
 /* ═══════════════════════════════════════════
-   BANCO DE ENUNCIADOS
+   CARGA DE LOS DATOS DEL SUPUESTO
    ───────────────────────────────────────────
-   Un enunciado es el bloque de hechos común a un grupo de
-   preguntas consecutivas (p.ej. "Título del bloque de hechos 1.
-   Preguntas 1 a 4" en el documento de origen). Ese título/rango
-   NO se muestra tal cual: solo sirve para saber qué preguntas
-   se vinculan a qué enunciado mediante "statementId".
-
-     id         : identificador único (ej. "E1"). Se referencia
-                  desde QUESTIONS_BANK con "statementId".
-     number     : texto corto para la insignia cuadrada (ej. "1").
-     title      : título del supuesto/expediente.
-     ref        : código de referencia.
-     ambito     : materias/temas que abarca.
-     factBlocks : bloques de hechos, en orden narrativo:
-                    { title, paragraphs: [...], red (bool, opcional),
-                      hidden (bool, opcional) }
-     timeline   : hitos de la línea de tiempo, en orden:
-                    { date, text, red (bool, opcional),
-                      hidden (bool, opcional) }
-
-   "red:true" marca un bloque/hito crítico o desencadenante
-   (se resalta en rojo). "hidden:true" omite ese bloque/hito
-   del renderizado sin necesidad de borrarlo.
+   Lee el bloque JSON de arriba y lo convierte en las variables que
+   usa el motor de la plantilla. Si el JSON tuviera un error de
+   escritura, se avisa en pantalla en lugar de dejar la página en
+   blanco.
 ═══════════════════════════════════════════ */
-const STATEMENTS_BANK = [
-    {
-        id: "E1",
-        number: "1",
-        title: "Enunciado 1",
-        ref: "S000",
-        ambito: "Temas 1 al 13",
-        factBlocks: [
-            {
-                title: "Hecho desencadenante", red: true, paragraphs: [
-                "Pepe es un agricultor que ha estado trabajando junto a su familia en las tierras que heredaron de su padre desde que cumplió los 18 años. Ahora que se le acerca la deseada y bendita jubilación, se pregunta qué será de su pensión y de su futuro. Pepe sabe que su pensión, que se ha ganado cotizando, la tiene asegurada por derecho constitucional. Pero se plantea algunas dudas sobre su futuro y el de su familia."
-                ]
-            }
-        ],
-        timeline: []
-    },
-    {
-        id: "E2",
-        number: "2",
-        title: "Enunciado 2",
-        ref: "S000",
-        ambito: "Temas 1 al 13",
-        factBlocks: [
-            {
-                title: "Hecho desencadenante", red: true, paragraphs: [
-                "Como eres nuevo en la Seguridad Social, tus compañeros te ponen a prueba sobre tus conocimientos teóricos."
-                ]
-            }
-        ],
-        timeline: []
-    },
-    {
-        id: "E3",
-        number: "3",
-        title: "Enunciado 3",
-        ref: "S000",
-        ambito: "Temas 1 al 13",
-        factBlocks: [
-            {
-                title: "Hecho desencadenante", red: true, paragraphs: [
-                "María de la Cruz de todos los Santos ha cobrado estando de baja fraudulenta por IT. Tras ser pillada infraganti, es despedida sin paro y además la Seguridad Social le solicita la devolución a través de una reclamación de deuda de los 6500 euros que percibió durante la baja. María de la Cruz solicita un aplazamiento, que es concedido por la tesorería de la Seguridad Social, a devolver cada mes el importe de 100€."
-                ]
-            }
-        ],
-        timeline: []
-    },
-    {
-        id: "E4",
-        number: "4",
-        title: "Enunciado 4",
-        ref: "S000",
-        ambito: "Temas 1 al 13",
-        factBlocks: [
-            {
-                title: "Hecho desencadenante 1", red: true, paragraphs: [
-                "Horse Luis era un empresario recién jubilado. Se jubiló hace un par de meses, en el momento que cumplió la edad ordinaria de jubilación. Cobra la pensión mínima cobrando complemento a mínimos. Dejó la empresa que dirigía él en manos de su mujer. Horse Luis se entera de que han modificado la jubilación flexible recientemente. Como se aburre mucho en su casa y su pensión es muy pequeña quiere volver a trabajar, aunque le toque empaquetar cajas. El 1 de septiembre de 2026, acude un CAISS a informarse sobre sus posibilidades de trabajar, siempre compaginándola con la jubilación."
-                ]
-            },
-            {
-                title: "Hecho desencadenante 2", red: true, paragraphs: [
-                "Meses después María Muffins, mujer de Horse Luis, se queda viuda. Solicita la pensión de viudedad. Tiene un hijo de su difunto marido póstumo el 1 de mayo de 2027."
-                ]
-            },
-            {
-                title: "Hecho desencadenante 3", red: true, paragraphs: [
-                "La hija mayor del matrimonio, María Antonieta de 27 años. Vive de forma independiente con su pareja, Luis Augusto. Tienen dos hijos menores de edad, de 2 y 10 años. Uno de ellos con discapacidad del 33%. No disponen de propiedades ni de ingresos actualmente. El año pasado tuvieron unos ingresos superiores al límite del IMV. Pero tras quedarse ambos en el paro, fueron aguantando con la prestación por desempleo al superar entre los dos la cuantía del IMV. En el mes de julio se les acaban a ambos las prestaciones por desempleo. En agosto solicita la titular de la unidad familiar el IMV, sin la firma de su marido."
-                ]
-            },
-            {
-                title: "Hecho desencadenante 4", red: true, paragraphs: [
-                "El hijo menor del matrimonio, Alfonso Francisco de 25 años y su mujer María de las Mercedes de 27. Ambos trabajan por cuenta ajena a fecha de 15 de abril de 2027, el matrimonio da a luz a una pareja de gemelos, los dos con discapacidad del 33%. Ambos no cuentan con cotizaciones previas al 1 de enero de 2027."
-                ]
-            },
-            {
-                title: "Hecho desencadenante 5", red: true, paragraphs: [
-                "Eugenio, trabaja como empleado de hogar en la casa familiar de María Muffins desde 2022. Las contingencias están concertadas con el INSS. El 1 de abril de 2026, le dan la baja por problema de espalda. La baja dura mes y medio."
-                ]
-            }
-        ],
-        timeline: []
-    },
-    {
-        id: "E5",
-        number: "5",
-        title: "Enunciado 5",
-        ref: "S000",
-        ambito: "Temas 1 al 13",
-        factBlocks: [
-            {
-                title: "Hecho desencadenante", red: true, paragraphs: [
-                "Como el tema 13 es difícil hacer una pregunta planteando un supuesto, piensa que trabajas en la Seguridad Social y que esta pregunta de teoría te sale en tu vida."
-                ]
-            }
-        ],
-        timeline: []
-    }
-];
+let DATOS_SUPUESTO;
+try {
+    DATOS_SUPUESTO = JSON.parse(document.getElementById('datos-supuesto').textContent);
+} catch (err) {
+    document.addEventListener('DOMContentLoaded', () => {
+        document.body.innerHTML =
+            '\u003cdiv style="max-width:760px;margin:60px auto;padding:24px;background:#fff;' +
+            'border-left:6px solid #8b1a1a;font-family:Georgia,serif;color:#1a1a2e;">' +
+            '\u003ch1 style="font-size:1.2rem;color:#8b1a1a;">Error en los datos del supuesto\u003c/h1>' +
+            '\u003cp>El bloque JSON &lt;script id="datos-supuesto"&gt; tiene un error de formato ' +
+            'y no se ha podido leer. Vuelve a guardar el archivo desde el editor de Python.\u003c/p>' +
+            '\u003cpre style="white-space:pre-wrap;font-size:0.8rem;color:#4a5568;">' + err + '\u003c/pre>\u003c/div>';
+    });
+    throw err;
+}
 
 /* ═══════════════════════════════════════════
-   BANCO DE PREGUNTAS
+   NORMALIZACIÓN DE LOS BLOQUES
    ───────────────────────────────────────────
-   Rellena este array con tus propias preguntas siguiendo la
-   misma estructura. Cada objeto es una pregunta:
-
-     statementId : id del enunciado (STATEMENTS_BANK) al que
-                   pertenece esta pregunta, o null si es una
-                   pregunta suelta sin enunciado asociado.
-     tag : etiqueta corta (materia · artículo) que aparece
-           encima del enunciado de la pregunta.
-     q   : texto de la pregunta.
-     a   : array con las 4 opciones de respuesta. En el documento
-           de origen la opción correcta siempre se transcribe en
-           primer lugar (posición A); en pantalla las opciones se
-           barajan de forma aleatoria para cada usuario, así que
-           el orden final que ve cada persona nunca es fijo.
-     c   : índice (0-3) de la opción correcta dentro de "a" (por
-           convención del documento de origen, normalmente 0).
-     law : motivación legal/normativa que se muestra como
-           feedback tras responder.
-     tip : consejo práctico o aclaración breve (aparece
-           destacado con 💡 debajo de "law").
-
-   El orden de este array es el orden "por defecto" del examen:
-   se respeta tal cual salvo que el usuario pida un intento
-   aleatorio (ver botón "Nuevo Intento"). Las preguntas de un
-   mismo enunciado deben ir consecutivas en el array para que el
-   panel de hechos se muestre correctamente.
-
-   Puedes añadir tantas preguntas como necesites; el nº de
-   preguntas y el nº de minutos en las "meta-pill" de la
-   cabecera son solo informativos y no están vinculados al
-   temporizador (ver "examDurationSeconds" más abajo).
+   Rellena los valores que falten y reparte las preguntas en su
+   bloque. Los archivos antiguos (sin "bloques") siguen funcionando:
+   todas sus preguntas se meten en un único bloque de supuesto.
 ═══════════════════════════════════════════ */
-const QUESTIONS_BANK = [
-    {
-        statementId: "E1",
-        tag: "Estructura del sistema · Art. 41 CE",
-        q: "¿Es la pensión de jubilación de PEPE un derecho constitucional del Art 41, dentro del nivel básico de Protección pública?",
-        a: [
-            "No, la pensión de jubilación contributiva, no se considera dentro del nivel básico de protección pública.",
-            "Sí, la pensión de jubilación contributiva se caracteriza por ser universal y para todos los ciudadanos.",
-            "La pensión de jubilación del Régimen especial agrario es de nivel complementario.",
-            "Ninguna opción es correcta"
-        ],
-        c: 0,
-        law: "El derecho constitucional al mantenimiento de un sistema público de la Seguridad Social, la pensión de jubilación en su modalidad contributiva, está dentro del Nivel contributivo, dentro de los ciudadanos que ejercen una actividad profesional y hayan cotizado, no es universal per se.",
-        tip: ""
-    },
-    {
-        statementId: "E1",
-        tag: "Campo de aplicación",
-        q: "Pepe tiene un hijo pequeño, Pepe JR, con edad de 16 años cumplidos. Su mujer y otros hijos han trabajado alguna vez con él y quiere que su hijo se incorpore como él al negocio familiar. ¿Puede Pepe JR incorporarse al Sistema Especial de los trabajadores Agrarios por cuenta Propia?",
-        a: [
-            "No, ya que no cumple los requisitos para su incorporación en este Sistema Especial",
-            "No, deberá incorporarse obligatoriamente en el RETA como familiar colaborador.",
-            "En este caso, a elección del titular de la explotación, puede elegir entre el Régimen General y el Régimen Especial de Trabajadores por cuenta Ajena",
-            "Todas las opciones son Correctas."
-        ],
-        c: 0,
-        law: "Los menores de 18 años no pueden inscribirse al RETA. El Art 305.1 LGSS, ya exige para la inclusión en este Régimen Especial la necesidad de tener al menos 18 años de edad. Igualmente, en el Art 324.3 LGSS sobre las reglas de inclusión en el SETA: “…siempre que sean mayores de dieciocho años”. Por lo tanto, al tener en cuenta las soluciones, la única correcta es la de que no reúne los requisitos de inclusión en el RETA.",
-        tip: ""
-    },
-    {
-        statementId: "E1",
-        tag: "Afiliación · Art. 28 RIA",
-        q: "Un trabajador de Pepe, Julián, se cambia en el registro civil su nombre y género, pasando a llamarse Julieta. ¿Cuál es el plazo para la variación de datos de Afiliación?",
-        a: [
-            "El plazo para la variación de datos de afiliación es de 3 días naturales",
-            "El plazo para la variación de datos de afiliación es de 6 días naturales",
-            "El plazo para la variación de datos de afiliación es de 3 días hábiles",
-            "El plazo para la variación de datos de afiliación es de 6 días hábiles"
-        ],
-        c: 0,
-        law: "El art 28.1 del RIA, no ha sido modificado por el RD 643/2026, manteniéndose en 3 días naturales. El artículo modificado es el 32.3.1º RIA, que trata sobre la variación de datos de los trabajadores sobre su jornada, cambio de grupo de cotización, etc.",
-        tip: "No confundir cuando te preguntas sobre variación de datos de afiliación (Art 28 RIA), con la variación de datos del Art 32 RIA."
-    },
-    {
-        statementId: "E1",
-        tag: "Cotización RETA · Orden de Cotización 2026, Art. 19",
-        q: "Pepe y las matemáticas no se llevan bien, si el mes de junio de 2026 tuvo unos ingresos de 2000 euros de rendimientos netos. Por lo que acude a un CAISS para asesorarse. ¿Como funcionario de la Seguridad Social, qué le indicas a PEPE?",
-        a: [
-            "Pepe cotizará por los primeros 1.141,18 euros al 18,75% y por el resto al 26.5%, pudiendo voluntariamente mejorarse la IT.",
-            "Pepe cotizará por los primeros 2.000 euros por el resto al 28.3%, pudiendo voluntariamente mejorarse la IT.",
-            "Pepe cotizará según su tramo de cotización de las tablas de la Orden de cotización para los RETA, pudiendo voluntariamente mejorarse la IT.",
-            "Pepe cotizará por los primeros 1.141,18 euros al 18,75% y por el resto al 28.3%, no pudiendo mejorar voluntariamente la IT."
-        ],
-        c: 0,
-        law: "La Orden de Cotización de 2026, en su Art 19, fija para el Sistema Especial Agrario dentro del RETA: “Respecto de las contingencias de cobertura obligatoria, cuando la persona trabajadora haya optado por una base de cotización de hasta 1.141,18 euros mensuales, el tipo de cotización aplicable será el 18,75 por ciento. Si la persona trabajadora cotizará por una base de cotización superior a 1.141,18 euros mensuales, a la cuantía que exceda de esta última le será de aplicación el tipo de cotización del 26,50 por ciento”. Pudiendo mejorar la IT voluntariamente.",
-        tip: ""
-    },
-    {
-        statementId: "E2",
-        tag: "Sistema RED · Art. 2 Orden ESS/484/2013",
-        q: "¿Cuál de los siguientes oficios no está obligado a relacionarse obligatoriamente con el Sistema RED?",
-        a: [
-            "Un percebeiro del Grupo 3.",
-            "Un empresario respecto a sus trabajadores.",
-            "Los encargados de la afiliación de los trabajadores del carbón.",
-            "Un Autónomo del Grupo 1 del REMAR"
-        ],
-        c: 0,
-        law: "El Art 2 de la Orden ESS/484/2013, especifica quién está obligado y quién no a comunicarse con el Sistema RED, del Régimen General, no está obligado los Profesionales taurinos y SEEH. Tampoco están obligados los RETAMAR cuenta propia grupos 2º y 3º. Un Percebeiro del Grupo 3 estaría encuadrado en este régimen.",
-        tip: ""
-    },
-    {
-        statementId: "E2",
-        tag: "Aplazamientos · Art. 35.6 RD 1415/2004",
-        q: "Juan, en septiembre de 2026, tiene una deuda con la Seguridad Social de 1222 euros. Solicita un aplazamiento a la Seguridad Social, para pagar el plazo en 13 cuotas. ¿se lo concederán?",
-        a: [
-            "Sí, al ser la cantidad superior al mínimo exigido para su denegación.",
-            "No, al no superar dos veces el SMI vigente en 2026.",
-            "No, al no ser el mínimo por cuota superior a 100 euros mensuales.",
-            "Sí, los aplazamientos no tienen un mínimo por el cual se denieguen."
-        ],
-        c: 0,
-        law: "El Art 35.6 del Real decreto 1415/2004 sobre la denegación de los aplazamientos, fija desde la reforma por el Real Decreto 643/2026, la denegación de aplazamiento en la cuantía de un SMI. En 2026 es 1221€.",
-        tip: "No confundir aplazamiento con reintegro de prestaciones indebidas. Que este último sí tiene un límite de reintegro de 100€ mensuales."
-    },
-    {
-        statementId: "E2",
-        tag: "Recaudación · Tercerías · Art. 134.1 RD 1415/2004",
-        q: "En casos de tercerías de buen dominio el tercerista…",
-        a: [
-            "Alega la propiedad del bien, suspende el procedimiento sin presentar garantías",
-            "Tiene que justificar el crédito preferente, sin suspensión del procedimiento",
-            "Alega la propiedad del bien, sin suspensión del procedimiento",
-            "Tiene que justificar el crédito preferente, suspende el procedimiento sin presentar garantías"
-        ],
-        c: 0,
-        law: "El Art 134.1 del RDL 1415/2004, estipula en la tramitación de las tercerías que: “Si fuera de mejor derecho, se proseguirá el procedimiento hasta la realización de los bienes. Si fuera de dominio… suspenderá el procedimiento de apremio en cuanto a los bienes controvertidos, en tanto la tercería se resuelva”.",
-        tip: ""
-    },
-    {
-        statementId: "E3",
-        tag: "Recaudación · Aplazamientos · Art. 80 Rgto. Recaudación",
-        q: "Con los datos proporcionados, corrige el error que ha cometido la Tesorería.",
-        a: [
-            "El tiempo concedido de aplazamiento, por normativa, debería ser inferior.",
-            "El importe mínimo mensual del aplazamiento, por normativa, debería ser superior.",
-            "Debería haber emitido un acta de liquidación, no una reclamación de deuda.",
-            "No ha cometido error alguno."
-        ],
-        c: 0,
-        law: "El Art 80 del reglamento de recaudación, establece que el fraccionamiento puede solicitarse por el sujeto obligado tras la reclamación de deuda con un plazo máximo de 60 mensualidades (5 años) y un importe mínimo de 100€ mes.",
-        tip: ""
-    },
-    {
-        statementId: "E3",
-        tag: "Recaudación · Vía ejecutiva · Art. 80 RDL 1415/2004",
-        q: "María de la Cruz de todos los Santos decide antes de pagar el primer mes cambiar la cuantía del aplazamiento a 250€ mensuales durante 26 meses, que es aceptado por la tesorería. En los meses 20 y 26 no puede hacer frente al pago del fraccionamiento, ingresando religiosamente el resto de las mensualidades. ¿Qué supone esto para María de la Cruz?",
-        a: [
-            "Se iniciará automáticamente la vía ejecutiva, los intereses de demora se calcularán desde el último plazo del fraccionamiento.",
-            "Se iniciará automáticamente la vía ejecutiva, los intereses de demora se calcularán desde el primer plazo del fraccionamiento impagado.",
-            "Se iniciará automáticamente la vía ejecutiva, los intereses de demora se calcularán desde el primer plazo del fraccionamiento.",
-            "Se iniciará automáticamente la vía ejecutiva, los intereses de demora se calcularán desde la reclamación de deuda."
-        ],
-        c: 0,
-        law: "El Art 80 del RDL 1415/2004: “Concluido el período de pago del último de los plazos de fraccionamiento concedidos, si existiera alguna cantidad pendiente de abono, se iniciará igualmente, de manera automática, la vía ejecutiva, mediante la emisión de la correspondiente providencia de apremio. En este caso, y a efectos de determinar el cálculo de los intereses de demora que correspondan, se entenderá como plazo reglamentario de ingreso el correspondiente al último plazo del fraccionamiento.”",
-        tip: "Estamos ante la finalización del fraccionamiento sin que el total de los impagos sea tres mensualidades, por lo que los intereses de demora se calculan desde el último plazo del fraccionamiento."
-    },
-    {
-        statementId: "E4",
-        tag: "Jubilación",
-        q: "¿Qué modalidad de jubilación compatible con el trabajo se puede acoger Horse Luis?",
-        a: [
-            "Jubilación flexible, como asalariado.",
-            "Jubilación flexible como autónomo.",
-            "Jubilación activa.",
-            "No se puede acoger a ninguna modalidad de compatibilidad de la pensión con el trabajo. Si quiere trabajar, se le deberá suspender la pensión."
-        ],
-        c: 0,
-        law: "El nuevo Real Decreto 416/2026, sí permite el trabajo de asalariado compatible con la pensión, aun procediendo del RETA. Ahora bien, para poder acceder a la jubilación Flexible como autónomo, no hay que haber estado de alta en el Régimen Especial de Trabajadores por Cuenta Propia en los últimos 3 años. La jubilación activa no es posible porque no ha demorado 1 año la edad de jubilación a la edad ordinaria de jubilación.",
-        tip: "Revisar el nuevo Real Decreto 416/2026. Art 4 a 9."
-    },
-    {
-        statementId: "E4",
-        tag: "Muerte y supervivencia · Orfandad",
-        q: "¿Cuándo surtirán los EFECTOS ECONOMICOS de la orfandad del hijo?",
-        a: [
-            "Mismo día del nacimiento, como el hecho causante",
-            "Día después del nacimiento, día después del hecho causante",
-            "Solo cobra 12 mensualidades al ser póstumo.",
-            "No tendrá derecho a orfandad, al no estar el sujeto causante de alta en el momento de la muerte."
-        ],
-        c: 0,
-        law: "Pregunta típica que cada academia da una respuesta. La regla general es que los efectos económicos surgen el día siguiente al nacimiento del derecho. Pero el anterior tribunal de nuestra oposición dio por buena la de que surge con el mismo hecho, y la Seguridad Social aplica este principio también. Esto se debe a que no está bien puesta esta cuestión normativamente.",
-        tip: ""
-    },
-    {
-        statementId: "E4",
-        tag: "Ingreso Mínimo Vital",
-        q: "¿Con los datos presentados, se les otorgará la prestación del IMV?",
-        a: [
-            "Sí, cumplen los requisitos de vulnerabilidad económica.",
-            "Se les concederá si subsanan la firma de todos los miembros de la unidad económica.",
-            "No, deberán esperar al siguiente año, entonces cumplirán los requisitos.",
-            "Sí, solo se tiene en cuenta para el requisito del IMV los ingresos para la prestación por desempleo, que en cómputo anual, sean inferiores al IMV."
-        ],
-        c: 0,
-        law: "De acuerdo con el art 11.5 LIMV, la situación de vulnerabilidad sobrevenida, se solicita a partir del segundo trimestre del año hasta la finalización de este. Solo se tienen en cuenta la parte proporcional de ingresos o declaración responsable, sin contar la prestación por desempleo o subsidios por desempleo que se haya agotado en el momento de la solicitud del IMV.",
-        tip: ""
-    },
-    {
-        statementId: "E4",
-        tag: "Nacimiento y cuidado del menor",
-        q: "¿Qué prestaciones y/o subsidios económicos tendrán el matrimonio por el nacimiento de sus hijos?",
-        a: [
-            "Ella tendrá una prestación base de 42 días, aumentada en 14 días parto múltiple. Él tendrá la prestación de paternidad de 19 semanas base, incrementada en 1 semanas por parto múltiple y otra por cada uno de los hijos con discapacidad. Más un subsidio especial de 6 semanas de duración.",
-            "Ella tendrá una prestación base de 42 días, aumentada en 14 días por la disparidad de los hijos. Él tendrá la prestación de paternidad de 19 semanas base, incrementada en 2 semanas por uno de los hijos con discapacidad. Más un subsidio especial de 6 semanas de duración por cada hijo.",
-            "Ella tendrá una prestación base de 42 días, aumentada en 14 días parto múltiple. Él tendrá la prestación de paternidad de 19 semanas base, incrementada en 2 semanas por los hijos con discapacidad. Más un subsidio especial de 6 semanas de duración.",
-            "Ella tendrá una prestación base de 42 días, aumentada en 14 días parto múltiple y otros 14 días por discapacidad de los hijos. Él tendrá la prestación de paternidad de 19 semanas base, incrementada en 1 semanas por parto múltiple y otras 2 por cada uno de los hijos con discapacidad. Más un subsidio especial de 6 semanas de duración."
-        ],
-        c: 0,
-        law: "De acuerdo con el Capítulo 6 del Titulo II de la LGSS y al Real Decreto 295/2009. En caso de cumplir las condiciones para la prestación de nacimiento y cuidado del menor. De base son 19 semanas, incrementado una por parto múltiple y dos adicionales, una por cada hijo con discapacidad. Más un subsidio especial que equivale a 6 semanas de duración. María de las Mercedes, no cumple con los periodos de cotización mínimos que se exigen a las personas mayores de 26 años, por lo que se aplican los Art 181 y 182 de la LGSS. El cual da un subsidio del tiempo de duración del periodo obligatorio (6 semanas, que son 42 días), más un incremento único de 14 días por circunstancias especiales, en este caso parto múltiple.",
-        tip: "En el subsidio por nacimiento y cuidado del menor no hay incremento por discapacidad del hijo"
-    },
-    {
-        statementId: "E4",
-        tag: "Incapacidad Temporal",
-        q: "¿Cómo se abonará la IT de Eugenio?",
-        a: [
-            "A partir de 9 día de trabajo, estando a cargo del empleador del día 4 al 9 de la baja, ambos inclusive. A partir del 9 lo abonará el INSS, no procediendo el pago delegado.",
-            "A partir de 16 día de trabajo, estando a cargo del empleador del día 4 al 16 de la baja, ambos inclusive. A partir del 16 lo abonará el INSS, no procediendo el pago delegado.",
-            "A partir de 16 día de trabajo, estando a cargo del empleador del día 4 al 16 de la baja, ambos inclusive. A partir del 16 lo abonará el INSS, procediendo el pago delegado.",
-            "A partir de 9 día de trabajo, estando a cargo del empleador del día 4 al 9 de la baja, ambos inclusive. A partir del 9 lo abonará el INSS, procediendo el pago delegado."
-        ],
-        c: 0,
-        law: "El art 251.1 LGSS: “a) El subsidio por incapacidad temporal, en caso de enfermedad común o accidente no laboral, se abonará a partir del noveno día de la baja en el trabajo, estando a cargo del empleador el abono de la prestación al trabajador desde los días cuarto al octavo de la citada baja, ambos inclusive. b) El pago de subsidio por incapacidad temporal causado por los trabajadores incluidos en este sistema especial se efectuará directamente por la entidad a la que corresponda su gestión, no procediendo el pago delegado del mismo.”",
-        tip: ""
-    },
-    {
-        statementId: "E5",
-        tag: "Gestión financiera SS · Art. 14 RD 696/2018",
-        q: "De acuerdo con el Real Decreto 696/2018, de 29 de junio, por el que se aprueba el Reglamento general de la gestión financiera de la Seguridad Social, ¿quiénes pueden ordenar pagos con carácter secundario en la Tesorería General de la Seguridad Social?",
-        a: [
-            "Los titulares de los órganos de la Tesorería General de la Seguridad Social expresamente habilitados por su director general.",
-            "Exclusivamente el director general de la Tesorería General de la Seguridad Social.",
-            "Cualquier funcionario de la Seguridad Social con rango administrativo.",
-            "Solo la ministra de Inclusión, Seguridad Social y Migraciones."
-        ],
-        c: 0,
-        law: "Artículo 14. Ordenadores de pagos. 1. El Director General de la Tesorería General de la Seguridad Social ejercerá las funciones de Tesorero General y de Ordenador General de Pagos de la Seguridad Social, bajo la autoridad del Ministerio de Trabajo, Migraciones y Seguridad Social. 2. Podrán también ordenar pagos, con carácter secundario, los titulares de los órganos de la Tesorería General de la Seguridad Social expresamente habilitados para ello por su Director General, con cargo a las cuentas que se determinen. Las funciones de los ordenadores secundarios de pagos a que se refiere el párrafo anterior se determinarán por el Ministerio de Trabajo, Migraciones y Seguridad Social, sin perjuicio de aquellas otras que puedan ejercer mediante delegación de competencias o de firma del Ordenador General de Pagos de la Seguridad Social, en los términos establecidos, respectivamente, por los artículos 9 y 12 de la Ley 40/2015, de 1 de octubre, de Régimen Jurídico del Sector Público.",
-        tip: "Ya lo siento por esta pregunta"
-    }
-];
+function numeroSeguro(valor, porDefecto) {
+    const n = parseFloat(String(valor === undefined || valor === null ? '' : valor).replace(',', '.'));
+    return isNaN(n) ? porDefecto : n;
+}
+
+function normalizarBloques(datos) {
+    const colorPorTipo = { supuesto: '#8fc4d9', test: '#e0ac4a' };
+    let brutos = Array.isArray(datos.bloques) && datos.bloques.length ? datos.bloques : null;
+    if (!brutos) brutos = [{ id: 'B1', tipo: 'supuesto', titulo: 'Supuesto práctico' }];
+
+    const bloques = brutos.map((b, i) => {
+        const tipo = (b.tipo === 'test') ? 'test' : 'supuesto';
+        const id   = String(b.id || '').replace(/[^A-Za-z0-9_-]/g, '') || ('B' + (i + 1));
+        return {
+            id:         id,
+            tipo:       tipo,
+            titulo:     b.titulo || (tipo === 'test' ? 'Teoría' : 'Supuesto práctico'),
+            color:      b.color  || colorPorTipo[tipo],
+            modo:       (b.modo === 'cadena' || b.modo === 'individual')
+                            ? b.modo
+                            : (tipo === 'test' ? 'cadena' : 'individual'),
+            porIntento: Math.max(0, parseInt(b.porIntento, 10) || 0),
+            envio:      b.envio || {},
+            acierto:    numeroSeguro(b.acierto, 1),
+            fallo:      Math.abs(numeroSeguro(b.fallo, 0)),
+            blanco:     Math.abs(numeroSeguro(b.blanco, 0)),
+            preguntas:  []
+        };
+    });
+
+    const porId = new Map(bloques.map(b => [b.id, b]));
+    (datos.preguntas || []).forEach(q => {
+        const b = porId.get(String(q.bloqueId || '')) || bloques[0];
+        q.bloqueId = b.id;
+        if (b.tipo === 'test') q.statementId = null;   // la teoría no lleva enunciado
+        b.preguntas.push(q);
+    });
+    return bloques;
+}
+
+const EXAM_CONFIG     = DATOS_SUPUESTO.config     || { titulo: '', referencia: '', ambito: '', minutos: 30 };
+const STATEMENTS_BANK = DATOS_SUPUESTO.enunciados || [];
+const BLOCKS_BANK     = normalizarBloques(DATOS_SUPUESTO);
+const BLOCKS_BY_ID    = new Map(BLOCKS_BANK.map(b => [b.id, b]));
+// Orden por defecto del examen: los bloques en su orden y, dentro de
+// cada uno, sus preguntas en el orden en que están en el editor.
+const QUESTIONS_BANK  = BLOCKS_BANK.reduce((acc, b) => acc.concat(b.preguntas), []);
+// Porcentaje de puntuación a partir del cual el resultado es APTO
+const APTO_PCT        = numeroSeguro(EXAM_CONFIG.aptoPorcentaje, 50);
+// Qué botones se ven y cómo se llaman, y a dónde se envían los resultados
+const INTERFAZ        = DATOS_SUPUESTO.interfaz || {};
+const ENVIO           = DATOS_SUPUESTO.envio    || {};
+/* ═══════════ FIN DE LA ZONA EDITABLE ═══════════ */
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   ██████  MOTOR DE LA PLANTILLA — no hace falta tocar nada de aquí  ██████
+   ───────────────────────────────────────────────────────────────────
+   A partir de aquí solo hay código que hace funcionar el examen
+   (temporizador, barajado, corrección, impresión...). Para crear o
+   editar un supuesto no hace falta leer ni modificar esta parte.
+═══════════════════════════════════════════════════════════════════ */
 
 /* ═══════════════════════════════════════════
    ESTADO DEL EXAMEN
 ═══════════════════════════════════════════ */
+const LETTERS = ['A', 'B', 'C', 'D'];
+
 let questions          = [];
-let examDurationSeconds = 30 * 60;   // Duración configurable desde el panel ⚙
+let examDurationSeconds = EXAM_CONFIG.minutos * 60; // ver EXAM_CONFIG, arriba
 let timeLeft            = examDurationSeconds;
 let current              = 0;
 let userAns              = {};
@@ -1090,7 +1413,338 @@ let alerted5             = false;
 let alerted5b            = false;
 let alerted1             = false;
 let instantFeedback      = false;    // Modo "corregir pregunta a pregunta"
+let forzarUnaEnUna       = false;    // ⚙ "Ver las preguntas de una en una"
+let navPlegada           = false;    // cabecera plegada (solo el bloque actual)
+let dedoEnMovimiento     = false;    // el dedo se ha desplazado: no es un toque
+let ultimoScroll         = 0;        // instante del último desplazamiento
 let currentStatementId   = undefined; // Enunciado mostrado actualmente en #statement-container
+
+/* ═══════════════════════════════════════════
+   BLOQUES — utilidades
+   ───────────────────────────────────────────
+   Un bloque es una sección del examen (un supuesto práctico o una
+   tanda de teoría tipo test). Cada bloque tiene su propio color, su
+   forma de mostrarse (todas las preguntas seguidas o de una en una)
+   y su propio baremo de puntuación.
+═══════════════════════════════════════════ */
+function getBlock(id) {
+    return BLOCKS_BY_ID.get(id) || BLOCKS_BANK[0];
+}
+
+// "#8fc4d9" → "143,196,217" (para poder construir rgba() con transparencia)
+function hexARgb(hex) {
+    const limpio = String(hex || '').replace('#', '').trim();
+    const largo  = limpio.length === 3 ? limpio.split('').map(c => c + c).join('') : limpio;
+    const n      = parseInt(largo, 16);
+    if (largo.length !== 6 || isNaN(n)) return '143,196,217';
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255].join(',');
+}
+
+// Números con coma decimal y sin decimales inútiles: 1 → "1", 0.33 → "0,33"
+function nUm(x) {
+    const r = Math.round(x * 100) / 100;
+    return String(r).replace('.', ',');
+}
+
+// Hoja de estilos que colorea cada bloque (casillas de navegación,
+// cabecera de sección, marcador y corrección) con su propio color.
+function inyectarEstilosBloques() {
+    let hoja = document.getElementById('estilos-bloques');
+    if (!hoja) {
+        hoja = document.createElement('style');
+        hoja.id = 'estilos-bloques';
+        document.head.appendChild(hoja);
+    }
+    hoja.textContent = BLOCKS_BANK.map(b => {
+        const rgb = hexARgb(b.color);
+        return `
+        .nav-box.blq-${b.id}:not(.answered):not(.nav-wrong) {
+            border-color: rgba(${rgb},0.45); color: rgba(${rgb},0.95); background: rgba(${rgb},0.10);
+        }
+        .nav-box.blq-${b.id}:not(.answered):not(.nav-wrong):hover {
+            border-color: ${b.color}; background: rgba(${rgb},0.22); color: #ffffff;
+        }
+        .nav-box.blq-${b.id}.active {
+            background: ${b.color} !important; color: var(--navy) !important;
+            border-color: ${b.color} !important; box-shadow: 0 0 12px rgba(${rgb},0.5);
+        }
+        .question-card.blq-${b.id}::before { background: linear-gradient(180deg, ${b.color}, var(--crimson)); }
+        .question-card.blq-${b.id}.encadenada.active { box-shadow: 0 8px 32px var(--shadow), 0 0 0 2px ${b.color}; }
+        .block-header.blq-${b.id} { border-left-color: ${b.color}; }
+        .block-header.blq-${b.id} .bh-tipo { color: ${b.color}; border-color: rgba(${rgb},0.55); background: rgba(${rgb},0.10); }
+        .score-bloques .sb-fila.blq-${b.id} { border-left-color: ${b.color}; }
+        .score-bloques .sb-fila.blq-${b.id} .sb-nombre { color: ${b.color}; }
+        .corr-bloque.blq-${b.id} { color: ${b.color}; border-bottom-color: rgba(${rgb},0.5); }`;
+    }).join('\n');
+}
+
+/* ═══════════════════════════════════════════
+   PALETA DE COLORES DE LA PÁGINA
+   ───────────────────────────────────────────
+   Los colores del apartado "tema" del bloque de datos sustituyen a
+   las variables CSS de :root. Como todas las transparencias de la
+   hoja de estilos se construyen con rgba(var(--x-rgb), …), cambiar
+   un color aquí lo cambia en toda la página: fondos, bordes, textos
+   y sombras incluidos.
+═══════════════════════════════════════════ */
+const TEMA_VARS = {
+    fondo:        ['--navy',      '--navy-rgb'],
+    barra:        ['--navy-mid',  null],
+    acento:       ['--gold',      '--gold-rgb'],
+    acentoClaro:  ['--gold-lt',   null],
+    azulProfundo: ['--blue-deep', null],
+    textoClaro:   ['--cream',     null],
+    tarjeta:      ['--paper',     null],
+    fondoHechos:  ['--parch',     null],
+    texto:        ['--ink',       null],
+    gris:         ['--slate',     null],
+    rojo:         ['--crimson',   '--crimson-rgb'],
+    verde:        ['--forest',    '--forest-rgb']
+};
+
+function aplicarTema() {
+    const tema = (DATOS_SUPUESTO && DATOS_SUPUESTO.tema) || {};
+    const raiz = document.documentElement;
+    Object.keys(TEMA_VARS).forEach(clave => {
+        const valor = tema[clave];
+        if (!valor) return;
+        const [variable, variableRgb] = TEMA_VARS[clave];
+        raiz.style.setProperty(variable, valor);
+        if (variableRgb) raiz.style.setProperty(variableRgb, hexARgb(valor));
+    });
+}
+
+// La cabecera crece con el número de bloques (una fila por bloque): se
+// publica su altura real en --nav-h para que el temporizador flotante
+// quede siempre justo debajo y no la tape.
+function medirCabecera() {
+    const cab = document.getElementById('nav-header');
+    if (!cab) return;
+    document.documentElement.style.setProperty('--nav-h', cab.offsetHeight + 'px');
+}
+window.addEventListener('resize', medirCabecera);
+
+/* Plegar la cabecera: deja a la vista solo la fila del bloque actual.
+   Al cambiar de bloque (con Anterior/Siguiente o pulsando una casilla)
+   la fila visible cambia sola. */
+function togglePlegado() {
+    navPlegada = !navPlegada;
+    document.body.classList.toggle('nav-plegada', navPlegada);
+    const btn = document.getElementById('fold-btn');
+    if (btn) {
+        btn.textContent = navPlegada ? '⌄' : '⌃';
+        btn.title = navPlegada
+            ? 'Desplegar: ver las casillas de todos los bloques'
+            : 'Plegar: ver solo el bloque actual';
+    }
+    medirCabecera();
+}
+
+// El botón de plegar solo tiene sentido con más de un bloque en pantalla.
+// Además, cada intento arranca en el estado (plegada o desplegada) que se
+// haya elegido en el editor.
+function actualizarBotonPlegar() {
+    const filas = document.querySelectorAll('.nav-row').length;
+    const btn = document.getElementById('fold-btn');
+    if (!btn) return;
+    const procede = filas > 1 && interfazVisible('botonPlegar');
+    btn.style.display = procede ? 'flex' : 'none';
+    const deseada = procede && ajusteInterfaz('botonPlegar').plegado === true;
+    if (navPlegada !== deseada) togglePlegado();
+}
+
+// ¿Este bloque se ve con todas sus preguntas seguidas?
+function enCadena(bloque) {
+    return !forzarUnaEnUna && bloque.modo === 'cadena';
+}
+
+// Cabecera de sección que se pinta encima de las preguntas del bloque
+function cabeceraBloque(bloque, cuantas) {
+    const el = document.createElement('div');
+    el.className = `block-header blq-${bloque.id}`;
+    el.id = `bhdr-${bloque.id}`;
+    el.dataset.bloque = bloque.id;
+    const baremo = [
+        `+${nUm(bloque.acierto)} por acierto`,
+        bloque.fallo ? `−${nUm(bloque.fallo)} por fallo` : 'sin penalización por fallo',
+        bloque.blanco ? `−${nUm(bloque.blanco)} en blanco` : ''
+    ].filter(Boolean).join(' · ');
+    el.innerHTML = `
+        <span class="bh-tipo">${bloque.tipo === 'test' ? 'Teoría · test' : 'Supuesto práctico'}</span>
+        <h3>${bloque.titulo}</h3>
+        <div class="bh-datos">${cuantas} ${cuantas === 1 ? 'pregunta' : 'preguntas'}<br>${baremo}</div>`;
+    return el;
+}
+
+/* ═══════════════════════════════════════════
+   APLICAR EXAM_CONFIG AL DOM
+   ───────────────────────────────────────────
+   Rellena el título de la pestaña, la hoja de impresión y la
+   cabecera institucional a partir de EXAM_CONFIG (ver ZONA
+   EDITABLE). El nº de preguntas se recalcula cada vez que se
+   (re)inicia el examen, para reflejar siempre las que hay
+   realmente cargadas en pantalla.
+═══════════════════════════════════════════ */
+function applyExamConfig() {
+    aplicarTema();
+    aplicarInterfaz();
+
+    // Encabezado: imagen y línea del organismo. Si se deja vacío el logo
+    // (o el organismo), simplemente no se pinta.
+    const logo = document.getElementById('inst-logo');
+    if (logo) {
+        if (EXAM_CONFIG.logo) {
+            logo.src = EXAM_CONFIG.logo;
+            logo.alt = EXAM_CONFIG.logoAlt || '';
+            logo.style.display = '';
+        } else {
+            logo.removeAttribute('src');
+            logo.style.display = 'none';
+        }
+    }
+    const organismo = document.getElementById('inst-organismo');
+    if (organismo) {
+        organismo.textContent = EXAM_CONFIG.organismo || '';
+        organismo.style.display = EXAM_CONFIG.organismo ? '' : 'none';
+    }
+
+    document.title = EXAM_CONFIG.titulo;
+    document.getElementById('print-title-h1').textContent  = EXAM_CONFIG.titulo;
+    document.getElementById('print-title-sub').textContent = `${EXAM_CONFIG.ambito} · Corrección con motivación legal completa`;
+    document.getElementById('inst-title').textContent      = EXAM_CONFIG.titulo;
+    document.getElementById('meta-minutos').textContent     = `${EXAM_CONFIG.minutos} MINUTOS`;
+    document.getElementById('meta-legislacion').textContent = EXAM_CONFIG.ambito;
+    document.getElementById('meta-referencia').textContent  = EXAM_CONFIG.referencia;
+}
+
+function updateQuestionCountPill() {
+    document.getElementById('meta-preguntas').textContent = `${questions.length} PREGUNTAS`;
+}
+
+/* ═══════════════════════════════════════════
+   BOTONES Y RÓTULOS CONFIGURABLES
+   ───────────────────────────────────────────
+   El apartado "interfaz" del bloque de datos decide qué botones se ven
+   y con qué texto. Cada clave de configuración gobierna uno o varios
+   elementos de la página (por ejemplo "btnImprimir" manda sobre el
+   botón de la botonera y sobre su gemelo de la ventana de corrección).
+═══════════════════════════════════════════ */
+const BOTONES_INTERFAZ = {
+    btnAnterior:      ['prev-btn'],
+    btnSiguiente:     ['next-btn'],
+    btnCorregir:      ['check-btn'],
+    btnVerCorreccion: ['ov-corr-btn'],
+    btnImprimir:      ['print-btn', 'ov-print-btn'],
+    btnReintentar:    ['restart-btn', 'ov-restart-btn'],
+    btnEnviar:        ['send-btn', 'ov-send-btn'],
+    btnMenu:          ['home-btn-bottom', 'ov-home-btn']
+};
+
+// id de un elemento → clave de configuración que lo gobierna
+const CLAVE_POR_BOTON = {};
+Object.keys(BOTONES_INTERFAZ).forEach(clave => {
+    BOTONES_INTERFAZ[clave].forEach(id => { CLAVE_POR_BOTON[id] = clave; });
+});
+
+function ajusteInterfaz(clave) {
+    return (INTERFAZ && INTERFAZ[clave]) || {};
+}
+
+function interfazVisible(clave) {
+    const ajuste = ajusteInterfaz(clave);
+    if (ajuste.visible === false) return false;
+    // Sin dirección de envío no tiene sentido ofrecer el botón de enviar
+    if (clave === 'btnEnviar' && !(ENVIO && ENVIO.url)) return false;
+    return true;
+}
+
+// ¿Puede verse este botón, según la configuración del supuesto?
+function botonPermitido(id) {
+    const clave = CLAVE_POR_BOTON[id];
+    return !clave || interfazVisible(clave);
+}
+
+// Muestra/oculta de golpe un grupo de botones por su id, respetando
+// siempre lo que el supuesto haya configurado como oculto.
+function setButtonsVisible(ids, visible) {
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.style.display = (visible && botonPermitido(id)) ? 'inline-flex' : 'none';
+    });
+}
+
+// Escribe un texto en un elemento, si se ha configurado uno
+function ponerTexto(id, texto) {
+    const el = document.getElementById(id);
+    if (el && texto) el.textContent = texto;
+}
+
+// Muestra u oculta un elemento según la configuración
+function ponerVisible(id, visible, display) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = visible ? (display || 'block') : 'none';
+}
+
+/* Aplica todo el apartado "interfaz": qué se ve y cómo se llama. */
+function aplicarInterfaz() {
+    // Cabecera
+    const casa = ajusteInterfaz('botonCasa');
+    ponerVisible('home-btn-top', casa.visible !== false, 'flex');
+    const btnCasa = document.getElementById('home-btn-top');
+    if (btnCasa && casa.titulo) {
+        btnCasa.title = casa.titulo;
+        btnCasa.setAttribute('aria-label', casa.titulo);
+    }
+    if (btnCasa && casa.texto) btnCasa.textContent = casa.texto;
+
+    const config = ajusteInterfaz('botonConfig');
+    ponerVisible('settings-toggle', config.visible !== false, 'flex');
+    ponerTexto('settings-title', config.titulo);
+
+    const plegar = ajusteInterfaz('botonPlegar');
+    const btnPlegar = document.getElementById('fold-btn');
+    if (btnPlegar && plegar.titulo) btnPlegar.title = plegar.titulo;
+
+    // Opciones del panel ⚙
+    [['opcionTiempo',   'row-tiempo',   'lbl-tiempo'],
+     ['opcionCorregir', 'row-corregir', 'lbl-corregir'],
+     ['opcionUnaEnUna', 'row-una',      'lbl-una'],
+     ['opcionQtags',    'row-qtags',    'lbl-qtags']].forEach(([clave, fila, rotulo]) => {
+        const ajuste = ajusteInterfaz(clave);
+        ponerVisible(fila, ajuste.visible !== false, clave === 'opcionTiempo' ? 'block' : 'flex');
+        ponerTexto(rotulo, ajuste.texto);
+    });
+
+    // Estado de partida de las opciones que se marcan y desmarcan
+    [['opcionCorregir', 'instant-feedback-toggle',
+      (v) => { instantFeedback = v; }],
+     ['opcionUnaEnUna', 'una-en-una-toggle',
+      (v) => { forzarUnaEnUna = v; }],
+     ['opcionQtags', 'hide-qtags-toggle',
+      (v) => { document.body.classList.toggle('hide-qtags', v); }]
+    ].forEach(([clave, casilla, aplicar]) => {
+        const activa = ajusteInterfaz(clave).activa === true;
+        const el = document.getElementById(casilla);
+        if (el) el.checked = activa;
+        aplicar(activa);
+    });
+
+    // Botones: primero el texto, después la visibilidad
+    Object.keys(BOTONES_INTERFAZ).forEach(clave => {
+        const ajuste = ajusteInterfaz(clave);
+        BOTONES_INTERFAZ[clave].forEach(id => {
+            ponerTexto(id, ajuste.texto);
+            if (!interfazVisible(clave)) ponerVisible(id, false);
+        });
+    });
+    // Anterior/Siguiente están siempre a la vista salvo que se oculten
+    ['btnAnterior', 'btnSiguiente'].forEach(clave => {
+        BOTONES_INTERFAZ[clave].forEach(id => {
+            ponerVisible(id, interfazVisible(clave), 'inline-flex');
+        });
+    });
+}
 
 /* ═══════════════════════════════════════════
    SHUFFLE (Fisher-Yates)
@@ -1172,24 +1826,48 @@ function groupByStatement(bank) {
 }
 
 // Construye el listado final de preguntas para un intento según el modo:
-//   'default' → orden proporcionado tal cual (QUESTIONS_BANK).
+//   'default' → orden proporcionado tal cual (bloques en su orden y, dentro
+//               de cada bloque, sus preguntas en el orden del editor).
 //   'answers' → reutiliza exactamente el mismo conjunto/orden que el
 //               intento anterior (sourceBank); solo cambian las opciones.
-//   'full'    → baraja el orden de los enunciados y, dentro de cada uno,
-//               incluye un subconjunto aleatorio de sus preguntas (sin
-//               desvincular nunca una pregunta de su enunciado), y
-//               conserva el orden narrativo interno de cada grupo.
+//   'full'    → baraja qué preguntas salen y en qué orden DENTRO de cada
+//               bloque. El orden de los bloques NUNCA cambia: lo decide el
+//               editor, así que si el supuesto va primero y la teoría
+//               después, así se queda en todos los intentos.
+//                 · bloque de teoría  → se barajan sus preguntas.
+//                 · bloque de supuesto → se barajan los enunciados y, dentro
+//                   de cada uno, sale un subconjunto aleatorio de sus
+//                   preguntas conservando el orden narrativo (una pregunta
+//                   nunca se separa de su enunciado).
+//               Si el bloque tiene "porIntento" > 0, se recorta a ese
+//               número de preguntas.
 function buildQuestionOrder(mode, sourceBank) {
     if (mode === 'answers') return [...sourceBank];
-    if (mode !== 'full') return [...QUESTIONS_BANK];
 
-    const groups = shuffle(groupByStatement(QUESTIONS_BANK));
     const result = [];
-    groups.forEach(g => {
-        const count  = g.items.length === 1 ? 1 : 1 + Math.floor(Math.random() * g.items.length);
-        const picked = shuffle(g.items).slice(0, count);
-        picked.sort((a, b) => g.items.indexOf(a) - g.items.indexOf(b));
-        result.push(...picked);
+    BLOCKS_BANK.forEach(b => {
+        const banco = b.preguntas;
+        if (!banco.length) return;
+
+        if (mode !== 'full') {
+            result.push(...banco);
+            return;
+        }
+
+        let elegidas;
+        if (b.tipo === 'test') {
+            elegidas = shuffle(banco);
+        } else {
+            elegidas = [];
+            shuffle(groupByStatement(banco)).forEach(g => {
+                const count  = g.items.length === 1 ? 1 : 1 + Math.floor(Math.random() * g.items.length);
+                const picked = shuffle(g.items).slice(0, count);
+                picked.sort((x, y) => g.items.indexOf(x) - g.items.indexOf(y));
+                elegidas.push(...picked);
+            });
+        }
+        if (b.porIntento > 0) elegidas = elegidas.slice(0, b.porIntento);
+        result.push(...elegidas);
     });
     return result;
 }
@@ -1266,6 +1944,13 @@ function toggleInstantFeedback(checked) {
     instantFeedback = checked;
 }
 
+// Fuerza a ver una sola pregunta cada vez, aunque su bloque esté
+// configurado para verse "en cadena" (todas las preguntas seguidas).
+function toggleUnaEnUna(checked) {
+    forzarUnaEnUna = checked;
+    if (questions.length) jump(current);
+}
+
 function toggleHideQTags(checked) {
     document.body.classList.toggle('hide-qtags', checked);
 }
@@ -1277,11 +1962,8 @@ function closeOverlay() {
     // sincronizamos la página principal para que refleje el resultado
     // en lugar de quedarse "congelada" en el estado anterior.
     if (evaluated) {
-        document.getElementById('check-btn').style.display   = 'none';
-        document.getElementById('print-btn').style.display   = 'inline-flex';
-        document.getElementById('restart-btn').style.display = 'inline-flex';
-        document.getElementById('send-btn').style.display    = 'inline-flex';
-        document.getElementById('home-btn-bottom').style.display = 'inline-flex';
+        setButtonsVisible(['check-btn'], false);
+        setButtonsVisible(['print-btn', 'restart-btn', 'send-btn', 'home-btn-bottom'], true);
         if (!document.getElementById('inline-score-banner')) {
             buildInlineScore();
         }
@@ -1381,13 +2063,10 @@ function init(mode = 'default', sourceBank = null) {
     document.getElementById('timer').removeAttribute('class');
 
     // El botón de corregir está siempre visible: se puede terminar el test desde la pregunta 1
-    document.getElementById('check-btn').style.display   = 'inline-flex';
-    document.getElementById('print-btn').style.display   = 'none';
-    document.getElementById('restart-btn').style.display = 'none';
-    document.getElementById('send-btn').style.display    = 'none';
+    setButtonsVisible(['check-btn'], true);
+    setButtonsVisible(['print-btn', 'restart-btn', 'send-btn', 'home-btn-bottom'], false);
     document.getElementById('send-btn').disabled = false;
     document.getElementById('send-btn').textContent = '📤 Enviar Resultados';
-    document.getElementById('home-btn-bottom').style.display = 'none';
     document.getElementById('correction-panel').innerHTML = '';
     document.getElementById('score-banner').style.display = 'none';
     closeSettings();
@@ -1396,41 +2075,82 @@ function init(mode = 'default', sourceBank = null) {
     const old = document.getElementById('inline-score-banner');
     if (old) old.remove();
 
-    const letters = ['A','B','C','D'];
+    updateQuestionCountPill();
+
     const nav     = document.getElementById('nav-boxes');
     const cont    = document.getElementById('quiz-container');
 
+    inyectarEstilosBloques();
+
+    // Cuántas preguntas de cada bloque han salido en este intento
+    const cuantasPorBloque = {};
+    questions.forEach(q => {
+        cuantasPorBloque[q.bloqueId] = (cuantasPorBloque[q.bloqueId] || 0) + 1;
+    });
+
+    let bloqueAnterior = null;
+    let filaCasillas   = null;
+
     questions.forEach((q, i) => {
-        // Botón nav
+        const bloque = getBlock(q.bloqueId);
+
+        // Cada bloque estrena su propia FILA en la cabecera: a la izquierda
+        // su nombre (en su color) y a la derecha sus casillas numeradas.
+        // Además se crea su cabecera de sección sobre las preguntas.
+        if (bloque !== bloqueAnterior) {
+            bloqueAnterior = bloque;
+            const primera = i;
+
+            const fila = document.createElement('div');
+            fila.className = 'nav-row';
+            fila.dataset.bloque = bloque.id;
+
+            const rotulo = document.createElement('span');
+            rotulo.className = 'nav-group-label';
+            rotulo.style.color = bloque.color;
+            rotulo.textContent = bloque.titulo;
+            rotulo.title = 'Ir al principio de: ' + bloque.titulo;
+            rotulo.onclick = () => jump(primera);
+
+            filaCasillas = document.createElement('div');
+            filaCasillas.className = 'nav-row-boxes';
+
+            fila.appendChild(rotulo);
+            fila.appendChild(filaCasillas);
+            nav.appendChild(fila);
+            cont.appendChild(cabeceraBloque(bloque, cuantasPorBloque[bloque.id]));
+        }
+
+        // Botón nav, dentro de la fila de su bloque
         const box    = document.createElement('div');
-        box.className = 'nav-box' + (i === 0 ? ' active' : '');
+        box.className = `nav-box blq-${bloque.id}`;
         box.id       = `nav-${i}`;
         box.innerText = i + 1;
+        box.title     = bloque.titulo;
         box.onclick  = () => jump(i);
-        nav.appendChild(box);
+        filaCasillas.appendChild(box);
 
         // Opciones: siempre se barajan, para cada usuario/carga de la página,
         // independientemente del modo de intento (que solo afecta a qué
         // preguntas y en qué orden aparecen, no al orden de sus opciones).
         const shuffledOpts = shuffle(q.a.map((txt, idx) => ({ txt, idx })));
 
-        // Crear mapa de idx original → nuevo
-        const answerMap = {}; // newIdx → origIdx
         const correctNewIdx = shuffledOpts.findIndex(o => o.idx === q.c);
 
         let optHtml = '';
         shuffledOpts.forEach(({ txt }, ni) => {
             optHtml += `
                 <div class="option" id="opt-${i}-${ni}" onclick="selectAnswer(${i}, ${ni}, ${correctNewIdx})">
-                    <span class="opt-letter">${letters[ni]}</span>
+                    <span class="opt-letter">${LETTERS[ni]}</span>
                     <span>${txt.replace(/^[A-D]\)\s*/, '')}</span>
                 </div>`;
         });
 
         const card    = document.createElement('div');
-        card.className = `question-card${i === 0 ? ' active' : ''}`;
+        card.className = `question-card blq-${bloque.id}`;
         card.id       = `qcard-${i}`;
         card.dataset.correct = correctNewIdx;
+        card.dataset.bloque  = bloque.id;
         card.innerHTML = `
             <div class="q-header">
                 <div class="q-num">${String(i+1).padStart(2,'0')}</div>
@@ -1450,8 +2170,13 @@ function init(mode = 'default', sourceBank = null) {
         cont.appendChild(card);
     });
 
-    // Mostrar el enunciado correspondiente a la primera pregunta
-    updateStatementPanel(questions.length ? questions[0].statementId || null : null);
+    // Con la cabecera ya montada: botón de plegado y altura para el reloj
+    actualizarBotonPlegar();
+    medirCabecera();
+
+    // Colocarse en la primera pregunta: jump() se encarga del enunciado,
+    // de la cabecera de sección y de qué tarjetas se ven.
+    if (questions.length) jump(0);
 
     // Actualizar progress
     updateProgress();
@@ -1470,6 +2195,14 @@ function init(mode = 'default', sourceBank = null) {
 ═══════════════════════════════════════════ */
 function selectAnswer(qIdx, optIdx, correctIdx) {
     if (evaluated) return;
+
+    // En pantallas táctiles, un "clic" que en realidad es un desplazamiento
+    // (o que llega mientras la página aún se está moviendo) no debe cambiar
+    // la respuesta: es el toque fantasma típico al bajar con el dedo.
+    if (esTactil) {
+        if (dedoEnMovimiento) { dedoEnMovimiento = false; return; }
+        if (Date.now() - ultimoScroll < 300) return;
+    }
 
     const wasSelected = userAns[qIdx] === optIdx;
 
@@ -1501,23 +2234,84 @@ function selectAnswer(qIdx, optIdx, correctIdx) {
 }
 
 /* ═══════════════════════════════════════════
+   TOQUES EN PANTALLAS TÁCTILES
+   ───────────────────────────────────────────
+   Al pasar de una pregunta a otra la página sube al principio; si el
+   usuario baja con el dedo, el navegador puede convertir ese gesto en
+   un "clic" sobre la opción que quede debajo y marcarla sin querer.
+   Aquí se distingue un toque de un desplazamiento: si el dedo se mueve
+   más de 10 píxeles, o la página se ha movido hace menos de 0,3 s, el
+   toque no cuenta como respuesta.
+═══════════════════════════════════════════ */
+const esTactil = (typeof window !== 'undefined') &&
+                 ('ontouchstart' in window || (navigator.maxTouchPoints || 0) > 0);
+let inicioToqueX = 0, inicioToqueY = 0;
+
+document.addEventListener('touchstart', (e) => {
+    dedoEnMovimiento = false;
+    const t = e.touches && e.touches[0];
+    if (t) { inicioToqueX = t.clientX; inicioToqueY = t.clientY; }
+}, { passive: true });
+
+document.addEventListener('touchmove', (e) => {
+    const t = e.touches && e.touches[0];
+    if (!t) return;
+    if (Math.abs(t.clientX - inicioToqueX) > 10 || Math.abs(t.clientY - inicioToqueY) > 10) {
+        dedoEnMovimiento = true;
+    }
+}, { passive: true });
+
+window.addEventListener('scroll', () => { ultimoScroll = Date.now(); }, { passive: true });
+
+/* ═══════════════════════════════════════════
    NAVEGACIÓN
 ═══════════════════════════════════════════ */
 function jump(i) {
-    document.querySelectorAll('.question-card').forEach(c => c.classList.remove('active'));
+    current = i;
+    const pregunta = questions[i];
+    const bloque   = getBlock(pregunta.bloqueId);
+    const cadena   = enCadena(bloque);
+
+    // Cabecera de sección: solo la del bloque en el que estamos
+    document.querySelectorAll('.block-header').forEach(h => {
+        h.classList.toggle('visible', h.dataset.bloque === bloque.id);
+    });
+
+    // Fila de casillas del bloque actual (la única visible si está plegada)
+    document.querySelectorAll('.nav-row').forEach(f => {
+        f.classList.toggle('fila-actual', f.dataset.bloque === bloque.id);
+    });
+    if (navPlegada) medirCabecera();
+
+    // Tarjetas: en cadena se ven todas las del bloque; si no, solo la actual.
+    document.querySelectorAll('.question-card').forEach((c, idx) => {
+        const suya = cadena ? (questions[idx].bloqueId === bloque.id) : (idx === i);
+        c.classList.toggle('visible', suya);
+        c.classList.toggle('encadenada', cadena && suya);
+        c.classList.toggle('active', idx === i);
+    });
+
     document.querySelectorAll('.nav-box').forEach(b => b.classList.remove('active'));
-    document.getElementById(`qcard-${i}`).classList.add('active');
     const navBox = document.getElementById(`nav-${i}`);
     navBox.classList.add('active');
-    current = i;
+
     // El panel de enunciado solo se repinta si la pregunta destino
     // pertenece a un enunciado distinto al que ya se está mostrando.
-    updateStatementPanel(questions[i].statementId || null);
+    updateStatementPanel(pregunta.statementId || null);
+
     // En móvil la fila de preguntas se desplaza en horizontal: al cambiar
-    // de pregunta (avanzando/retrocediendo o tras moverla manualmente) la
-    // casilla activa siempre vuelve a quedar visible dentro de esa fila.
+    // de pregunta la casilla activa siempre vuelve a quedar visible.
     navBox.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    if (cadena) {
+        // Con las preguntas apiladas no se sube al principio: se lleva la
+        // pregunta elegida justo debajo de la cabecera fija.
+        const card = document.getElementById(`qcard-${i}`);
+        const y    = card.getBoundingClientRect().top + window.scrollY - 90;
+        window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+    } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
 }
 function move(d) { const n = current + d; if (n >= 0 && n < questions.length) jump(n); }
 
@@ -1637,11 +2431,8 @@ function evaluateExam() {
     updateNavResultColors();
 
     // Ocultar botón corregir, mostrar imprimir, repetir, enviar y menú
-    document.getElementById('check-btn').style.display   = 'none';
-    document.getElementById('print-btn').style.display   = 'inline-flex';
-    document.getElementById('restart-btn').style.display = 'inline-flex';
-    document.getElementById('send-btn').style.display    = 'inline-flex';
-    document.getElementById('home-btn-bottom').style.display = 'inline-flex';
+    setButtonsVisible(['check-btn'], false);
+    setButtonsVisible(['print-btn', 'restart-btn', 'send-btn', 'home-btn-bottom'], true);
 
     // Banner de resultado inline
     buildInlineScore();
@@ -1661,38 +2452,87 @@ function calcScore() {
     return score;
 }
 
+/* Recuento completo, tratando cada bloque como una entidad separada:
+   cada uno suma y descuenta según su propio baremo (acierto / fallo /
+   en blanco) y se totaliza al final. */
+function calcResultados() {
+    const mapa  = new Map();
+    const orden = [];
+
+    questions.forEach((q, i) => {
+        const b = getBlock(q.bloqueId);
+        if (!mapa.has(b.id)) {
+            mapa.set(b.id, { bloque: b, total: 0, aciertos: 0, fallos: 0,
+                             blancos: 0, puntos: 0, max: 0 });
+            orden.push(b.id);
+        }
+        const r    = mapa.get(b.id);
+        const card = document.getElementById(`qcard-${i}`);
+        const correcta = card ? parseInt(card.dataset.correct) : -1;
+
+        r.total++;
+        r.max += b.acierto;
+        if (userAns[i] === undefined)     { r.blancos++;  r.puntos -= b.blanco; }
+        else if (userAns[i] === correcta) { r.aciertos++; r.puntos += b.acierto; }
+        else                              { r.fallos++;   r.puntos -= b.fallo;  }
+    });
+
+    const bloques = orden.map(id => mapa.get(id));
+    const tot = { total: 0, aciertos: 0, fallos: 0, blancos: 0, puntos: 0, max: 0 };
+    bloques.forEach(r => {
+        ['total', 'aciertos', 'fallos', 'blancos', 'puntos', 'max'].forEach(k => { tot[k] += r[k]; });
+    });
+    tot.bloques = bloques;
+    tot.pct = tot.max > 0 ? Math.max(0, (tot.puntos / tot.max) * 100) : 0;
+    tot.apto = tot.pct >= APTO_PCT;
+    return tot;
+}
+
+// Desglose por bloques (solo tiene sentido si hay más de uno en el intento)
+function desgloseBloquesHTML(res) {
+    if (res.bloques.length < 2) return '';
+    return `<div class="score-bloques">${res.bloques.map(r => `
+        <div class="sb-fila blq-${r.bloque.id}">
+            <span class="sb-nombre">${r.bloque.titulo}</span>
+            <span class="sb-detalle">${r.aciertos} ✓ · ${r.fallos} ✗ · ${r.blancos} —</span>
+            <span class="sb-puntos">${nUm(r.puntos)} / ${nUm(r.max)}</span>
+        </div>`).join('')}</div>`;
+}
+
+function lineaRecuento(res) {
+    return `${nUm(res.pct)}% · ${res.aciertos} ACIERTOS · ${res.fallos} FALLOS · ${res.blancos} EN BLANCO`;
+}
+
 function buildScoreBanner() {
-    const score   = calcScore();
-    const total   = questions.length;
-    const pct     = Math.round((score / total) * 100);
-    const apto    = score >= 9;
-    const emoji   = score === total ? '🏆' : apto ? '✅' : '📚';
-    const verdict = score === total ? '¡Expediente magistralmente resuelto!' : apto ? 'APTO — Buen dominio normativo' : 'NO APTO — Revise cada motivación legal';
+    const res     = calcResultados();
+    const emoji   = res.aciertos === res.total ? '🏆' : res.apto ? '✅' : '📚';
+    const verdict = res.aciertos === res.total ? '¡Expediente magistralmente resuelto!'
+                  : res.apto ? 'APTO — Buen dominio normativo'
+                             : 'NO APTO — Revise cada motivación legal';
 
     const banner  = document.getElementById('score-banner');
     banner.style.display = 'block';
     banner.innerHTML = `
         <div style="font-size:2rem; margin-bottom:6px;">${emoji}</div>
-        <div class="score-big">${score}/${total}</div>
-        <div class="score-lbl">${pct}% DE RESPUESTAS CORRECTAS</div>
-        <div class="score-verdict ${apto ? 'apto':'no-apto'}" style="margin-top:10px;">${verdict}</div>`;
+        <div class="score-big">${nUm(res.puntos)} / ${nUm(res.max)}</div>
+        <div class="score-lbl">${lineaRecuento(res)}</div>
+        <div class="score-verdict ${res.apto ? 'apto':'no-apto'}" style="margin-top:10px;">${verdict}</div>
+        ${desgloseBloquesHTML(res)}`;
 }
 
 function buildInlineScore() {
-    const score   = calcScore();
-    const total   = questions.length;
-    const pct     = Math.round((score / total) * 100);
-    const apto    = score >= 9;
-    const emoji   = score === total ? '🏆' : apto ? '✅' : '📚';
+    const res   = calcResultados();
+    const emoji = res.aciertos === res.total ? '🏆' : res.apto ? '✅' : '📚';
 
     const banner  = document.createElement('div');
     banner.id     = 'inline-score-banner';
     banner.style.cssText = 'background:var(--navy-mid);border:1px solid var(--gold);border-radius:4px;padding:20px 28px;margin-bottom:28px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.3);position:relative;z-index:1;';
     banner.innerHTML = `
         <div style="font-size:2.2rem;margin-bottom:6px;">${emoji}</div>
-        <div style="font-family:'Playfair Display',serif;font-size:3rem;color:var(--gold);font-weight:900;line-height:1;">${score}/${total}</div>
-        <div style="font-family:'JetBrains Mono',monospace;font-size:0.6rem;letter-spacing:0.2em;color:rgba(255,255,255,0.4);margin:4px 0 10px;">${pct}% DE RESPUESTAS CORRECTAS</div>
-        <div style="font-size:1rem;color:${apto?'#6fcf97':'#fc8181'};font-weight:600;">${apto?'APTO — Buen dominio normativo':'NO APTO — Revise la motivación de cada respuesta'}</div>`;
+        <div style="font-family:'Playfair Display',serif;font-size:3rem;color:var(--gold);font-weight:900;line-height:1;">${nUm(res.puntos)} / ${nUm(res.max)}</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.6rem;letter-spacing:0.2em;color:rgba(255,255,255,0.4);margin:4px 0 10px;">${lineaRecuento(res)}</div>
+        <div style="font-size:1rem;color:${res.apto?'#6fcf97':'#fc8181'};font-weight:600;">${res.apto?'APTO — Buen dominio normativo':'NO APTO — Revise la motivación de cada respuesta'}</div>
+        ${desgloseBloquesHTML(res)}`;
 
     const container = document.querySelector('.container');
     const statement = container.querySelector('.statement');
@@ -1713,10 +2553,18 @@ function showCorrectionPanel() {
     updateNavResultColors();
 
     const panel  = document.getElementById('correction-panel');
-    const letters = ['A','B','C','D'];
+    const resumenBloques = new Map(calcResultados().bloques.map(r => [r.bloque.id, r]));
     let html = '';
+    let bloqueAnterior = null;
 
     questions.forEach((q, i) => {
+        // Separador cada vez que empieza un bloque distinto
+        if (q.bloqueId !== bloqueAnterior) {
+            bloqueAnterior = q.bloqueId;
+            const b = getBlock(q.bloqueId);
+            const r = resumenBloques.get(b.id);
+            html += `<div class="corr-bloque blq-${b.id}">${b.titulo} — ${r.aciertos} ✓ · ${r.fallos} ✗ · ${r.blancos} — · ${nUm(r.puntos)} / ${nUm(r.max)} puntos</div>`;
+        }
         const correctNew = parseInt(document.getElementById(`qcard-${i}`).dataset.correct);
         const given      = userAns[i];
         const isCorrect  = given === correctNew;
@@ -1747,10 +2595,10 @@ function showCorrectionPanel() {
             </div>
             <div class="ci-answers">
                 ${!isSkipped ? `<div class="given ${isCorrect?'':'wrong'}">
-                    <strong>Respuesta elegida:</strong> ${letters[given]}) ${optTexts[given]}
+                    <strong>Respuesta elegida:</strong> ${LETTERS[given]}) ${optTexts[given]}
                 </div>` : `<div class="given wrong"><em>Pregunta no respondida</em></div>`}
                 ${!isCorrect ? `<div class="correct-ans">
-                    <strong>Respuesta correcta:</strong> ${letters[correctNew]}) ${optTexts[correctNew]}
+                    <strong>Respuesta correcta:</strong> ${LETTERS[correctNew]}) ${optTexts[correctNew]}
                 </div>` : ''}
             </div>
             <div class="ci-law"><strong>⚖️ Normativa aplicable:</strong><br>${q.law}</div>
@@ -1762,9 +2610,7 @@ function showCorrectionPanel() {
     panel.style.display = 'block';
 
     // Mostrar botones en overlay
-    document.getElementById('print-btn').style.display   = 'inline-flex';
-    document.getElementById('restart-btn').style.display = 'inline-flex';
-    document.getElementById('home-btn-bottom').style.display = 'inline-flex';
+    setButtonsVisible(['print-btn', 'restart-btn', 'home-btn-bottom'], true);
 }
 
 /* ═══════════════════════════════════════════
@@ -1789,8 +2635,15 @@ function printResults() {
     const quizContainer      = document.getElementById('quiz-container');
     const printWrap = document.createElement('div');
     printWrap.id = 'print-wrap';
-    let lastStatementId;
+    let lastStatementId, lastBlockId;
     questions.forEach((q, i) => {
+        // Cabecera de sección al empezar cada bloque
+        if (q.bloqueId !== lastBlockId) {
+            lastBlockId = q.bloqueId;
+            lastStatementId = undefined;      // el enunciado se repite en la nueva sección
+            const cab = document.getElementById(`bhdr-${q.bloqueId}`);
+            if (cab) printWrap.appendChild(cab);
+        }
         const sid = q.statementId || null;
         if (sid !== lastStatementId) {
             lastStatementId = sid;
@@ -1819,15 +2672,22 @@ function printResults() {
     // Restaurar tras impresión: devolver cada tarjeta a quiz-container en
     // su orden original y eliminar el contenedor temporal de impresión.
     setTimeout(() => {
+        // Devolver cabeceras de bloque y tarjetas a su sitio, en el mismo
+        // orden en que se crearon (cabecera del bloque y luego sus preguntas).
+        let bloqueRestaurado;
         questions.forEach((q, i) => {
+            if (q.bloqueId !== bloqueRestaurado) {
+                bloqueRestaurado = q.bloqueId;
+                const cab = document.getElementById(`bhdr-${q.bloqueId}`);
+                if (cab) quizContainer.appendChild(cab);
+            }
             quizContainer.appendChild(document.getElementById(`qcard-${i}`));
         });
         printWrap.remove();
         quizContainer.style.display = '';
         statementContainer.style.display = '';
-        document.querySelectorAll('.question-card').forEach((c, i) => {
-            c.style.display = i === current ? 'block' : '';
-        });
+        document.querySelectorAll('.question-card').forEach(c => { c.style.display = ''; });
+        if (questions.length) jump(current);
         if (evaluated && overlayWasShown) {
             document.getElementById('overlay').classList.add('show');
         }
@@ -1840,6 +2700,11 @@ function printResults() {
 function enviarResultados() {
     if (!evaluated) return;
 
+    if (!ENVIO.url) {
+        alert('Este supuesto no tiene configurada la dirección de envío de resultados.');
+        return;
+    }
+
     const sendBtn = document.getElementById('send-btn');
 
     // Identificador del examen: título de la página
@@ -1851,30 +2716,42 @@ function enviarResultados() {
     userName = userName.trim();
     if (!userName) userName = 'Anónimo';
 
-    // Estadísticas
-    const total    = questions.length;
-    const correct  = calcScore();
-    const answered = Object.keys(userAns).length;
-    const wrong    = answered - correct;
-    const blank    = total - answered;
+    // Estadísticas (globales y por bloque)
+    const res      = calcResultados();
+    const total    = res.total;
+    const correct  = res.aciertos;
+    const wrong    = res.fallos;
+    const blank    = res.blancos;
 
     // Tiempos (formato mm:ss)
     const tiempoAsignado = formatTime(examDurationSeconds);
     const elapsedSeconds = Math.max(0, Math.min(examDurationSeconds, examDurationSeconds - timeLeft));
     const tiempoEmpleado = formatTime(elapsedSeconds);
 
-    const FORM_ACTION_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSd9h52UH7XzaRDRSIxSevScmqKZC28Fvtfnp39drKtC5SiwGA/formResponse';
+    const FORM_ACTION_URL = ENVIO.url;
 
-    const fieldMap = {
-        'entry.241409513':  examId,
-        'entry.1810433543': userName,
-        'entry.771114786':  total,
-        'entry.1903892811': correct,
-        'entry.1155230396': wrong,
-        'entry.943386498':  blank,
-        'entry.1069013600': tiempoAsignado,
-        'entry.815398067':  tiempoEmpleado
+    // Cada dato va a la casilla que se le haya asignado en el editor.
+    // Las casillas que se dejen vacías simplemente no se envían.
+    const fieldMap = {};
+    const anota = (casilla, valor) => {
+        const nombre = String(casilla || '').trim();
+        if (nombre) fieldMap[nombre] = valor;
     };
+
+    anota(ENVIO.examen,         examId);
+    anota(ENVIO.usuario,        userName);
+    anota(ENVIO.tiempoAsignado, tiempoAsignado);
+    anota(ENVIO.tiempoEmpleado, tiempoEmpleado);
+
+    // Un juego de casillas por cada bloque que haya salido en el intento
+    res.bloques.forEach(r => {
+        const casillas = r.bloque.envio || {};
+        anota(casillas.preguntas, r.total);
+        anota(casillas.aciertos,  r.aciertos);
+        anota(casillas.fallos,    r.fallos);
+        anota(casillas.blancos,   r.blancos);
+        anota(casillas.puntos,    nUm(r.puntos));
+    });
 
     // Iframe oculto de destino para evitar navegar fuera de la página (y problemas de CORS)
     let iframe = document.getElementById('hidden-send-frame');
@@ -1911,12 +2788,19 @@ function enviarResultados() {
     form.submit();
     form.remove();
 
+    const desglose = res.bloques.length < 2 ? '' :
+        '\n\nPor bloques:' + res.bloques.map(r =>
+            '\n · ' + r.bloque.titulo + ': ' + r.aciertos + ' ✓ · ' + r.fallos +
+            ' ✗ · ' + r.blancos + ' — · ' + nUm(r.puntos) + ' / ' + nUm(r.max) + ' puntos').join('');
+
     alert('✅ Resultados enviados correctamente.\n\nExamen: ' + examId +
           '\nUsuario: ' + userName +
           '\nAciertos: ' + correct + ' / ' + total +
           '\nFallos: ' + wrong +
           '\nEn blanco: ' + blank +
-          '\nTiempo empleado: ' + tiempoEmpleado + ' de ' + tiempoAsignado);
+          '\nPuntuación: ' + nUm(res.puntos) + ' / ' + nUm(res.max) +
+          '\nTiempo empleado: ' + tiempoEmpleado + ' de ' + tiempoAsignado +
+          desglose);
 }
 
 /* ═══════════════════════════════════════════
@@ -1959,7 +2843,7 @@ function goHome() {
         );
         if (!leave) return;
     }
-    window.location.href = '../index.html';
+    window.location.href = (ajusteInterfaz('botonCasa').url || '../index.html');
 }
 
 /* ═══════════════════════════════════════════
@@ -1970,6 +2854,7 @@ document.addEventListener('click', () => {
     try { getAudioCtx(); } catch(e) {}
 }, { once: true });
 
+applyExamConfig();
 init('default');
 </script>
 

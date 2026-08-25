@@ -192,9 +192,17 @@
             No se borra, pero se mantiene sin tarjeta aquí para que no
             aparezca en el menú como si fuera un supuesto real.
 
+            Todo el contenido de un supuesto vive en un único bloque de datos
+            JSON dentro del propio archivo:  <script id="datos-supuesto">.
+            Ahí están el examen, sus bloques (supuesto práctico y/o teoría),
+            los enunciados, las preguntas, la paleta de colores, los botones
+            y el envío de resultados. El resto del archivo es el motor y no
+            hace falta tocarlo.
+
             Para añadir un nuevo supuesto:
             1. Copia supuestos/supuesto_plantilla.html con el nuevo nombre de archivo
-               (p.ej. supuesto_2.html) y rellena su contenido.
+               (p.ej. supuesto_2.html) y rellena su bloque de datos, a mano o
+               con el editor gráfico de Python (editor_supuestos.py).
             2. Copia una de estas tarjetas <a class="supuesto-card">...</a>
             3. Cambia el número, la REF, el título y la descripción
             4. Cambia el href para que apunte al archivo .html correspondiente
