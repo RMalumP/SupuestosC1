@@ -224,6 +224,12 @@
           - Color: pulsa uno de los botones de color o "🎨 Elegir color…".
           - Cómo se ven: "en cadena" (todas seguidas, lo normal en teoría)
             o "de una en una" (lo normal en un supuesto).
+            En un bloque de supuesto, "en cadena" significa que se lee de
+            corrido y en su orden natural: enunciado 1 entero → todas sus
+            preguntas → enunciado 2 entero → sus preguntas, etc.
+          - Dónde va la barra del bloque: marcada (lo normal) va ENCIMA del
+            enunciado, encabezando toda la sección; desmarcada, baja hasta
+            justo delante de la primera pregunta.
           - Puntuación: suma por acierto, descuento por fallo y descuento
             por dejarla en blanco. Se admiten decimales con COMA: 0,33.
           - Intento aleatorio: 0 = salen todas; un número = salen solo esas,
@@ -238,6 +244,10 @@
           - IMPORTANTE: separa los párrafos DEJANDO UNA LÍNEA EN BLANCO.
           - Marca "Hecho desencadenante" en el bloque crítico: saldrá con
             borde rojo y el icono ⚠️.
+          - Cada bloque de hechos lleva delante su código (H1, H2, H3…).
+            NO se ve en la página: sirve para vincularle preguntas en la
+            pestaña 4 y que el MODO FOCO recorte el enunciado a esa parte.
+            Debajo de las casillas se indica cuántas preguntas lo usan.
        d) En "Línea de tiempo" añade los hitos con su fecha. Marca "Hito
           crítico" el que sea el detonante (saldrá en rojo).
      Los bloques de teoría no usan esta pestaña.
@@ -249,12 +259,22 @@
        b) Arriba, elige el BLOQUE en el que va la pregunta.
        c) Si es un bloque de supuesto, elige además el enunciado. En los
           bloques de teoría ese campo se queda desactivado a propósito.
-       d) Escribe el texto de la pregunta.
-       e) Escribe las CUATRO opciones y MARCA EL PUNTO de la que es correcta.
-       f) Escribe la motivación legal (sale al corregir) y, si procede, el
+       d) OPCIONAL — "Partes del enunciado de las que depende (modo foco)":
+          la lista muestra los bloques de hechos de ese enunciado (H1, H2…).
+          Marca el hecho desencadenante concreto del que depende la pregunta
+          (con Ctrl+clic se marcan varios; "Ninguno" los quita todos).
+          Solo se usa si el alumno enciende el MODO FOCO en el panel ⚙: la
+          pregunta mostrará entonces SOLO esos hechos, con un botón para
+          desplegar el enunciado entero. Sin vincular, se ve el enunciado
+          completo siempre.
+       e) Escribe el texto de la pregunta.
+       f) Escribe las CUATRO opciones y MARCA EL PUNTO de la que es correcta.
+       g) Escribe la motivación legal (sale al corregir) y, si procede, el
           consejo con 💡.
-     En la lista de la izquierda cada pregunta lleva su bloque y su enunciado:
+     En la lista de la izquierda cada pregunta lleva su bloque y su enunciado,
+     y una lupa 🔎 si tiene hechos vinculados para el modo foco:
         16 📝B2  --   ¿Qué órgano tiene atribuida…
+        17 📁B1  E1 🔎 Ante esa notificación defectuosa…
      Con "▲ Subir / ▼ Bajar" ordenas las preguntas DENTRO de su bloque. Para
      cambiar una pregunta de bloque se usa el desplegable de arriba.
 
@@ -297,16 +317,45 @@
      El temporizador se coloca solo debajo de la cabecera, tenga las filas
      que tenga. En móvil, cada fila se desplaza en horizontal por separado.
 
-  ENCIMA DE LAS PREGUNTAS
+  ENCIMA DE TODO EL BLOQUE
      Una barra de sección con el nombre del bloque, cuántas preguntas tiene
-     y su baremo ("+1 por acierto · −0,33 por fallo").
+     y su baremo ("+1 por acierto · −0,33 por fallo"). En los supuestos va
+     ENCIMA DEL ENUNCIADO, encabezando la sección entera (se puede bajar
+     hasta delante de la primera pregunta desde la pestaña 2).
+
+  DÓNDE SALE EL ENUNCIADO
+     Cada enunciado se pinta DENTRO del hilo del examen, delante del grupo
+     de preguntas que lo comparte. Así el documento se lee en su orden:
+
+         ══ SUPUESTO PRÁCTICO · 6 preguntas · +1 / −0,33 ══
+         ENUNCIADO 1 (hechos + línea de tiempo)
+            preguntas 1, 2, 3 de ese enunciado
+         ENUNCIADO 2
+            preguntas 4, 5, 6
+         ══ TEORÍA · 4 preguntas ══
+            preguntas 7 a 10
 
   CÓMO SE VEN LAS PREGUNTAS
-     · Bloque "en cadena": todas sus preguntas seguidas; la barra de arriba
-       lleva a cada una y la deja resaltada.
-     · Bloque "de una en una": solo la pregunta actual, como siempre.
+     · Bloque "en cadena": todas sus preguntas seguidas, con cada enunciado
+       delante de las suyas (el esquema de arriba). La barra de navegación
+       lleva a cada pregunta y la deja resaltada.
+     · Bloque "de una en una": solo la pregunta actual, con el enunciado al
+       que pertenece encima.
      · El alumno puede forzar "de una en una" en TODO el examen desde el
        panel ⚙ de la página → "Ver las preguntas de una en una".
+
+  MODO FOCO  (panel ⚙, colgando de "ver las preguntas de una en una")
+     Pensado para estudiar un supuesto largo sin releerlo entero en cada
+     pregunta. Con el modo foco encendido y las preguntas de una en una:
+       · si la pregunta está vinculada a hechos concretos (pestaña 4), sale
+         SOLO esa parte del enunciado, con el aviso «🔎 MODO FOCO» y un
+         botón "Ver enunciado completo" por si hace falta el resto;
+       · si no está vinculada a nada, sale el enunciado entero, como siempre;
+       · la línea de tiempo se calla mientras el enunciado esté recortado:
+         es contexto de todo el expediente.
+     La opción se queda apagada (en gris) mientras no haya ningún bloque de
+     supuesto viéndose de una en una, porque entonces no puede aplicarse.
+     Al imprimir o generar el PDF los enunciados salen SIEMPRE completos.
 
   CORRECCIÓN
      Cada bloque se corrige por separado con su propio baremo y luego se
@@ -343,13 +392,16 @@
      · Botón de plegar ⌃ — se puede quitar si no lo quieres, y con «Empieza
        plegada» cada intento arranca mostrando solo la fila del bloque en el
        que está el alumno.
-     · Las cuatro opciones del panel: cambiar la duración, corregir pregunta
-       a pregunta, ver las preguntas de una en una y ocultar las etiquetas de
-       pregunta. Cada una se puede ocultar o renombrar, y las tres últimas
-       admiten además «Empieza activada». Ejemplos típicos: ocultar "cambiar
-       la duración" para que el examen dure siempre lo que has puesto en la
-       pestaña 1; o marcar "corregir pregunta a pregunta / Empieza activada"
-       para un test de repaso que se corrige sobre la marcha.
+     · Las cinco opciones del panel: cambiar la duración, corregir pregunta
+       a pregunta, ver las preguntas de una en una, el modo foco (que cuelga
+       de la anterior y va sangrado debajo de ella) y ocultar las etiquetas
+       de pregunta. Cada una se puede ocultar o renombrar, y las cuatro
+       últimas admiten además «Empieza activada». Ejemplos típicos: ocultar
+       "cambiar la duración" para que el examen dure siempre lo que has
+       puesto en la pestaña 1; marcar "corregir pregunta a pregunta /
+       Empieza activada" para un test de repaso que se corrige sobre la
+       marcha; o dejar el "modo foco" oculto en un examen de verdad y
+       visible en el mismo supuesto usado para estudiar.
 
   B) BOTONES DE ABAJO Y DE LA PANTALLA DE RESULTADOS
      Anterior, Siguiente, Corregir, Ver corrección completa, Imprimir/PDF,
@@ -464,6 +516,20 @@
      2. Pulsa "⇪ Pasar a plantilla nueva…" y dale un nombre.
      A partir de ahí ya puedes editar los datos generales, crear el bloque
      de teoría y repartir las preguntas.
+
+  IMPORTANTE — CÓMO LLEVAR LAS MEJORAS DE LA PLANTILLA A UN SUPUESTO YA HECHO
+     Al pulsar "💾 Guardar", el editor cambia SOLO los datos que van dentro
+     del archivo: el resto de la página (el "motor" que la hace funcionar)
+     se queda tal y como estaba el día en que se creó ese supuesto. Por eso
+     un supuesto guardado con una versión anterior no estrena por sí solo
+     las novedades de la plantilla.
+     Para ponerlo al día:
+     1. Ábrelo con "📂 Abrir plantilla…".
+     2. Pulsa "⇪ Pasar a plantilla nueva…" y guárdalo (puedes darle el mismo
+        nombre: se hace una copia .bak del anterior).
+     Así el supuesto estrena el motor actual —la barra del bloque encima del
+     enunciado, cada enunciado delante de sus preguntas y el modo foco— sin
+     tocar ni una pregunta.
 
 
 ────────────────────────────────────────────────────────────────────────────────

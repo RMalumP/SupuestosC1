@@ -109,6 +109,9 @@ INTERFAZ_DEFECTO = {
                        "activa": False},
     "opcionUnaEnUna": {"visible": True, "texto": "Ver las preguntas de una en una",
                        "activa": False},
+    "opcionFoco":     {"visible": True,
+                       "texto": "Modo foco: solo los hechos de cada pregunta",
+                       "activa": False},
     "opcionQtags":    {"visible": True, "texto": "Ocultar las etiquetas de pregunta",
                        "activa": False},
     "btnAnterior":      {"visible": True, "texto": "← Anterior"},
@@ -152,6 +155,15 @@ CAMPOS_CABECERA = [
      '<div class="settings-row" id="row-una">', "Texto",
      "Anula el modo «en cadena» de los bloques que lo tengan. Con «Empieza activada», "
      "el examen arranca mostrando una sola pregunta cada vez."),
+    ("opcionFoco", "Opción: modo foco (dentro de «una en una»)",
+     '<div class="settings-row settings-sub" id="row-foco">', "Texto",
+     "Sub-opción del panel ⚙ que cuelga de «ver las preguntas de una en una». Con el "
+     "modo foco encendido, cada pregunta que esté vinculada a bloques de hechos "
+     "concretos (pestaña «4 · Preguntas») muestra SOLO esa parte del enunciado, con un "
+     "botón para desplegarlo entero; las preguntas sin vínculo siguen viendo el "
+     "enunciado completo. La fila se apaga sola mientras no haya ningún bloque de "
+     "supuesto viéndose de una en una."),
+
     ("opcionQtags", "Opción: ocultar las etiquetas de pregunta",
      '<div class="settings-row" id="row-qtags">', "Texto",
      "Oculta las etiquetas de materia que aparecen encima de cada pregunta. Con "
@@ -270,6 +282,7 @@ def bloque_vacio(tipo="supuesto", sugerencia_id="B1", primero=False):
         "titulo": "Teoría" if es_test else "Supuesto práctico",
         "color": COLOR_TEST if es_test else COLOR_SUPUESTO,
         "modo": "cadena" if es_test else "individual",
+        "cabeceraSobreEnunciado": True,
         "porIntento": 0,
         "acierto": 1.0,
         "fallo": 0.0,
@@ -290,9 +303,21 @@ def enunciado_vacio(sugerencia_id="E1"):
     }
 
 
-def bloque_hechos_vacio():
-    return {"title": "Título del bloque de hechos", "paragraphs": [""],
+def bloque_hechos_vacio(ident="H1"):
+    """Un trozo de la narración de hechos. El identificador (H1, H2…) NO se
+    ve en la página: sirve para que una pregunta pueda vincularse a este
+    hecho concreto y el modo foco recorte el enunciado a esa parte."""
+    return {"id": ident, "title": "Título del bloque de hechos", "paragraphs": [""],
             "red": False, "hidden": False}
+
+
+def nuevo_id_hecho(enunciado):
+    """Primer H libre dentro de ese enunciado."""
+    usados = {str(b.get("id") or "") for b in (enunciado.get("factBlocks") or [])}
+    n = 1
+    while ("H%d" % n) in usados:
+        n += 1
+    return "H%d" % n
 
 
 def hito_vacio():
@@ -304,6 +329,9 @@ def pregunta_vacia(statement_id=None, bloque_id="B1"):
     return {
         "bloqueId": bloque_id,
         "statementId": statement_id,
+        # Bloques de hechos concretos de los que depende la pregunta
+        # (su hecho desencadenante). Solo se usan en el modo foco.
+        "factIds": [],
         "tag": "",
         "q": "Texto de la pregunta",
         "a": ["Opción correcta", "Opción incorrecta", "Opción incorrecta", "Opción incorrecta"],
@@ -375,6 +403,7 @@ def normalizar(datos):
         nb["color"] = color_valido(b.get("color"), nb["color"])
         modo = str(b.get("modo") or "")
         nb["modo"] = modo if modo in ("cadena", "individual") else nb["modo"]
+        nb["cabeceraSobreEnunciado"] = b.get("cabeceraSobreEnunciado") is not False
         try:
             nb["porIntento"] = max(0, int(b.get("porIntento") or 0))
         except (TypeError, ValueError):
@@ -407,8 +436,16 @@ def normalizar(datos):
         for k in ("title", "ref", "ambito"):
             n[k] = str(n.get(k) or "")
         bloques_hechos = []
-        for fb in (e.get("factBlocks") or []):
+        ids_hechos = set()
+        for pos, fb in enumerate(e.get("factBlocks") or [], 1):
             b = bloque_hechos_vacio()
+            ident = re.sub(r"[^A-Za-z0-9_-]", "", str(fb.get("id") or ""))
+            if not ident:
+                ident = "H%d" % pos
+            while ident in ids_hechos:
+                ident += "x"
+            ids_hechos.add(ident)
+            b["id"] = ident
             b["title"] = str(fb.get("title") or "")
             parr = fb.get("paragraphs") or []
             b["paragraphs"] = [str(p) for p in parr] if isinstance(parr, list) else [str(parr)]
@@ -427,6 +464,9 @@ def normalizar(datos):
         n["timeline"] = hitos
         enunciados.append(n)
 
+    hechos_por_enunciado = {e["id"]: [b["id"] for b in e["factBlocks"]]
+                            for e in enunciados}
+
     preguntas = []
     for p in (datos.get("preguntas") or []):
         q = pregunta_vacia()
@@ -436,6 +476,14 @@ def normalizar(datos):
         q["statementId"] = str(sid) if sid else None
         if tipos[q["bloqueId"]] == "test":
             q["statementId"] = None      # la teoría nunca lleva enunciado
+        # Vínculos con bloques de hechos: solo valen los que existan de
+        # verdad dentro del enunciado al que apunta la pregunta.
+        propios = hechos_por_enunciado.get(q["statementId"] or "", [])
+        brutos = p.get("factIds")
+        brutos = brutos if isinstance(brutos, list) else []
+        vistos_f = set()
+        q["factIds"] = [x for x in (str(y) for y in brutos)
+                        if x in propios and not (x in vistos_f or vistos_f.add(x))]
         q["tag"] = str(p.get("tag") or "")
         q["q"] = str(p.get("q") or "")
         opciones = [str(x) for x in (p.get("a") or [])]
@@ -719,8 +767,11 @@ def bloques_se_pierden(datos):
         return True
     for b in bloques:
         if b["tipo"] == "test" or b["fallo"] or b["blanco"] or b["porIntento"] \
-           or b["acierto"] != 1.0 or b["modo"] != "individual":
+           or b["acierto"] != 1.0 or b["modo"] != "individual" \
+           or b.get("cabeceraSobreEnunciado") is False:
             return True
+    if any(q.get("factIds") for q in (datos.get("preguntas") or [])):
+        return True      # los vínculos del modo foco no caben en la plantilla antigua
     return False
 
 
@@ -1501,6 +1552,27 @@ class EditorApp(tk.Tk):
                              ("individual", "De una en una — solo la pregunta actual")):
             ttk.Radiobutton(caja, text=texto, value=valor, variable=self.var_sec_modo,
                             command=self._tocado).pack(anchor="w", padx=18, pady=1)
+
+        ttk.Label(caja, style="Ayuda.TLabel", wraplength=820, justify="left",
+                  text="EN CADENA, un bloque de supuesto se lee de corrido y en su orden "
+                       "natural: enunciado 1 completo (con todas sus secciones) → todas las "
+                       "preguntas de ese enunciado → enunciado 2 → sus preguntas, y así "
+                       "sucesivamente."
+                  ).pack(anchor="w", padx=18, pady=(6, 2))
+
+        rotulo(caja, "Dónde va la barra con el nombre del bloque",
+               "bloques[].cabeceraSobreEnunciado",
+               '<div class="block-header"> antes o después de <section class="statement">',
+               "Marcada (lo normal): la barra del bloque —nombre, nº de preguntas y "
+               "baremo— sale ENCIMA del enunciado, encabezando toda la sección. "
+               "Desmarcada: baja hasta justo delante de la primera pregunta, debajo de "
+               "los hechos (como en las versiones anteriores de la plantilla). En los "
+               "bloques de teoría da igual: no llevan enunciado."
+               ).pack(anchor="w", padx=10, pady=(10, 4))
+        self.var_sec_cabecera = tk.BooleanVar(value=True)
+        ttk.Checkbutton(caja, variable=self.var_sec_cabecera, command=self._tocado,
+                        text="La barra del bloque va encima del enunciado"
+                        ).pack(anchor="w", padx=18, pady=1)
         ttk.Frame(caja, height=8).pack()
 
         # ---------- puntuación ----------
@@ -1614,6 +1686,8 @@ class EditorApp(tk.Tk):
             self.w_sec[clave].set("" if b is None else str(b.get(clave, "")))
         self.var_sec_tipo.set("supuesto" if b is None else b["tipo"])
         self.var_sec_modo.set("individual" if b is None else b["modo"])
+        self.var_sec_cabecera.set(True if b is None
+                                  else b.get("cabeceraSobreEnunciado", True) is not False)
         self.var_sec_color.set(COLOR_SUPUESTO if b is None else b["color"])
         self.var_sec_por.set("0" if b is None else str(b["porIntento"]))
         self.var_sec_ac.set("1" if b is None else nUm(b["acierto"]))
@@ -1640,6 +1714,7 @@ class EditorApp(tk.Tk):
                                                              else "Supuesto práctico")
         b["tipo"] = self.var_sec_tipo.get()
         b["modo"] = self.var_sec_modo.get()
+        b["cabeceraSobreEnunciado"] = bool(self.var_sec_cabecera.get())
         b["color"] = color_valido(self.var_sec_color.get(),
                                   COLOR_TEST if b["tipo"] == "test" else COLOR_SUPUESTO)
         try:
@@ -1835,7 +1910,10 @@ class EditorApp(tk.Tk):
                   ).pack(anchor="w", padx=8, pady=(8, 0))
         ttk.Label(pb, style="Ayuda.TLabel", wraplength=780, justify="left",
                   text="Trozos de narración de los hechos, en el orden en que se leen. "
-                       "Marca «hecho desencadenante» el bloque crítico: sale con borde rojo y ⚠️."
+                       "Marca «hecho desencadenante» el bloque crítico: sale con borde rojo y ⚠️. "
+                       "Cada bloque lleva delante su código (H1, H2…): es el que se usa en la "
+                       "pestaña «4 · Preguntas» para vincular una pregunta a este hecho concreto "
+                       "y que el modo foco recorte el enunciado a esta parte."
                   ).pack(anchor="w", padx=8)
 
         fila = ttk.Frame(pb)
@@ -1880,6 +1958,8 @@ class EditorApp(tk.Tk):
         ttk.Checkbutton(filac, variable=self.var_bloque_hidden, command=self._tocado,
                         text="No mostrar este bloque  ·  factBlocks[].hidden  →  "
                              "(se guarda en el archivo pero la página no lo pinta)").pack(anchor="w")
+        self.lbl_bloque_vinculos = ttk.Label(filac, text="", style="Tec.TLabel")
+        self.lbl_bloque_vinculos.pack(anchor="w", pady=(6, 0))
 
         # ---------- línea de tiempo ----------
         pt = ttk.Frame(interno)
@@ -2059,7 +2139,8 @@ class EditorApp(tk.Tk):
             marca = "⚠ " if b["red"] else "📋 "
             if b["hidden"]:
                 marca = "👁 "
-            self.lst_bloques.insert("end", marca + resumen(b["title"], 44))
+            self.lst_bloques.insert("end", "%-4s %s%s" % (b.get("id", ""), marca,
+                                                          resumen(b["title"], 40)))
         if seleccionar is None:
             seleccionar = self.i_bloque
         if bloques:
@@ -2096,11 +2177,31 @@ class EditorApp(tk.Tk):
         poner_texto(self.txt_bloque_parr, "" if b is None else "\n\n".join(b["paragraphs"]))
         self.var_bloque_red.set(bool(b and b["red"]))
         self.var_bloque_hidden.set(bool(b and b["hidden"]))
+        self._pintar_vinculos_bloque()
+
+    def _pintar_vinculos_bloque(self):
+        """Cuántas preguntas se apoyan en este hecho concreto (modo foco)."""
+        if not hasattr(self, "lbl_bloque_vinculos"):
+            return
+        e = self.enunciado_actual()
+        b = self.bloque_actual()
+        if e is None or b is None:
+            self.lbl_bloque_vinculos.config(text="")
+            return
+        cuantas = sum(1 for q in self.datos["preguntas"]
+                      if q["statementId"] == e["id"] and b["id"] in q.get("factIds", []))
+        self.lbl_bloque_vinculos.config(
+            text="factBlocks[].id = %s   ·   %s (modo foco; se vincula en la pestaña "
+                 "«4 · Preguntas»)"
+                 % (b["id"], "sin preguntas vinculadas" if not cuantas
+                    else "%d pregunta(s) vinculada(s)" % cuantas))
 
     def volcar_bloque(self):
         b = self.bloque_actual()
         if b is None:
             return
+        if not b.get("id"):
+            b["id"] = nuevo_id_hecho(self.enunciado_actual() or {})
         b["title"] = self.var_bloque_titulo.get().strip()
         crudo = sacar_texto(self.txt_bloque_parr)
         b["paragraphs"] = [p.strip() for p in re.split(r"\n\s*\n", crudo) if p.strip()]
@@ -2113,7 +2214,7 @@ class EditorApp(tk.Tk):
             messagebox.showinfo("Sin enunciado", "Primero añade un enunciado.", parent=self)
             return
         self.volcar_bloque()
-        e["factBlocks"].append(bloque_hechos_vacio())
+        e["factBlocks"].append(bloque_hechos_vacio(nuevo_id_hecho(e)))
         self.refrescar_lista_bloques(len(e["factBlocks"]) - 1)
         self._tocado()
 
@@ -2122,12 +2223,23 @@ class EditorApp(tk.Tk):
         b = self.bloque_actual()
         if b is None:
             return
+        vinculadas = [q for q in self.datos["preguntas"]
+                      if q["statementId"] == e["id"] and b["id"] in q.get("factIds", [])]
+        aviso = ("" if not vinculadas else
+                 "\n\n%d pregunta(s) están vinculadas a este hecho para el modo foco: "
+                 "perderán el vínculo y volverán a mostrar el enunciado entero."
+                 % len(vinculadas))
         if not messagebox.askyesno("Borrar bloque",
-                                   "¿Borrar el bloque «%s»?" % resumen(b["title"], 40),
+                                   "¿Borrar el bloque «%s»?%s"
+                                   % (resumen(b["title"], 40), aviso),
                                    parent=self):
             return
+        for q in vinculadas:
+            q["factIds"] = [x for x in q["factIds"] if x != b["id"]]
         del e["factBlocks"][self.i_bloque]
         self.refrescar_lista_bloques(max(0, self.i_bloque - 1))
+        if hasattr(self, "lst_factlink"):
+            self.refrescar_lista_factlink()
         self._tocado()
 
     def mover_bloque(self, paso):
@@ -2307,6 +2419,30 @@ class EditorApp(tk.Tk):
         self.combo_stmt.pack(fill="x", padx=10, pady=(0, 4))
         self.combo_stmt.bind("<<ComboboxSelected>>", self._cambio_stmt)
 
+        rotulo(caja, "Partes del enunciado de las que depende (modo foco)",
+               "preguntas[].factIds",
+               'factBlocks[].id  →  <div class="fact-block"> que se muestran en modo foco',
+               "Marca aquí el hecho (o los hechos) desencadenantes concretos de los que "
+               "depende esta pregunta. Con el MODO FOCO encendido en el panel ⚙ —y las "
+               "preguntas de una en una—, esta pregunta mostrará SOLO esos bloques de "
+               "hechos en vez del enunciado entero, con un botón para desplegarlo completo. "
+               "Si no marcas ninguno, la pregunta enseña siempre el enunciado entero. "
+               "Con Ctrl+clic se marcan y desmarcan varios."
+               ).pack(anchor="w", padx=10, pady=(8, 2))
+        marco_fl = ttk.Frame(caja, style="Panel.TFrame")
+        marco_fl.pack(fill="x", padx=10, pady=(0, 2))
+        self.lst_factlink = tk.Listbox(marco_fl, font=("Consolas", 9), height=5,
+                                       selectmode="extended", activestyle="none",
+                                       exportselection=False)
+        self.lst_factlink.pack(side="left", fill="both", expand=True)
+        self.lst_factlink.bind("<<ListboxSelect>>", self._sel_factlink)
+        colf = ttk.Frame(marco_fl, style="Panel.TFrame")
+        colf.pack(side="left", padx=(6, 0))
+        ttk.Button(colf, text="Ninguno", width=11,
+                   command=self.limpiar_factlink).pack(pady=1)
+        self.lbl_factlink = ttk.Label(caja, text="", style="Tec.TLabel")
+        self.lbl_factlink.pack(anchor="w", padx=10, pady=(0, 4))
+
         rotulo(caja, "Etiqueta de materia (q-tag)", "preguntas[].tag",
                '<span class="q-tag">',
                "Línea pequeña en mayúsculas encima de la pregunta (por ejemplo: "
@@ -2443,6 +2579,73 @@ class EditorApp(tk.Tk):
         self.refrescar_lista_preg(self.i_preg)
         self._tocado()
 
+    # ---------- vínculo con los bloques de hechos (modo foco) ----------
+    def refrescar_lista_factlink(self):
+        """Rellena la lista de bloques de hechos del enunciado de la pregunta
+        actual y marca los que tenga vinculados."""
+        if not hasattr(self, "lst_factlink"):
+            return
+        self._silencio_fact = True
+        self.lst_factlink.delete(0, "end")
+        p = self.pregunta_actual()
+        enun = None
+        if p and p.get("statementId"):
+            enun = next((e for e in self.datos["enunciados"]
+                         if e["id"] == p["statementId"]), None)
+        hechos = enun["factBlocks"] if enun else []
+        self._ids_factlink = [h["id"] for h in hechos]
+        for h in hechos:
+            marca = "⚠" if h["red"] else "📋"
+            if h["hidden"]:
+                marca = "👁"
+            self.lst_factlink.insert("end", "%-4s %s %s" % (h["id"], marca,
+                                                            resumen(h["title"], 44)))
+        if p is not None:
+            # Se descartan los vínculos que ya no existan en ese enunciado
+            p["factIds"] = [x for x in p.get("factIds", []) if x in self._ids_factlink]
+            for i, ident in enumerate(self._ids_factlink):
+                if ident in p["factIds"]:
+                    self.lst_factlink.selection_set(i)
+        self._silencio_fact = False
+
+        if p is None:
+            texto = ""
+        elif not p.get("statementId"):
+            texto = "Esta pregunta no depende de ningún enunciado: el modo foco no le afecta."
+        elif not hechos:
+            texto = ("El enunciado %s todavía no tiene bloques de hechos (pestaña 3)."
+                     % p["statementId"])
+        elif not p["factIds"]:
+            texto = "Sin vincular: en modo foco esta pregunta muestra el enunciado entero."
+        else:
+            texto = ("En modo foco se mostrarán solo: %s." % ", ".join(p["factIds"]))
+        self.lbl_factlink.config(text=texto)
+
+    def _sel_factlink(self, _e=None):
+        if getattr(self, "_silencio_fact", False) or self._silencio:
+            return
+        p = self.pregunta_actual()
+        if p is None or not getattr(self, "_ids_factlink", None):
+            return
+        p["factIds"] = [self._ids_factlink[i] for i in self.lst_factlink.curselection()
+                        if i < len(self._ids_factlink)]
+        self.lbl_factlink.config(
+            text="Sin vincular: en modo foco esta pregunta muestra el enunciado entero."
+                 if not p["factIds"]
+                 else "En modo foco se mostrarán solo: %s." % ", ".join(p["factIds"]))
+        self._pintar_vinculos_bloque()
+        self._tocado()
+
+    def limpiar_factlink(self):
+        """Quita todos los vínculos de la pregunta actual."""
+        p = self.pregunta_actual()
+        if p is None:
+            return
+        p["factIds"] = []
+        self.refrescar_lista_factlink()
+        self._pintar_vinculos_bloque()
+        self._tocado()
+
     def _marcar_correcta(self):
         self.lbl_correcta.config(text="Correcta: %s" % "ABCD"[self.var_preg_c.get()])
         self._tocado()
@@ -2453,8 +2656,10 @@ class EditorApp(tk.Tk):
         self.lst_preg.delete(0, "end")
         for i, p in enumerate(self.datos["preguntas"]):
             marca = "📝" if self.tipo_de_bloque(p["bloqueId"]) == "test" else "📁"
-            etiqueta = "%02d %s%-3s %-3s %s" % (i + 1, marca, p["bloqueId"],
-                                                p["statementId"] or "--", resumen(p["q"], 26))
+            foco = "🔎" if p.get("factIds") else " "
+            etiqueta = "%02d %s%-3s %-3s%s %s" % (i + 1, marca, p["bloqueId"],
+                                                  p["statementId"] or "--", foco,
+                                                  resumen(p["q"], 24))
             self.lst_preg.insert("end", etiqueta)
         if seleccionar is None:
             seleccionar = self.i_preg
@@ -2502,6 +2707,7 @@ class EditorApp(tk.Tk):
         self.lbl_correcta.config(text="Correcta: %s" % "ABCD"[self.var_preg_c.get()])
         self._sincronizar_combo_bloque()
         self._sincronizar_combo()
+        self.refrescar_lista_factlink()
 
     def volcar_pregunta(self):
         p = self.pregunta_actual()
@@ -2519,6 +2725,15 @@ class EditorApp(tk.Tk):
             p["statementId"] = self._ids_combo[self.combo_stmt.current()]
         if self.tipo_de_bloque(p["bloqueId"]) == "test":
             p["statementId"] = None
+        # Vínculos con partes del enunciado (modo foco): solo se conservan
+        # mientras la pregunta siga colgando de ese enunciado.
+        if not p["statementId"]:
+            p["factIds"] = []
+        else:
+            propios = next((set(h["id"] for h in e["factBlocks"])
+                            for e in self.datos["enunciados"]
+                            if e["id"] == p["statementId"]), set())
+            p["factIds"] = [x for x in p.get("factIds", []) if x in propios]
 
     def anadir_pregunta(self):
         self.volcar_pregunta()
@@ -2848,9 +3063,14 @@ class EditorApp(tk.Tk):
             vistos.add(e["id"])
             if not e["factBlocks"]:
                 avisos.append("El enunciado %s no tiene ningún bloque de hechos." % e["id"])
+            ids_hechos = set()
             for j, b in enumerate(e["factBlocks"], 1):
                 if not b["paragraphs"]:
                     avisos.append("Enunciado %s, bloque %d: no tiene texto." % (e["id"], j))
+                if b["id"] in ids_hechos:
+                    errores.append("Enunciado %s: código de bloque de hechos repetido «%s»."
+                                   % (e["id"], b["id"]))
+                ids_hechos.add(b["id"])
 
         if not d["preguntas"]:
             errores.append("El supuesto no tiene ninguna pregunta.")
@@ -2874,12 +3094,28 @@ class EditorApp(tk.Tk):
                 avisos.append("El bloque «%s» mezcla preguntas con y sin enunciado (%d sueltas)."
                               % (b["titulo"], len(sin_enunciado)))
 
+        hechos_de = {e["id"]: {b["id"] for b in e["factBlocks"]} for e in d["enunciados"]}
+        ocultos_de = {e["id"]: {b["id"] for b in e["factBlocks"] if b["hidden"]}
+                      for e in d["enunciados"]}
+
         for i, p in enumerate(d["preguntas"], 1):
             if not p["q"].strip():
                 errores.append("Pregunta %d: falta el texto de la pregunta." % i)
             if p["statementId"] and p["statementId"] not in vistos:
                 errores.append("Pregunta %d: apunta al enunciado «%s», que no existe."
                                % (i, p["statementId"]))
+            if p.get("factIds"):
+                propios = hechos_de.get(p["statementId"] or "", set())
+                perdidos = [x for x in p["factIds"] if x not in propios]
+                if perdidos:
+                    avisos.append("Pregunta %d: vinculada a hechos que no están en su "
+                                  "enunciado (%s): en modo foco mostrará el enunciado entero."
+                                  % (i, ", ".join(perdidos)))
+                escondidos = ocultos_de.get(p["statementId"] or "", set())
+                ocultos = [x for x in p["factIds"] if x in escondidos]
+                if ocultos:
+                    avisos.append("Pregunta %d: vinculada a hechos marcados como «no "
+                                  "mostrar» (%s)." % (i, ", ".join(ocultos)))
             vacias = [n for n, t in enumerate(p["a"]) if not t.strip()]
             if vacias:
                 errores.append("Pregunta %d: opciones vacías (%s)."
@@ -2897,7 +3133,7 @@ class EditorApp(tk.Tk):
             if not orden or orden[-1] != sid:
                 if sid and sid in bloques_vistos:
                     avisos.append("Las preguntas del enunciado «%s» no van todas seguidas: "
-                                  "el panel de hechos se repintará varias veces." % sid)
+                                  "el enunciado se repetirá, uno delante de cada grupo." % sid)
                 orden.append(sid)
                 if sid:
                     bloques_vistos.add(sid)
@@ -2929,6 +3165,14 @@ class EditorApp(tk.Tk):
             lineas.append("     se ven %s · en el aleatorio salen %s"
                           % ("todas seguidas" if b["modo"] == "cadena" else "de una en una",
                              "todas" if not b["porIntento"] else "%d al azar" % b["porIntento"]))
+            if b["tipo"] != "test":
+                con_foco = sum(1 for q in suyas if q.get("factIds"))
+                lineas.append("     barra del bloque %s · %s"
+                              % ("encima del enunciado"
+                                 if b.get("cabeceraSobreEnunciado", True) is not False
+                                 else "delante de la primera pregunta",
+                                 "sin preguntas vinculadas al modo foco" if not con_foco
+                                 else "%d pregunta(s) vinculadas al modo foco" % con_foco))
         lineas.append("  ----------------------------------------")
         lineas.append("  Puntuación máxima del examen: %s puntos" % nUm(maximo_total))
         lineas.append("  APTO a partir de %s puntos"
@@ -3103,7 +3347,13 @@ class EditorApp(tk.Tk):
 
         Sirve para modernizar los supuestos antiguos (los que llevan el
         título escrito a mano dentro del HTML): a partir de la conversión,
-        los datos generales también se editan desde el programa."""
+        los datos generales también se editan desde el programa.
+
+        También es la forma de llevar a un supuesto ya hecho las mejoras
+        de la plantilla: al guardar normalmente solo se cambian los datos
+        DENTRO del archivo, y su página sigue funcionando como el día en
+        que se creó. Pasándolo por aquí se estrena el motor actual (los
+        enunciados encima de sus preguntas, el modo foco, etc.)."""
         self.volcar_todo()
         base = Path(__file__).resolve().parent / PLANTILLA_BASE
         if not base.exists():
@@ -3126,7 +3376,10 @@ class EditorApp(tk.Tk):
                 "Convertido",
                 "Supuesto guardado con la plantilla nueva.\n\n"
                 "A partir de ahora también se pueden cambiar desde el programa el "
-                "título, la referencia, el ámbito y los minutos.", parent=self)
+                "título, la referencia, el ámbito y los minutos, y la página estrena "
+                "el motor actual de la plantilla: la barra del bloque encima del "
+                "enunciado, cada enunciado delante de sus preguntas y el modo foco "
+                "del panel \u2699.", parent=self)
             return True
         return False
 
