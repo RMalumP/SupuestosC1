@@ -211,6 +211,15 @@
        · Línea del organismo: el renglón pequeño en mayúsculas que va justo
          encima del título. Vacío = no se muestra.
 
+     CUÁNTAS RESPUESTAS SALEN EN CADA PREGUNTA (apartado nuevo):
+       · "Todas las que tenga escritas cada pregunta" (lo de siempre).
+       · 3, 4 o 5 → todas las preguntas saldrán con ese número: se muestran
+         siempre la correcta (o las correctas) y se sortean los distractores
+         que falten. Así puedes escribir hasta SIETE opciones en una
+         pregunta y que cada intento enseñe cuatro distintas.
+       Una pregunta con menos opciones escritas sale con las que tenga, y en
+       la pestaña 4 se le puede dar a una pregunta suelta su propio número.
+
      Abajo del todo está la PALETA DE COLORES de la página (apartado 5B).
 
   PASO 2 · Pestaña "2 · Bloques"
@@ -273,13 +282,27 @@
           desplegar el enunciado entero. Sin vincular, se ve el enunciado
           completo siempre.
        e) Escribe el texto de la pregunta.
-       f) Escribe las CUATRO opciones y MARCA EL PUNTO de la que es correcta.
+       f) Escribe las opciones y MARCA LA CASILLA de la que es correcta.
+          - De 2 a 7 opciones. Con "＋ Añadir respuesta" y "🗑 Quitar la
+            última" cambias cuántas tiene ESA pregunta (de base son 4).
+          - "Respuesta múltiple": marca varias casillas y el alumno tendrá
+            que acertarlas TODAS (ni una de más ni una de menos) para que
+            la pregunta cuente como acertada. En la página esas opciones
+            salen con la insignia cuadrada y el aviso "marca todas las
+            respuestas que procedan".
+          - Sin respuesta múltiple, marcar una casilla desmarca la anterior.
+          - "Cuántas de estas respuestas salen en el examen": normalmente lo
+            que hayas puesto en la pestaña 1, pero aquí puedes darle un
+            número propio a una pregunta suelta. Debajo se te dice en
+            cristiano lo que verá el alumno.
        g) Escribe la motivación legal (sale al corregir) y, si procede, el
           consejo con 💡.
      En la lista de la izquierda cada pregunta lleva su bloque y su enunciado,
-     y una lupa 🔎 si tiene hechos vinculados para el modo foco:
-        16 📝B2  --   ¿Qué órgano tiene atribuida…
+     una lupa 🔎 si tiene hechos vinculados para el modo foco y un ☑ si es de
+     respuesta múltiple:
+        16 📝B2  --    ¿Qué órgano tiene atribuida…
         17 📁B1  E1 🔎 Ante esa notificación defectuosa…
+        18 📝B2  --  ☑ Señale cuáles de los siguientes…
      Con "▲ Subir / ▼ Bajar" ordenas las preguntas DENTRO de su bloque. Para
      cambiar una pregunta de bloque se usa el desplegable de arriba.
 
@@ -375,6 +398,12 @@
      Al imprimir o generar el PDF los enunciados salen SIEMPRE completos.
 
   CORRECCIÓN
+     Una pregunta de respuesta múltiple solo cuenta como acertada si se han
+     marcado EXACTAMENTE las correctas: ni sobra ni falta ninguna. No hay
+     medios puntos. Con "corregir pregunta a pregunta", la solución de esas
+     preguntas no se enseña hasta haber marcado tantas opciones como
+     correctas tiene, para no cantarla con el primer clic.
+
      Cada bloque se corrige por separado con su propio baremo y luego se
      suman. El marcador muestra:
         · los puntos totales, ya con los descuentos aplicados (4,75 / 7)
@@ -431,6 +460,23 @@
      Los cuatro últimos son los que aparecen AL TERMINAR el examen; si
      desmarcas uno, no sale ni en la botonera de abajo ni en la ventana de
      resultados.
+
+     EL BOTÓN 🔀 Y SUS DOS FORMAS DE REPETIR
+     Debajo de "Nuevo intento aleatorio" hay ahora una línea por cada una de
+     las dos opciones que ofrece su ventana, y cada una se quita por su
+     cuenta:
+       · "Mismas preguntas y mismo orden" → salen las mismas preguntas en el
+         mismo orden; solo cambia el orden de las respuestas dentro de cada
+         pregunta (y qué opciones salen, si alguna tiene más escritas de las
+         que se muestran).
+       · "Mismas preguntas en otro orden" → salen TODAS las preguntas otra
+         vez, barajadas. NO se descarta ninguna: la única diferencia con la
+         anterior es el orden. Se respeta el orden de los bloques y cada
+         pregunta sigue pegada a su enunciado.
+     Si dejas una sola, el botón 🔀 no pregunta nada: repite directamente de
+     esa forma. Si quitas las dos, el botón desaparece.
+     (Lo único que sí descarta preguntas es "cuántas preguntas salen al
+     azar" de la pestaña 2, que es una decisión expresa tuya.)
 
   C) ENVÍO DE RESULTADOS A UN FORMULARIO DE GOOGLE
      Viene ya relleno con el formulario y las casillas que usa el proyecto,

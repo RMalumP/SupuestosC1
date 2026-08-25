@@ -393,6 +393,17 @@
         .option.correct { border-color:var(--forest); background:rgba(var(--forest-rgb),0.10); color:var(--forest); font-weight:600; }
         .option.wrong   { border-color:var(--crimson); background:rgba(var(--crimson-rgb),0.07); color:var(--crimson); text-decoration:line-through; }
         .opt-letter { flex-shrink:0; width:26px; height:26px; border-radius:50%; background:var(--navy-mid); color:var(--gold); font-family:'JetBrains Mono',monospace; font-size:0.7rem; font-weight:700; display:flex; align-items:center; justify-content:center; margin-top:1px; }
+        /* Respuesta múltiple: la insignia pasa de redonda a cuadrada, como
+           una casilla de verificación, para que se vea de un vistazo que
+           se puede marcar más de una. */
+        .option.multi .opt-letter { border-radius:5px; }
+        .multi-aviso {
+            font-family:'JetBrains Mono',monospace; font-size:0.58rem; letter-spacing:0.18em;
+            text-transform:uppercase; color:var(--blue-deep); margin-top:18px;
+            display:flex; align-items:center; gap:8px;
+        }
+        .multi-aviso::before { content:'☑'; font-size:0.9rem; }
+        .multi-aviso + .options-grid { margin-top:8px; }
         .option.correct .opt-letter { background:var(--forest); color:var(--cream); }
         .option.wrong   .opt-letter { background:var(--crimson); color:var(--cream); }
 
@@ -868,10 +879,10 @@
 ══════════════════════════════════════════ -->
 <div id="random-modal" onclick="if (event.target === this) closeRandomModal();">
     <div class="modal-box">
-        <h3>🔀 Nuevo intento aleatorio</h3>
-        <p>¿Cómo quieres repetir el expediente?</p>
-        <button class="btn btn-modal-a" onclick="confirmRestart('answers')">🔁 Mismas preguntas y mismo orden<br><small style="font-weight:400;opacity:0.8;">solo cambia el orden de las respuestas</small></button>
-        <button class="btn btn-modal-b" onclick="confirmRestart('full')">🎲 También cambiar qué preguntas salen<br><small style="font-weight:400;opacity:0.8;">y su orden, respetando cada bloque y cada enunciado</small></button>
+        <h3 id="rnd-titulo">🔀 Nuevo intento aleatorio</h3>
+        <p id="rnd-sub">¿Cómo quieres repetir el expediente?</p>
+        <button class="btn btn-modal-a" id="rnd-answers" onclick="confirmRestart('answers')">🔁 Mismas preguntas y mismo orden<br><small style="font-weight:400;opacity:0.8;">solo cambia el orden de las respuestas</small></button>
+        <button class="btn btn-modal-b" id="rnd-order" onclick="confirmRestart('order')">🎲 Mismas preguntas en otro orden<br><small style="font-weight:400;opacity:0.8;">salen todas, barajadas dentro de su bloque y su enunciado</small></button>
         <button class="btn" onclick="closeRandomModal()">Cancelar</button>
     </div>
 </div>
@@ -914,6 +925,7 @@
     "ambito": "[LEGISLACIÓN VIGENTE A ...]",
     "minutos": 30,
     "aptoPorcentaje": 50.0,
+    "respuestas": 0,
     "logo": "https://academia.ecap.es/pluginfile.php?file=%2F1%2Fcore_admin%2Flogo%2F0x200%2F1782109950%2FACADEMIA%20VIRTUAL%20%281%29.png",
     "logoAlt": "ECAP - Escuela Ciudadana de Administración Pública",
     "organismo": "Comunidad ECAP ASS C1"
@@ -959,8 +971,15 @@
     },
     "opcionUnaEnUna": {
       "visible": true,
-      "texto": "Ver las preguntas de una en una",
-      "activa": false
+      "texto": "Ver las preguntas de una en una"
+    },
+    "opcionRepetirRespuestas": {
+      "visible": true,
+      "texto": "🔁 Mismas preguntas y mismo orden"
+    },
+    "opcionRepetirOrden": {
+      "visible": true,
+      "texto": "🎲 Mismas preguntas en otro orden"
     },
     "opcionFoco": {
       "visible": true,
@@ -1113,6 +1132,11 @@
         "[Opción incorrecta 4]"
       ],
       "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 0,
       "law": "[Motivación legal: normativa aplicable y razonamiento.]",
       "tip": "[Consejo práctico o error frecuente.]"
     },
@@ -1129,6 +1153,11 @@
         "[Opción incorrecta 4]"
       ],
       "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 0,
       "law": "[Motivación legal: normativa aplicable y razonamiento.]",
       "tip": ""
     }
@@ -1163,6 +1192,10 @@ try {
     });
     throw err;
 }
+
+// Hasta siete opciones por pregunta (A…G)
+const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+const MAX_OPCIONES = LETTERS.length;
 
 /* ═══════════════════════════════════════════
    NORMALIZACIÓN DE LOS BLOQUES
@@ -1218,6 +1251,7 @@ function normalizarBloques(datos) {
         q.factIds = Array.isArray(q.factIds)
                         ? q.factIds.map(x => String(x)).filter(Boolean)
                         : [];
+        normalizarRespuestas(q);
         if (b.tipo === 'test') {          // la teoría no lleva enunciado
             q.statementId = null;
             q.factIds = [];
@@ -1225,6 +1259,60 @@ function normalizarBloques(datos) {
         b.preguntas.push(q);
     });
     return bloques;
+}
+
+/* ═══════════════════════════════════════════
+   NORMALIZACIÓN DE LAS RESPUESTAS DE UNA PREGUNTA
+   ───────────────────────────────────────────
+   Una pregunta puede tener de 2 a 7 opciones escritas y una o varias
+   correctas. Los archivos antiguos traen exactamente cuatro opciones y
+   la correcta en "c" (un número): se siguen leyendo igual.
+     a[]         → las opciones escritas (se descartan las vacías)
+     c           → la correcta, cuando solo hay una
+     correctas[] → las correctas, cuando hay varias (respuesta múltiple)
+     multiple    → true si hay que marcar todas las que procedan
+     respuestas  → cuántas opciones salen en el examen para ESTA pregunta
+                   (0 = lo que diga config.respuestas; y este, 0 = todas)
+═══════════════════════════════════════════ */
+function normalizarRespuestas(q) {
+    q.a = (Array.isArray(q.a) ? q.a : [])
+              .map(x => String(x === undefined || x === null ? '' : x))
+              .filter(x => x.trim() !== '')
+              .slice(0, MAX_OPCIONES);
+
+    const dentro = i => Number.isInteger(i) && i >= 0 && i < q.a.length;
+
+    let correctas = Array.isArray(q.correctas) ? q.correctas.map(x => parseInt(x, 10)) : [];
+    correctas = correctas.filter(dentro);
+    if (!correctas.length) {
+        const c = parseInt(q.c, 10);
+        correctas = dentro(c) ? [c] : (q.a.length ? [0] : []);
+    }
+    // Sin duplicados y en orden
+    q.correctas = [...new Set(correctas)].sort((x, y) => x - y);
+    q.c         = q.correctas.length ? q.correctas[0] : 0;
+    q.multiple  = q.multiple === true && q.correctas.length > 0;
+    q.respuestas = Math.max(0, Math.min(MAX_OPCIONES, parseInt(q.respuestas, 10) || 0));
+    return q;
+}
+
+/* Qué opciones salen de esta pregunta en este intento.
+   Si la pregunta tiene más opciones escritas de las que deben salir, se
+   quedan siempre las correctas y se sortean los distractores que faltan:
+   así se pueden escribir siete opciones y que cada intento enseñe cuatro
+   distintas. Nunca se recorta por debajo de las correctas más un
+   distractor. */
+function opcionesDePregunta(q) {
+    const correctas    = q.correctas;
+    const distractores = q.a.map((_, i) => i).filter(i => !correctas.includes(i));
+
+    let cuantas = q.respuestas || Math.round(numeroSeguro(EXAM_CONFIG.respuestas, 0)) || q.a.length;
+    cuantas = Math.max(cuantas, correctas.length + (distractores.length ? 1 : 0));
+    cuantas = Math.min(cuantas, q.a.length);
+
+    const elegidos = correctas.concat(
+        shuffle(distractores).slice(0, Math.max(0, cuantas - correctas.length)));
+    return shuffle(elegidos).map(idx => ({ txt: q.a[idx], idx }));
 }
 
 /* ═══════════════════════════════════════════
@@ -1275,7 +1363,6 @@ const ENVIO           = DATOS_SUPUESTO.envio    || {};
 /* ═══════════════════════════════════════════
    ESTADO DEL EXAMEN
 ═══════════════════════════════════════════ */
-const LETTERS = ['A', 'B', 'C', 'D'];
 
 let questions          = [];
 let examDurationSeconds = EXAM_CONFIG.minutos * 60; // ver EXAM_CONFIG, arriba
@@ -1441,14 +1528,14 @@ function enCadena(bloque) {
     return !unaEnUnaPorBloque[bloque.id];
 }
 
-// Estado de arranque de las casillas: el modo de cada bloque en el editor,
-// salvo que la opción venga marcada como «empieza activada», que pone
-// todos los bloques de una en una.
+// Estado de arranque de las casillas: cada bloque empieza como diga SU
+// modo en el editor («en cadena» → sin marcar; «de una en una» → marcada).
+// No hay ningún interruptor general que lo pise: si un bloque está puesto
+// en cadena, arranca en cadena.
 function estrenarUnaEnUna() {
-    const todos = ajusteInterfaz('opcionUnaEnUna').activa === true;
     unaEnUnaPorBloque = {};
     BLOCKS_BANK.forEach(b => {
-        unaEnUnaPorBloque[b.id] = todos || b.modo === 'individual';
+        unaEnUnaPorBloque[b.id] = b.modo === 'individual';
     });
 }
 
@@ -1583,6 +1670,7 @@ function interfazVisible(clave) {
 // ¿Puede verse este botón, según la configuración del supuesto?
 function botonPermitido(id) {
     const clave = CLAVE_POR_BOTON[id];
+    if (clave === 'btnReintentar' && !modosAleatoriosDisponibles().length) return false;
     return !clave || interfazVisible(clave);
 }
 
@@ -1651,6 +1739,19 @@ function aplicarInterfaz() {
         const el = document.getElementById(casilla);
         if (el) el.checked = activa;
         aplicar(activa);
+    });
+
+    // Las dos formas de repetir el intento (ventana del botón 🔀)
+    [['opcionRepetirRespuestas', 'rnd-answers'],
+     ['opcionRepetirOrden',      'rnd-order']].forEach(([clave, id]) => {
+        const ajuste = ajusteInterfaz(clave);
+        const boton  = document.getElementById(id);
+        if (!boton) return;
+        if (ajuste.texto) {
+            const detalle = boton.querySelector('small');
+            boton.innerHTML = ajuste.texto + (detalle ? '<br>' + detalle.outerHTML : '');
+        }
+        boton.style.display = interfazVisible(clave) ? '' : 'none';
     });
 
     // Botones: primero el texto, después la visibilidad
@@ -1802,17 +1903,17 @@ function groupByStatement(bank) {
 //               de cada bloque, sus preguntas en el orden del editor).
 //   'answers' → reutiliza exactamente el mismo conjunto/orden que el
 //               intento anterior (sourceBank); solo cambian las opciones.
-//   'full'    → baraja qué preguntas salen y en qué orden DENTRO de cada
-//               bloque. El orden de los bloques NUNCA cambia: lo decide el
-//               editor, así que si el supuesto va primero y la teoría
-//               después, así se queda en todos los intentos.
-//                 · bloque de teoría  → se barajan sus preguntas.
+//   'order'   → SALEN TODAS LAS PREGUNTAS, en otro orden. No se descarta
+//               ninguna: la única diferencia con 'answers' es el orden.
+//               El orden de los bloques NUNCA cambia: lo decide el editor,
+//               así que si el supuesto va primero y la teoría después, así
+//               se queda en todos los intentos.
+//                 · bloque de teoría   → se barajan sus preguntas.
 //                 · bloque de supuesto → se barajan los enunciados y, dentro
-//                   de cada uno, sale un subconjunto aleatorio de sus
-//                   preguntas conservando el orden narrativo (una pregunta
-//                   nunca se separa de su enunciado).
-//               Si el bloque tiene "porIntento" > 0, se recorta a ese
-//               número de preguntas.
+//                   de cada uno, sus preguntas (una pregunta nunca se
+//                   separa de su enunciado, para no repetir los hechos).
+//               Solo si el bloque tiene "porIntento" > 0 —que es una
+//               decisión expresa del editor— se recorta a ese número.
 function buildQuestionOrder(mode, sourceBank) {
     if (mode === 'answers') return [...sourceBank];
 
@@ -1821,7 +1922,7 @@ function buildQuestionOrder(mode, sourceBank) {
         const banco = b.preguntas;
         if (!banco.length) return;
 
-        if (mode !== 'full') {
+        if (mode !== 'order') {
             result.push(...banco);
             return;
         }
@@ -1832,10 +1933,7 @@ function buildQuestionOrder(mode, sourceBank) {
         } else {
             elegidas = [];
             shuffle(groupByStatement(banco)).forEach(g => {
-                const count  = g.items.length === 1 ? 1 : 1 + Math.floor(Math.random() * g.items.length);
-                const picked = shuffle(g.items).slice(0, count);
-                picked.sort((x, y) => g.items.indexOf(x) - g.items.indexOf(y));
-                elegidas.push(...picked);
+                elegidas.push(...shuffle(g.items));
             });
         }
         if (b.porIntento > 0) elegidas = elegidas.slice(0, b.porIntento);
@@ -2158,28 +2256,32 @@ function init(mode = 'default', sourceBank = null) {
         box.onclick  = () => jump(i);
         filaCasillas.appendChild(box);
 
-        // Opciones: siempre se barajan, para cada usuario/carga de la página,
-        // independientemente del modo de intento (que solo afecta a qué
-        // preguntas y en qué orden aparecen, no al orden de sus opciones).
-        const shuffledOpts = shuffle(q.a.map((txt, idx) => ({ txt, idx })));
+        // Opciones: se eligen (si la pregunta tiene más de las que deben
+        // salir) y se barajan en cada carga de la página, sea cual sea el
+        // modo de intento, que solo decide qué preguntas salen y en qué orden.
+        const opciones = opcionesDePregunta(q);
 
-        const correctNewIdx = shuffledOpts.findIndex(o => o.idx === q.c);
+        // Dónde han quedado las correctas después de barajar
+        const correctasNuevas = [];
+        opciones.forEach((o, ni) => { if (q.correctas.includes(o.idx)) correctasNuevas.push(ni); });
+        const multiple = q.multiple === true;
 
         let optHtml = '';
-        shuffledOpts.forEach(({ txt }, ni) => {
+        opciones.forEach(({ txt }, ni) => {
             optHtml += `
-                <div class="option" id="opt-${i}-${ni}" onclick="selectAnswer(${i}, ${ni}, ${correctNewIdx})">
+                <div class="option${multiple ? ' multi' : ''}" id="opt-${i}-${ni}" onclick="selectAnswer(${i}, ${ni})">
                     <span class="opt-letter">${LETTERS[ni]}</span>
-                    <span>${txt.replace(/^[A-D]\)\s*/, '')}</span>
+                    <span>${txt.replace(/^[A-G]\)\s*/, '')}</span>
                 </div>`;
         });
 
         const card    = document.createElement('div');
         card.className = `question-card blq-${bloque.id}`;
         card.id       = `qcard-${i}`;
-        card.dataset.correct = correctNewIdx;
-        card.dataset.bloque  = bloque.id;
-        card.dataset.panel   = panelActual;   // enunciado al que pertenece
+        card.dataset.correct  = correctasNuevas.join(',');
+        card.dataset.multiple = multiple ? '1' : '';
+        card.dataset.bloque   = bloque.id;
+        card.dataset.panel    = panelActual;   // enunciado al que pertenece
         card.innerHTML = `
             <div class="q-header">
                 <div class="q-num">${String(i+1).padStart(2,'0')}</div>
@@ -2188,6 +2290,7 @@ function init(mode = 'default', sourceBank = null) {
                     <div class="q-text">${q.q}</div>
                 </div>
             </div>
+            ${multiple ? '<div class="multi-aviso">Marca todas las respuestas que procedan</div>' : ''}
             <div class="options-grid">${optHtml}</div>
             <div class="feedback" id="feed-${i}">
                 <div class="feedback-header"><span>⚖️ MOTIVACIÓN LEGAL Y NORMATIVA APLICABLE</span></div>
@@ -2224,9 +2327,37 @@ function init(mode = 'default', sourceBank = null) {
 }
 
 /* ═══════════════════════════════════════════
+   RESPUESTAS — consulta del estado
+   ───────────────────────────────────────────
+   Una pregunta puede tener una sola respuesta correcta o varias, así que
+   tanto lo correcto como lo contestado se guardan SIEMPRE como lista de
+   posiciones (ya barajadas). Sin responder = no hay entrada en userAns.
+═══════════════════════════════════════════ */
+function correctasDe(qIdx) {
+    const card = document.getElementById(`qcard-${qIdx}`);
+    const dato = card ? card.dataset.correct : '';
+    return dato ? dato.split(',').map(Number) : [];
+}
+
+function contestadasDe(qIdx) {
+    return userAns[qIdx] || [];
+}
+
+function sinResponder(qIdx) {
+    return contestadasDe(qIdx).length === 0;
+}
+
+// Acierto = exactamente las correctas, ni una de más ni una de menos.
+function esAcierto(qIdx) {
+    const dadas     = contestadasDe(qIdx);
+    const correctas = correctasDe(qIdx);
+    return dadas.length === correctas.length && correctas.every(c => dadas.includes(c));
+}
+
+/* ═══════════════════════════════════════════
    SELECCIÓN DE RESPUESTA (permite desmarcar y modo corrección instantánea)
 ═══════════════════════════════════════════ */
-function selectAnswer(qIdx, optIdx, correctIdx) {
+function selectAnswer(qIdx, optIdx) {
     if (evaluated) return;
 
     // En pantallas táctiles, un "clic" que en realidad es un desplazamiento
@@ -2237,33 +2368,62 @@ function selectAnswer(qIdx, optIdx, correctIdx) {
         if (Date.now() - ultimoScroll < 300) return;
     }
 
-    const wasSelected = userAns[qIdx] === optIdx;
+    const card     = document.getElementById(`qcard-${qIdx}`);
+    const multiple = card && card.dataset.multiple === '1';
+    let dadas      = [...contestadasDe(qIdx)];
 
-    // Limpiar marcas visuales previas de esta pregunta
-    document.querySelectorAll(`#qcard-${qIdx} .option`).forEach(o => o.classList.remove('selected', 'correct', 'wrong'));
-    const navBox = document.getElementById(`nav-${qIdx}`);
-    navBox.classList.remove('nav-wrong', 'nav-correct');
-
-    if (wasSelected) {
-        // Volver a hacer clic en la opción ya marcada → dejar la pregunta en blanco
-        delete userAns[qIdx];
-        navBox.classList.remove('answered');
-        if (instantFeedback) document.getElementById(`feed-${qIdx}`).style.display = 'none';
+    if (dadas.includes(optIdx)) {
+        // Volver a pulsar una opción ya marcada la desmarca
+        dadas = dadas.filter(x => x !== optIdx);
+    } else if (multiple) {
+        dadas.push(optIdx);            // se pueden marcar varias
     } else {
-        userAns[qIdx] = optIdx;
-        document.getElementById(`opt-${qIdx}-${optIdx}`).classList.add('selected');
-        navBox.classList.add('answered');
-
-        if (instantFeedback) {
-            document.getElementById(`opt-${qIdx}-${correctIdx}`).classList.add('correct');
-            if (optIdx !== correctIdx) {
-                document.getElementById(`opt-${qIdx}-${optIdx}`).classList.add('wrong');
-                navBox.classList.add('nav-wrong');
-            }
-            document.getElementById(`feed-${qIdx}`).style.display = 'block';
-        }
+        dadas = [optIdx];              // una sola: sustituye a la anterior
     }
+    dadas.sort((x, y) => x - y);
+
+    if (dadas.length) userAns[qIdx] = dadas;
+    else delete userAns[qIdx];
+
+    pintarRespuesta(qIdx);
     updateProgress();
+}
+
+// Marca en verde las correctas y en rojo las falladas de una pregunta.
+function marcarSolucion(qIdx) {
+    const dadas     = contestadasDe(qIdx);
+    const correctas = correctasDe(qIdx);
+    document.querySelectorAll(`#qcard-${qIdx} .option`).forEach((o, ni) => {
+        o.classList.remove('correct', 'wrong');
+        if (correctas.includes(ni))   o.classList.add('correct');
+        else if (dadas.includes(ni))  o.classList.add('wrong');
+    });
+}
+
+/* Repinta una pregunta según lo que lleve marcado. Con corrección
+   pregunta a pregunta la solución no se enseña hasta que se han marcado
+   tantas opciones como correctas tiene: si no, en una pregunta de
+   respuesta múltiple se cantaría la solución con el primer clic. */
+function pintarRespuesta(qIdx) {
+    const dadas     = contestadasDe(qIdx);
+    const correctas = correctasDe(qIdx);
+    const navBox    = document.getElementById(`nav-${qIdx}`);
+    const feed      = document.getElementById(`feed-${qIdx}`);
+
+    document.querySelectorAll(`#qcard-${qIdx} .option`).forEach((o, ni) => {
+        o.classList.remove('selected', 'correct', 'wrong');
+        if (dadas.includes(ni)) o.classList.add('selected');
+    });
+    navBox.classList.remove('nav-wrong', 'nav-correct');
+    navBox.classList.toggle('answered', dadas.length > 0);
+
+    if (!instantFeedback || dadas.length < correctas.length) {
+        if (feed) feed.style.display = 'none';
+        return;
+    }
+    marcarSolucion(qIdx);
+    if (!esAcierto(qIdx)) navBox.classList.add('nav-wrong');
+    if (feed) feed.style.display = 'block';
 }
 
 /* ═══════════════════════════════════════════
@@ -2446,11 +2606,10 @@ function updateProgress() {
 ═══════════════════════════════════════════ */
 function updateNavResultColors() {
     questions.forEach((q, i) => {
-        const correctNew = parseInt(document.getElementById(`qcard-${i}`).dataset.correct);
         const navBox = document.getElementById(`nav-${i}`);
         navBox.classList.remove('answered', 'nav-wrong');
-        if (userAns[i] === undefined) return;
-        navBox.classList.add(userAns[i] === correctNew ? 'answered' : 'nav-wrong');
+        if (sinResponder(i)) return;
+        navBox.classList.add(esAcierto(i) ? 'answered' : 'nav-wrong');
     });
 }
 
@@ -2475,12 +2634,8 @@ function evaluateExam() {
 
     // Marcar opciones correctas / erróneas en las tarjetas visibles
     questions.forEach((q, i) => {
-        const correctNew = parseInt(document.getElementById(`qcard-${i}`).dataset.correct);
         document.getElementById(`feed-${i}`).style.display = 'block';
-        document.getElementById(`opt-${i}-${correctNew}`).classList.add('correct');
-        if (userAns[i] !== undefined && userAns[i] !== correctNew) {
-            document.getElementById(`opt-${i}-${userAns[i]}`).classList.add('wrong');
-        }
+        marcarSolucion(i);
     });
     updateNavResultColors();
 
@@ -2502,10 +2657,7 @@ function evaluateExam() {
 ═══════════════════════════════════════════ */
 function calcScore() {
     let score = 0;
-    questions.forEach((q, i) => {
-        const correctNew = parseInt(document.getElementById(`qcard-${i}`).dataset.correct);
-        if (userAns[i] === correctNew) score++;
-    });
+    questions.forEach((q, i) => { if (esAcierto(i)) score++; });
     return score;
 }
 
@@ -2523,15 +2675,13 @@ function calcResultados() {
                              blancos: 0, puntos: 0, max: 0 });
             orden.push(b.id);
         }
-        const r    = mapa.get(b.id);
-        const card = document.getElementById(`qcard-${i}`);
-        const correcta = card ? parseInt(card.dataset.correct) : -1;
+        const r = mapa.get(b.id);
 
         r.total++;
         r.max += b.acierto;
-        if (userAns[i] === undefined)     { r.blancos++;  r.puntos -= b.blanco; }
-        else if (userAns[i] === correcta) { r.aciertos++; r.puntos += b.acierto; }
-        else                              { r.fallos++;   r.puntos -= b.fallo;  }
+        if (sinResponder(i))   { r.blancos++;  r.puntos -= b.blanco; }
+        else if (esAcierto(i)) { r.aciertos++; r.puntos += b.acierto; }
+        else                   { r.fallos++;   r.puntos -= b.fallo;  }
     });
 
     const bloques = orden.map(id => mapa.get(id));
@@ -2620,24 +2770,20 @@ function showCorrectionPanel() {
             const r = resumenBloques.get(b.id);
             html += `<div class="corr-bloque blq-${b.id}">${b.titulo} — ${r.aciertos} ✓ · ${r.fallos} ✗ · ${r.blancos} — · ${nUm(r.puntos)} / ${nUm(r.max)} puntos</div>`;
         }
-        const correctNew = parseInt(document.getElementById(`qcard-${i}`).dataset.correct);
-        const given      = userAns[i];
-        const isCorrect  = given === correctNew;
-        const isSkipped  = given === undefined;
+        const correctas = correctasDe(i);
+        const dadas     = contestadasDe(i);
+        const isCorrect = esAcierto(i);
+        const isSkipped = sinResponder(i);
 
         // Marcar visualmente en las tarjetas
-        document.getElementById(`opt-${i}-${correctNew}`).classList.add('correct');
-        if (!isSkipped && !isCorrect) document.getElementById(`opt-${i}-${given}`).classList.add('wrong');
+        marcarSolucion(i);
         document.getElementById(`feed-${i}`).style.display = 'block';
 
-        // Texto de la opción elegida
-        const givenText = isSkipped
-            ? '<em style="color:#9ca3af;">Sin responder</em>'
-            : q.a[/* original idx */ [...document.querySelectorAll(`#qcard-${i} .option`)][given].querySelector('span:last-child').textContent];
-
-        // Obtener textos de opciones del DOM
-        const optEls = document.querySelectorAll(`#qcard-${i} .option span:last-child`);
+        // Textos de las opciones tal y como han salido en esta tarjeta
+        const optEls   = document.querySelectorAll(`#qcard-${i} .option span:last-child`);
         const optTexts = [...optEls].map(el => el.textContent.trim());
+        const listar   = idx => idx.map(n => `${LETTERS[n]}) ${optTexts[n]}`).join('<br>');
+        const varias   = correctas.length > 1;
 
         const badgeClass = isSkipped ? 'skip' : isCorrect ? 'ok' : 'err';
         const badgeText  = isSkipped ? '—'   : isCorrect ? '✓'  : '✗';
@@ -2650,10 +2796,10 @@ function showCorrectionPanel() {
             </div>
             <div class="ci-answers">
                 ${!isSkipped ? `<div class="given ${isCorrect?'':'wrong'}">
-                    <strong>Respuesta elegida:</strong> ${LETTERS[given]}) ${optTexts[given]}
+                    <strong>${varias ? 'Respuestas elegidas:' : 'Respuesta elegida:'}</strong><br>${listar(dadas)}
                 </div>` : `<div class="given wrong"><em>Pregunta no respondida</em></div>`}
                 ${!isCorrect ? `<div class="correct-ans">
-                    <strong>Respuesta correcta:</strong> ${LETTERS[correctNew]}) ${optTexts[correctNew]}
+                    <strong>${varias ? 'Respuestas correctas:' : 'Respuesta correcta:'}</strong><br>${listar(correctas)}
                 </div>` : ''}
             </div>
             <div class="ci-law"><strong>⚖️ Normativa aplicable:</strong><br>${q.law}</div>
@@ -2832,7 +2978,21 @@ function enviarResultados() {
 /* ═══════════════════════════════════════════
    REINICIAR (elección de aleatoriedad)
 ═══════════════════════════════════════════ */
+/* Cada una de las dos formas de repetir se puede quitar por separado
+   desde el editor. Si solo queda una, no tiene sentido preguntar: se
+   arranca directamente con ella. Si no queda ninguna, el botón 🔀 ni
+   siquiera se muestra (ver botonPermitido). */
+function modosAleatoriosDisponibles() {
+    return [['answers', 'opcionRepetirRespuestas'],
+            ['order',   'opcionRepetirOrden']]
+           .filter(([, clave]) => interfazVisible(clave))
+           .map(([modo]) => modo);
+}
+
 function openRandomModal() {
+    const modos = modosAleatoriosDisponibles();
+    if (modos.length === 1) { confirmRestart(modos[0]); return; }
+    if (!modos.length) return;
     document.getElementById('random-modal').classList.add('show');
 }
 
@@ -2842,9 +3002,9 @@ function closeRandomModal() {
 
 // mode: 'answers' → mismas preguntas y mismo orden, solo cambian las
 //                    opciones de respuesta.
-//       'full'    → también se baraja qué preguntas salen y en qué orden
-//                    (respetando siempre el vínculo pregunta-enunciado y
-//                    renumerando 1..N de forma correlativa y visible).
+//       'order'   → las mismas preguntas, todas, en otro orden (respetando
+//                    siempre el vínculo pregunta-enunciado y renumerando
+//                    1..N de forma correlativa y visible).
 function confirmRestart(mode) {
     closeRandomModal();
     if (timerInt) clearInterval(timerInt);
@@ -2854,7 +3014,7 @@ function confirmRestart(mode) {
     // Ocultar overlay
     document.getElementById('overlay').classList.remove('show');
     // Reinicializar el intento. Para 'answers' se reutiliza el conjunto de
-    // preguntas ya cargado (questions); para 'full' se recalcula desde cero
+    // preguntas ya cargado (questions); para 'order' se recalcula desde cero
     // a partir de QUESTIONS_BANK dentro de buildQuestionOrder().
     init(mode, questions);
 }
