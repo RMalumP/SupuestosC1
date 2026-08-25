@@ -3,6 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!--
+        Versión del MOTOR de la plantilla (el código que hace funcionar la
+        página, no los datos del supuesto). El editor de Python la compara
+        con la suya y, si el archivo se quedó atrás, ofrece ponerlo al día
+        al guardar. Subir este número al cambiar el motor.
+    -->
+    <meta name="motor-plantilla" content="2">
     <title>[TÍTULO DE LA EVALUACIÓN]</title>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,600;1,8..60,300&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 
@@ -178,6 +185,19 @@
         }
         .settings-row.apagada { opacity: 0.45; }
         .settings-row.apagada label { cursor: default; }
+        /* Una casilla por bloque dentro de la opción «de una en una» */
+        #una-por-bloque { display: flex; flex-direction: column; gap: 6px; }
+        #una-por-bloque label {
+            display: flex; align-items: center; gap: 8px; margin-bottom: 0;
+            cursor: pointer; font-size: 0.74rem; line-height: 1.3;
+        }
+        #una-por-bloque input[type="checkbox"] {
+            width: 15px; height: 15px; accent-color: var(--gold); cursor: pointer; flex-shrink: 0;
+        }
+        /* Punto del color del bloque, para reconocerlo de un vistazo */
+        #una-por-bloque .punto-bloque {
+            width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
+        }
 
         /* ════════════════════════════════════════
            TEMPORIZADOR
@@ -624,11 +644,16 @@
                     <span id="lbl-corregir">Corregir pregunta a pregunta</span>
                 </label>
             </div>
-            <div class="settings-row settings-check" id="row-una">
-                <label>
-                    <input type="checkbox" id="una-en-una-toggle" onchange="toggleUnaEnUna(this.checked)">
-                    <span id="lbl-una">Ver las preguntas de una en una</span>
-                </label>
+            <!--
+                UNA CASILLA POR BLOQUE. El examen puede tener un bloque o
+                cinco, así que estas casillas las crea sola la página al
+                arrancar (ver montarOpcionesUnaEnUna): una por cada bloque
+                que salga en el intento y que no esté marcado como oculto
+                en el editor. Sin marcar = ese bloque se ve EN CADENA.
+            -->
+            <div class="settings-row" id="row-una">
+                <label><span id="lbl-una">Ver las preguntas de una en una</span></label>
+                <div id="una-por-bloque"></div>
             </div>
             <div class="settings-row settings-check settings-sub" id="row-foco">
                 <label>
@@ -995,6 +1020,7 @@
       "color": "#8fc4d9",
       "modo": "individual",
       "cabeceraSobreEnunciado": true,
+      "opcionUnaEnUna": true,
       "porIntento": 0,
       "acierto": 1.0,
       "fallo": 0.33,
@@ -1014,6 +1040,7 @@
       "color": "#e0ac4a",
       "modo": "cadena",
       "cabeceraSobreEnunciado": true,
+      "opcionUnaEnUna": true,
       "porIntento": 0,
       "acierto": 1.0,
       "fallo": 0.25,
@@ -1169,6 +1196,10 @@ function normalizarBloques(datos) {
             // natural en un supuesto). Poniéndolo a false baja hasta justo
             // delante de la primera pregunta, como en versiones anteriores.
             cabeceraSobreEnunciado: b.cabeceraSobreEnunciado !== false,
+            // ¿Sale la casilla de este bloque en la opción «de una en una»
+            // del panel ⚙? A false, el alumno no puede cambiar cómo se ven
+            // las preguntas de este bloque: se quedan como diga "modo".
+            opcionUnaEnUna: b.opcionUnaEnUna !== false,
             porIntento: Math.max(0, parseInt(b.porIntento, 10) || 0),
             envio:      b.envio || {},
             acierto:    numeroSeguro(b.acierto, 1),
@@ -1260,7 +1291,9 @@ let alerted5             = false;
 let alerted5b            = false;
 let alerted1             = false;
 let instantFeedback      = false;    // Modo "corregir pregunta a pregunta"
-let forzarUnaEnUna       = false;    // ⚙ "Ver las preguntas de una en una"
+// ⚙ "Ver las preguntas de una en una": una casilla por bloque.
+//    { B1: true, B2: false } → B1 de una en una, B2 en cadena.
+let unaEnUnaPorBloque    = {};
 let modoFoco             = false;    // ⚙ "Modo foco" (dentro de la anterior)
 let navPlegada           = false;    // cabecera plegada (solo el bloque actual)
 let dedoEnMovimiento     = false;    // el dedo se ha desplazado: no es un toque
@@ -1400,9 +1433,50 @@ function actualizarBotonPlegar() {
     if (navPlegada !== deseada) togglePlegado();
 }
 
-// ¿Este bloque se ve con todas sus preguntas seguidas?
+/* ¿Este bloque se ve con todas sus preguntas seguidas?
+   Lo manda su casilla del panel ⚙: sin marcar, EN CADENA; marcada, de una
+   en una. El "modo" que se elige en el editor es solo el estado con el que
+   arranca esa casilla. */
 function enCadena(bloque) {
-    return !forzarUnaEnUna && bloque.modo === 'cadena';
+    return !unaEnUnaPorBloque[bloque.id];
+}
+
+// Estado de arranque de las casillas: el modo de cada bloque en el editor,
+// salvo que la opción venga marcada como «empieza activada», que pone
+// todos los bloques de una en una.
+function estrenarUnaEnUna() {
+    const todos = ajusteInterfaz('opcionUnaEnUna').activa === true;
+    unaEnUnaPorBloque = {};
+    BLOCKS_BANK.forEach(b => {
+        unaEnUnaPorBloque[b.id] = todos || b.modo === 'individual';
+    });
+}
+
+/* Monta en el panel ⚙ una casilla por cada bloque que salga en el intento
+   (los bloques a los que el editor les haya quitado la casilla no salen).
+   Con un solo bloque queda una sola casilla, como antes. */
+function montarOpcionesUnaEnUna() {
+    const caja = document.getElementById('una-por-bloque');
+    if (!caja) return;
+    caja.innerHTML = '';
+
+    const presentes = new Set(questions.map(q => q.bloqueId));
+    let alguna = false;
+    BLOCKS_BANK.forEach(b => {
+        if (!presentes.has(b.id) || b.opcionUnaEnUna === false) return;
+        alguna = true;
+        const fila = document.createElement('label');
+        fila.innerHTML = `
+            <input type="checkbox" id="una-${b.id}" ${unaEnUnaPorBloque[b.id] ? 'checked' : ''}>
+            <span class="punto-bloque" style="background:${b.color}"></span>
+            <span>${b.titulo}</span>`;
+        fila.querySelector('input').onchange = (e) => toggleUnaEnUna(b.id, e.target.checked);
+        caja.appendChild(fila);
+    });
+
+    // Si no queda ninguna casilla a la vista, sobra el rótulo del grupo.
+    ponerVisible('row-una', alguna && interfazVisible('opcionUnaEnUna'), 'block');
+    actualizarFilaFoco();
 }
 
 // Cabecera de sección que se pinta encima de las preguntas del bloque
@@ -1434,6 +1508,7 @@ function cabeceraBloque(bloque, cuantas) {
 ═══════════════════════════════════════════ */
 function applyExamConfig() {
     aplicarTema();
+    estrenarUnaEnUna();
     aplicarInterfaz();
 
     // Encabezado: imagen y línea del organismo. Si se deja vacío el logo
@@ -1554,21 +1629,19 @@ function aplicarInterfaz() {
     if (btnPlegar && plegar.titulo) btnPlegar.title = plegar.titulo;
 
     // Opciones del panel ⚙
-    [['opcionTiempo',   'row-tiempo',   'lbl-tiempo'],
-     ['opcionCorregir', 'row-corregir', 'lbl-corregir'],
-     ['opcionUnaEnUna', 'row-una',      'lbl-una'],
-     ['opcionFoco',     'row-foco',     'lbl-foco'],
-     ['opcionQtags',    'row-qtags',    'lbl-qtags']].forEach(([clave, fila, rotulo]) => {
+    [['opcionTiempo',   'row-tiempo',   'lbl-tiempo',    'block'],
+     ['opcionCorregir', 'row-corregir', 'lbl-corregir',  'flex'],
+     ['opcionUnaEnUna', 'row-una',      'lbl-una',       'block'],
+     ['opcionFoco',     'row-foco',     'lbl-foco',      'flex'],
+     ['opcionQtags',    'row-qtags',    'lbl-qtags',     'flex']].forEach(([clave, fila, rotulo, caja]) => {
         const ajuste = ajusteInterfaz(clave);
-        ponerVisible(fila, ajuste.visible !== false, clave === 'opcionTiempo' ? 'block' : 'flex');
+        ponerVisible(fila, ajuste.visible !== false, caja);
         ponerTexto(rotulo, ajuste.texto);
     });
 
     // Estado de partida de las opciones que se marcan y desmarcan
     [['opcionCorregir', 'instant-feedback-toggle',
       (v) => { instantFeedback = v; }],
-     ['opcionUnaEnUna', 'una-en-una-toggle',
-      (v) => { forzarUnaEnUna = v; }],
      ['opcionFoco', 'foco-toggle',
       (v) => { modoFoco = v; }],
      ['opcionQtags', 'hide-qtags-toggle',
@@ -1843,32 +1916,35 @@ function toggleInstantFeedback(checked) {
     instantFeedback = checked;
 }
 
-// Fuerza a ver una sola pregunta cada vez, aunque su bloque esté
-// configurado para verse "en cadena" (todas las preguntas seguidas).
-function toggleUnaEnUna(checked) {
-    forzarUnaEnUna = checked;
+// Cambia cómo se ve UN bloque: marcado, sus preguntas salen de una en
+// una; sin marcar, todas seguidas (en cadena). Cada bloque va por su
+// cuenta, así que se puede tener el supuesto de una en una y la teoría
+// encadenada, o al revés.
+function toggleUnaEnUna(bloqueId, checked) {
+    unaEnUnaPorBloque[bloqueId] = checked;
     actualizarFilaFoco();
     if (questions.length) jump(current);
 }
 
-/* MODO FOCO — solo tiene sentido con las preguntas de una en una: cuando
-   una pregunta está vinculada a hechos concretos del enunciado (factIds),
-   se muestra únicamente esa parte del enunciado. Las preguntas sin
-   vínculo siguen viendo el enunciado entero. */
+/* MODO FOCO — cuelga de la opción anterior y solo actúa sobre los bloques
+   que se estén viendo DE UNA EN UNA: cuando una pregunta está vinculada a
+   hechos concretos del enunciado (factIds), se muestra únicamente esa
+   parte. Las preguntas sin vínculo siguen viendo el enunciado entero, y un
+   bloque en cadena no se recorta nunca. */
 function toggleModoFoco(checked) {
     modoFoco = checked;
     if (questions.length) jump(current);
 }
 
 // La fila del modo foco se apaga (sin desaparecer) mientras no haya ningún
-// bloque de supuesto que se esté viendo de una en una.
+// bloque de supuesto viéndose de una en una: en cadena no puede aplicarse.
 function actualizarFilaFoco() {
     const fila    = document.getElementById('row-foco');
     const casilla = document.getElementById('foco-toggle');
     if (!fila || !casilla) return;
+    const presentes = new Set(questions.map(q => q.bloqueId));
     const aplicable = STATEMENTS_BANK.length > 0 && BLOCKS_BANK.some(
-        b => b.tipo !== 'test' && b.preguntas.length &&
-             (forzarUnaEnUna || b.modo === 'individual'));
+        b => b.tipo !== 'test' && presentes.has(b.id) && unaEnUnaPorBloque[b.id]);
     fila.classList.toggle('apagada', !aplicable);
     casilla.disabled = !aplicable;
 }
@@ -1965,6 +2041,7 @@ function speakText(text) {
 function init(mode = 'default', sourceBank = null) {
     // Resetear estado
     questions  = buildQuestionOrder(mode, sourceBank || questions);
+    if (!Object.keys(unaEnUnaPorBloque).length) estrenarUnaEnUna();
     timeLeft   = examDurationSeconds;
     current    = 0;
     userAns    = {};
@@ -2121,6 +2198,9 @@ function init(mode = 'default', sourceBank = null) {
             </div>`;
         cont.appendChild(card);
     });
+
+    // Casillas «de una en una» del panel ⚙: una por cada bloque del intento
+    montarOpcionesUnaEnUna();
 
     // Con la cabecera ya montada: botón de plegado y altura para el reloj
     actualizarBotonPlegar();

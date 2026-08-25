@@ -39,6 +39,25 @@ from tkinter import font as tkfont
 APP_TITULO = "Editor de Supuestos — plantilla ECAP C1"
 PLANTILLA_BASE = "supuesto_plantilla_python.html"   # se busca junto a este .py
 
+# Versión del MOTOR de la página (el código que la hace funcionar, no los
+# datos del supuesto). Al guardar, el editor compara la versión que lleva
+# el archivo con la de la plantilla que tiene al lado: si el archivo se
+# quedó atrás, ofrece ponerlo al día. Sin esto, un supuesto guardado hace
+# meses conserva para siempre la página con la que se creó, por muchas
+# mejoras que se hagan luego en la plantilla.
+RE_MOTOR = re.compile(
+    r"""<meta\s+name=["']motor-plantilla["']\s+content=["'](\d+)["']""", re.I)
+
+
+def version_motor(html):
+    """Número de versión del motor que lleva un HTML (0 = de antes de que
+    esto existiera)."""
+    m = RE_MOTOR.search(html or "")
+    try:
+        return int(m.group(1)) if m else 0
+    except (TypeError, ValueError):
+        return 0
+
 # Paleta (a juego con la plantilla)
 C_FONDO = "#f3ece4"
 C_PANEL = "#fffef9"
@@ -152,9 +171,13 @@ CAMPOS_CABECERA = [
      "Enseña la solución nada más responder cada pregunta. Marca «Empieza activada» "
      "para que el examen arranque ya en ese modo."),
     ("opcionUnaEnUna", "Opción: ver las preguntas de una en una",
-     '<div class="settings-row" id="row-una">', "Texto",
-     "Anula el modo «en cadena» de los bloques que lo tengan. Con «Empieza activada», "
-     "el examen arranca mostrando una sola pregunta cada vez."),
+     '<div class="settings-row" id="row-una">  ·  una casilla por bloque', "Rótulo del grupo",
+     "En la página NO es una casilla suelta: debajo de este rótulo sale UNA CASILLA POR "
+     "BLOQUE (con su nombre y su color), de modo que se puede tener el supuesto de una en "
+     "una y la teoría en cadena, o al revés. Cada bloque arranca como diga su «modo» en la "
+     "pestaña 2, y allí mismo se le puede quitar la casilla. Aquí se decide si el grupo "
+     "entero se ve y cómo se titula; con «Empieza activada», TODOS los bloques arrancan de "
+     "una en una, sea cual sea su modo."),
     ("opcionFoco", "Opción: modo foco (dentro de «una en una»)",
      '<div class="settings-row settings-sub" id="row-foco">', "Texto",
      "Sub-opción del panel ⚙ que cuelga de «ver las preguntas de una en una». Con el "
@@ -283,6 +306,7 @@ def bloque_vacio(tipo="supuesto", sugerencia_id="B1", primero=False):
         "color": COLOR_TEST if es_test else COLOR_SUPUESTO,
         "modo": "cadena" if es_test else "individual",
         "cabeceraSobreEnunciado": True,
+        "opcionUnaEnUna": True,
         "porIntento": 0,
         "acierto": 1.0,
         "fallo": 0.0,
@@ -404,6 +428,7 @@ def normalizar(datos):
         modo = str(b.get("modo") or "")
         nb["modo"] = modo if modo in ("cadena", "individual") else nb["modo"]
         nb["cabeceraSobreEnunciado"] = b.get("cabeceraSobreEnunciado") is not False
+        nb["opcionUnaEnUna"] = b.get("opcionUnaEnUna") is not False
         try:
             nb["porIntento"] = max(0, int(b.get("porIntento") or 0))
         except (TypeError, ValueError):
@@ -768,7 +793,8 @@ def bloques_se_pierden(datos):
     for b in bloques:
         if b["tipo"] == "test" or b["fallo"] or b["blanco"] or b["porIntento"] \
            or b["acierto"] != 1.0 or b["modo"] != "individual" \
-           or b.get("cabeceraSobreEnunciado") is False:
+           or b.get("cabeceraSobreEnunciado") is False \
+           or b.get("opcionUnaEnUna") is False:
             return True
     if any(q.get("factIds") for q in (datos.get("preguntas") or [])):
         return True      # los vínculos del modo foco no caben en la plantilla antigua
@@ -1540,18 +1566,32 @@ class EditorApp(tk.Tk):
             ttk.Button(fila, text=nombre, width=13,
                        command=lambda v=valor: self.poner_color(v)).pack(side="left", padx=(6, 0))
 
-        rotulo(caja, "Cómo se ven las preguntas", "bloques[].modo",
+        rotulo(caja, "Cómo EMPIEZAN viéndose las preguntas de este bloque", "bloques[].modo",
                '.question-card.visible  ·  .question-card.encadenada',
                "«En cadena» muestra todas las preguntas del bloque seguidas, una debajo de "
-               "otra (lo habitual en la teoría). «De una en una» muestra solo la pregunta "
-               "actual (lo habitual en un supuesto). El alumno siempre puede forzar «de una "
-               "en una» desde el panel ⚙ de la página."
+               "otra (lo habitual en la teoría, y también en un supuesto que se lea de "
+               "corrido). «De una en una» muestra solo la pregunta actual. Esto es solo el "
+               "estado de PARTIDA: en la página, cada bloque tiene su propia casilla en el "
+               "panel ⚙ y el alumno puede cambiarlo sin tocar los demás bloques."
                ).pack(anchor="w", padx=10, pady=(10, 4))
         self.var_sec_modo = tk.StringVar(value="individual")
         for valor, texto in (("cadena", "En cadena — todas las preguntas del bloque seguidas"),
                              ("individual", "De una en una — solo la pregunta actual")):
             ttk.Radiobutton(caja, text=texto, value=valor, variable=self.var_sec_modo,
                             command=self._tocado).pack(anchor="w", padx=18, pady=1)
+
+        rotulo(caja, "¿Puede el alumno cambiarlo en este bloque?", "bloques[].opcionUnaEnUna",
+               '<div id="una-por-bloque"> → una casilla por bloque',
+               "Marcada (lo normal): el panel ⚙ de la página enseña una casilla para ESTE "
+               "bloque, con su nombre y su color, y el alumno decide si lo ve en cadena o de "
+               "una en una. Desmarcada: ese bloque no sale en el panel y se queda siempre "
+               "como lo hayas dejado aquí arriba. Si desmarcas todos, la opción entera "
+               "desaparece del panel."
+               ).pack(anchor="w", padx=10, pady=(10, 4))
+        self.var_sec_opcion_una = tk.BooleanVar(value=True)
+        ttk.Checkbutton(caja, variable=self.var_sec_opcion_una, command=self._tocado,
+                        text="Sacar la casilla de este bloque en el panel ⚙"
+                        ).pack(anchor="w", padx=18, pady=1)
 
         ttk.Label(caja, style="Ayuda.TLabel", wraplength=820, justify="left",
                   text="EN CADENA, un bloque de supuesto se lee de corrido y en su orden "
@@ -1688,6 +1728,8 @@ class EditorApp(tk.Tk):
         self.var_sec_modo.set("individual" if b is None else b["modo"])
         self.var_sec_cabecera.set(True if b is None
                                   else b.get("cabeceraSobreEnunciado", True) is not False)
+        self.var_sec_opcion_una.set(True if b is None
+                                    else b.get("opcionUnaEnUna", True) is not False)
         self.var_sec_color.set(COLOR_SUPUESTO if b is None else b["color"])
         self.var_sec_por.set("0" if b is None else str(b["porIntento"]))
         self.var_sec_ac.set("1" if b is None else nUm(b["acierto"]))
@@ -1715,6 +1757,7 @@ class EditorApp(tk.Tk):
         b["tipo"] = self.var_sec_tipo.get()
         b["modo"] = self.var_sec_modo.get()
         b["cabeceraSobreEnunciado"] = bool(self.var_sec_cabecera.get())
+        b["opcionUnaEnUna"] = bool(self.var_sec_opcion_una.get())
         b["color"] = color_valido(self.var_sec_color.get(),
                                   COLOR_TEST if b["tipo"] == "test" else COLOR_SUPUESTO)
         try:
@@ -3094,6 +3137,37 @@ class EditorApp(tk.Tk):
                 avisos.append("El bloque «%s» mezcla preguntas con y sin enunciado (%d sueltas)."
                               % (b["titulo"], len(sin_enunciado)))
 
+        # ── opciones del panel de la página que dejan cosas sin usar ──
+        interfaz = d.get("interfaz") or {}
+        opcion_una = interfaz.get("opcionUnaEnUna") or {}
+        opcion_foco = interfaz.get("opcionFoco") or {}
+        con_casilla = [b for b in d["bloques"] if b.get("opcionUnaEnUna", True)]
+        if opcion_una.get("visible") is False:
+            avisos.append("La opción «ver las preguntas de una en una» está OCULTA (pestaña 5): "
+                          "el alumno no verá las casillas de cada bloque y cada uno se quedará "
+                          "como diga su modo en la pestaña 2.")
+        elif not con_casilla:
+            avisos.append("Ningún bloque saca su casilla en el panel ⚙ (pestaña 2): la opción "
+                          "«ver las preguntas de una en una» no aparecerá.")
+
+        vinculadas = [q for q in d["preguntas"] if q.get("factIds")]
+        if opcion_foco.get("visible") is not False and not vinculadas and d["enunciados"]:
+            avisos.append("El modo foco está a la vista pero ninguna pregunta tiene hechos "
+                          "vinculados (pestaña 4): encenderlo no cambiará nada.")
+        if vinculadas:
+            if opcion_foco.get("visible") is False and not opcion_foco.get("activa"):
+                avisos.append("Hay %d pregunta(s) con hechos vinculados, pero el modo foco está "
+                              "oculto y no arranca activado: nunca se usarán." % len(vinculadas))
+            alcanzable = [b for b in d["bloques"]
+                          if b["tipo"] != "test" and (b["modo"] == "individual"
+                                                      or opcion_una.get("activa")
+                                                      or (b.get("opcionUnaEnUna", True)
+                                                          and opcion_una.get("visible") is not False))]
+            if not alcanzable:
+                avisos.append("Hay preguntas con hechos vinculados, pero ningún bloque de "
+                              "supuesto puede verse de una en una: el modo foco no llegará a "
+                              "aplicarse (solo actúa de una en una, nunca en cadena).")
+
         hechos_de = {e["id"]: {b["id"] for b in e["factBlocks"]} for e in d["enunciados"]}
         ocultos_de = {e["id"]: {b["id"] for b in e["factBlocks"] if b["hidden"]}
                       for e in d["enunciados"]}
@@ -3162,8 +3236,10 @@ class EditorApp(tk.Tk):
             lineas.append("     %d preguntas · máximo %s puntos" % (len(suyas), nUm(maximo)))
             lineas.append("     +%s por acierto · −%s por fallo · −%s en blanco"
                           % (nUm(b["acierto"]), nUm(b["fallo"]), nUm(b["blanco"])))
-            lineas.append("     se ven %s · en el aleatorio salen %s"
+            lineas.append("     empiezan %s (%s) · en el aleatorio salen %s"
                           % ("todas seguidas" if b["modo"] == "cadena" else "de una en una",
+                             "el alumno puede cambiarlo" if b.get("opcionUnaEnUna", True)
+                             else "sin casilla en el panel: no se puede cambiar",
                              "todas" if not b["porIntento"] else "%d al azar" % b["porIntento"]))
             if b["tipo"] != "test":
                 con_foco = sum(1 for q in suyas if q.get("factIds"))
@@ -3315,6 +3391,12 @@ class EditorApp(tk.Tk):
                 parent=self)
         elif self.modo == "js":
             self.estado(self.lbl_estado.cget("text") + "   ·   formato JavaScript (plantilla clásica)")
+        else:
+            plantilla = self._plantilla_base()
+            if plantilla and version_motor(self.html_base) < version_motor(plantilla):
+                self.estado(self.lbl_estado.cget("text") +
+                            "   ·   página de una versión anterior: al guardar se ofrecerá "
+                            "ponerla al día")
 
     def _nombre_sugerido(self):
         texto = self.datos["config"]["titulo"].lower()
@@ -3349,11 +3431,9 @@ class EditorApp(tk.Tk):
         título escrito a mano dentro del HTML): a partir de la conversión,
         los datos generales también se editan desde el programa.
 
-        También es la forma de llevar a un supuesto ya hecho las mejoras
-        de la plantilla: al guardar normalmente solo se cambian los datos
-        DENTRO del archivo, y su página sigue funcionando como el día en
-        que se creó. Pasándolo por aquí se estrena el motor actual (los
-        enunciados encima de sus preguntas, el modo foco, etc.)."""
+        Para los archivos que YA usan la plantilla nueva no hace falta:
+        al guardar, el editor detecta solo si la página se quedó en una
+        versión anterior y ofrece rehacerla."""
         self.volcar_todo()
         base = Path(__file__).resolve().parent / PLANTILLA_BASE
         if not base.exists():
@@ -3377,13 +3457,58 @@ class EditorApp(tk.Tk):
                 "Supuesto guardado con la plantilla nueva.\n\n"
                 "A partir de ahora también se pueden cambiar desde el programa el "
                 "título, la referencia, el ámbito y los minutos, y la página estrena "
-                "el motor actual de la plantilla: la barra del bloque encima del "
-                "enunciado, cada enunciado delante de sus preguntas y el modo foco "
-                "del panel \u2699.", parent=self)
+                "el motor actual de la plantilla.", parent=self)
             return True
         return False
 
+    def _plantilla_base(self):
+        """La plantilla que viene junto al programa, si está."""
+        base = Path(__file__).resolve().parent / PLANTILLA_BASE
+        if not base.exists():
+            return None
+        try:
+            return base.read_text(encoding="utf-8")
+        except OSError:
+            return None
+
+    def _poner_motor_al_dia(self):
+        """Si el archivo abierto se quedó con una versión anterior de la
+        PÁGINA, ofrece rehacerla con la plantilla actual.
+
+        Al guardar solo se sustituyen los datos dentro del HTML, así que un
+        supuesto creado hace meses conserva su página tal cual, sin las
+        mejoras posteriores de la plantilla. Aquí se detecta y se arregla,
+        que es justo lo que uno espera al guardar."""
+        if self.modo != "json":
+            return          # las plantillas antiguas van por «⇪ Pasar a plantilla nueva…»
+        plantilla = self._plantilla_base()
+        if plantilla is None:
+            return
+        nueva = version_motor(plantilla)
+        vieja = version_motor(self.html_base)
+        if vieja >= nueva:
+            return          # ya está al día
+
+        if not messagebox.askyesno(
+                "Poner la página al día",
+                "Este supuesto se creó con una versión anterior de la plantilla, así que "
+                "su página no tiene las mejoras que sí trae la plantilla que acompaña al "
+                "programa.\n\n"
+                "Si NO se actualiza, se guardarán los datos nuevos pero la página seguirá "
+                "comportándose como el día en que se creó el archivo: es lo que hace que "
+                "opciones nuevas del editor no se noten al abrir el supuesto.\n\n"
+                "¿Rehacer la página con la plantilla actual?\n"
+                "(No se toca ni una pregunta: solo se cambia el armazón. Del archivo "
+                "anterior queda una copia .bak.)", parent=self):
+            self.estado("Guardado SIN actualizar la página: las novedades de la plantilla "
+                        "no se verán en este archivo.")
+            return
+
+        self.html_base = plantilla
+        self.estado("Página rehecha con la plantilla actual (versión %d)." % nueva)
+
     def _escribir(self, destino):
+        self._poner_motor_al_dia()
         if self.modo != "json" and bloques_se_pierden(self.datos):
             seguir = messagebox.askyesno(
                 "La plantilla clásica no tiene bloques",

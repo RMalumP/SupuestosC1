@@ -222,11 +222,16 @@
           - Nombre: lo que se lee arriba y en la barra de sección.
           - Tipo: supuesto (con enunciado) o teoría (test suelto).
           - Color: pulsa uno de los botones de color o "🎨 Elegir color…".
-          - Cómo se ven: "en cadena" (todas seguidas, lo normal en teoría)
-            o "de una en una" (lo normal en un supuesto).
+          - Cómo EMPIEZAN viéndose: "en cadena" (todas seguidas) o "de una
+            en una" (solo la pregunta actual). Es solo el estado de
+            PARTIDA: en la página, cada bloque tiene SU PROPIA casilla en
+            el panel ⚙ y el alumno lo cambia bloque a bloque.
             En un bloque de supuesto, "en cadena" significa que se lee de
             corrido y en su orden natural: enunciado 1 entero → todas sus
             preguntas → enunciado 2 entero → sus preguntas, etc.
+          - "Sacar la casilla de este bloque en el panel ⚙": desmárcalo si
+            no quieres que el alumno pueda cambiar cómo se ve ESTE bloque;
+            se quedará siempre como lo hayas dejado arriba.
           - Dónde va la barra del bloque: marcada (lo normal) va ENCIMA del
             enunciado, encabezando toda la sección; desmarcada, baja hasta
             justo delante de la primera pregunta.
@@ -335,26 +340,38 @@
          ══ TEORÍA · 4 preguntas ══
             preguntas 7 a 10
 
-  CÓMO SE VEN LAS PREGUNTAS
-     · Bloque "en cadena": todas sus preguntas seguidas, con cada enunciado
-       delante de las suyas (el esquema de arriba). La barra de navegación
-       lleva a cada pregunta y la deja resaltada.
-     · Bloque "de una en una": solo la pregunta actual, con el enunciado al
-       que pertenece encima.
-     · El alumno puede forzar "de una en una" en TODO el examen desde el
-       panel ⚙ de la página → "Ver las preguntas de una en una".
+  CÓMO SE VEN LAS PREGUNTAS  —  UNA CASILLA POR BLOQUE
+     En el panel ⚙, bajo "Ver las preguntas de una en una", hay UNA CASILLA
+     POR CADA BLOQUE del examen, con su nombre y su color:
+
+         Ver las preguntas de una en una
+            ☑ ● Supuesto práctico
+            ☐ ● Teoría
+
+     · Casilla SIN marcar → ese bloque sale EN CADENA: todas sus preguntas
+       seguidas y, si es un supuesto, cada enunciado delante de las suyas
+       (el esquema de arriba).
+     · Casilla MARCADA → ese bloque sale DE UNA EN UNA: solo la pregunta
+       actual, con su enunciado encima.
+     Cada bloque va por su cuenta: se puede tener el supuesto de una en una
+     y la teoría en cadena, o justo al revés. Cada casilla arranca como
+     hayas dejado el "modo" de ese bloque en la pestaña 2.
 
   MODO FOCO  (panel ⚙, colgando de "ver las preguntas de una en una")
      Pensado para estudiar un supuesto largo sin releerlo entero en cada
-     pregunta. Con el modo foco encendido y las preguntas de una en una:
+     pregunta. SOLO actúa sobre los bloques que estén marcados como "de una
+     en una": un bloque en cadena no se recorta nunca (no tendría sentido,
+     porque se ven todas las preguntas a la vez). Con el modo foco
+     encendido, en un bloque que vaya de una en una:
        · si la pregunta está vinculada a hechos concretos (pestaña 4), sale
          SOLO esa parte del enunciado, con el aviso «🔎 MODO FOCO» y un
          botón "Ver enunciado completo" por si hace falta el resto;
        · si no está vinculada a nada, sale el enunciado entero, como siempre;
        · la línea de tiempo se calla mientras el enunciado esté recortado:
          es contexto de todo el expediente.
-     La opción se queda apagada (en gris) mientras no haya ningún bloque de
-     supuesto viéndose de una en una, porque entonces no puede aplicarse.
+     La casilla se queda apagada (en gris) mientras no haya ningún bloque de
+     supuesto marcado como "de una en una", porque entonces no puede
+     aplicarse; en cuanto marcas uno, se enciende sola.
      Al imprimir o generar el PDF los enunciados salen SIEMPRE completos.
 
   CORRECCIÓN
@@ -402,6 +419,11 @@
        Empieza activada" para un test de repaso que se corrige sobre la
        marcha; o dejar el "modo foco" oculto en un examen de verdad y
        visible en el mismo supuesto usado para estudiar.
+       OJO con "ver las preguntas de una en una": en la página no es UNA
+       casilla, sino una por bloque. Lo que hay aquí manda sobre el GRUPO
+       entero (si se ve y cómo se titula) y, con «Empieza activada», hace
+       que TODOS los bloques arranquen de una en una. Para quitarle la
+       casilla a un bloque suelto, se hace en la pestaña 2.
 
   B) BOTONES DE ABAJO Y DE LA PANTALLA DE RESULTADOS
      Anterior, Siguiente, Corregir, Ver corrección completa, Imprimir/PDF,
@@ -517,19 +539,22 @@
      A partir de ahí ya puedes editar los datos generales, crear el bloque
      de teoría y repartir las preguntas.
 
-  IMPORTANTE — CÓMO LLEVAR LAS MEJORAS DE LA PLANTILLA A UN SUPUESTO YA HECHO
-     Al pulsar "💾 Guardar", el editor cambia SOLO los datos que van dentro
-     del archivo: el resto de la página (el "motor" que la hace funcionar)
-     se queda tal y como estaba el día en que se creó ese supuesto. Por eso
-     un supuesto guardado con una versión anterior no estrena por sí solo
-     las novedades de la plantilla.
-     Para ponerlo al día:
-     1. Ábrelo con "📂 Abrir plantilla…".
-     2. Pulsa "⇪ Pasar a plantilla nueva…" y guárdalo (puedes darle el mismo
-        nombre: se hace una copia .bak del anterior).
-     Así el supuesto estrena el motor actual —la barra del bloque encima del
-     enunciado, cada enunciado delante de sus preguntas y el modo foco— sin
-     tocar ni una pregunta.
+  CUANDO LA PLANTILLA MEJORA Y TU SUPUESTO SE HA QUEDADO ATRÁS
+     Un archivo de supuesto lleva dos cosas: los DATOS (tus enunciados y
+     preguntas) y la PÁGINA que los muestra. Al guardar, el editor cambia
+     los datos dentro del archivo que abriste; la página se quedaría tal y
+     como estaba el día en que se creó.
+     Para que eso no te deje con opciones nuevas que no se notan, la
+     plantilla lleva un número de versión y el editor lo vigila:
+       · Al abrir un supuesto atrasado, la barra de abajo te avisa.
+       · Al guardarlo, te pregunta una sola vez: "¿Rehacer la página con la
+         plantilla actual?". Di que SÍ y el archivo estrena la página nueva
+         sin tocar ni una pregunta (queda una copia .bak de la anterior).
+         Si dices que no, se guarda igual pero seguirá con la página vieja.
+     Es decir: NO hace falta hacer nada especial. Abre, guarda y di que sí.
+     El botón "⇪ Pasar a plantilla nueva…" queda solo para los archivos
+     realmente antiguos (los del apartado C de aquí arriba, con el título
+     escrito a mano dentro del HTML).
 
 
 ────────────────────────────────────────────────────────────────────────────────
