@@ -1,0 +1,527 @@
+════════════════════════════════════════════════════════════════════════════════
+ EDITOR DE SUPUESTOS  ·  INSTRUCCIONES
+ Programa en Python (Thonny) para crear y editar supuestos sin tocar el HTML
+════════════════════════════════════════════════════════════════════════════════
+
+────────────────────────────────────────────────────────────────────────────────
+ 1. QUÉ HAY EN ESTA CARPETA
+────────────────────────────────────────────────────────────────────────────────
+
+  editor_supuestos.py            El programa. Es el que se abre con Thonny.
+
+  supuesto_plantilla_python.html La plantilla. Funciona exactamente igual que la
+                                 de siempre (cronómetro, corrección, aleatorio,
+                                 PDF, envío de resultados...), pero los datos del
+                                 supuesto están en un bloque limpio que Python
+                                 puede leer y escribir sin equivocarse, y admite
+                                 BLOQUES (supuesto práctico y teoría tipo test).
+                                 NO la borres ni la renombres: el programa la
+                                 busca por ese nombre para crear supuestos nuevos.
+
+  INSTRUCCIONES.txt              Este archivo.
+
+  LOS DOS ARCHIVOS DEBEN ESTAR SIEMPRE EN LA MISMA CARPETA.
+
+
+────────────────────────────────────────────────────────────────────────────────
+ 2. LIBRERÍAS NECESARIAS  →  NINGUNA
+────────────────────────────────────────────────────────────────────────────────
+
+  No hay que instalar nada con pip. El programa usa solo lo que ya trae Python:
+
+      tkinter        la ventana, los botones y el selector de color
+      json           leer/escribir los datos
+      re             buscar dentro del HTML
+      pathlib        rutas de archivos
+      webbrowser     abrir el supuesto en el navegador
+
+  · Windows y macOS: no hay que hacer nada, tkinter viene con Thonny.
+  · Linux: si al ejecutar sale "No module named 'tkinter'", instálalo con
+        sudo apt install python3-tk
+
+  Versión de Python: 3.8 o superior (Thonny actual lleva 3.10 o más).
+
+
+────────────────────────────────────────────────────────────────────────────────
+ 3. CÓMO SE ARRANCA
+────────────────────────────────────────────────────────────────────────────────
+
+  1. Abre Thonny.
+  2. Archivo → Abrir…  →  editor_supuestos.py
+  3. Pulsa F5 (o el botón verde ▶ Ejecutar).
+  4. Se abre la ventana del editor. Al arrancar carga sola la plantilla en
+     blanco, así que puedes empezar a escribir directamente.
+
+  Si prefieres no usar Thonny, también funciona haciendo doble clic en el
+  archivo .py (Windows) o con:   python3 editor_supuestos.py
+
+
+────────────────────────────────────────────────────────────────────────────────
+ 4. QUÉ SON LOS BLOQUES  (lo más importante que hay que entender)
+────────────────────────────────────────────────────────────────────────────────
+
+  Un examen se divide en BLOQUES. Cada bloque es una sección con su propia
+  identidad y hay dos tipos:
+
+    📁 BLOQUE DE SUPUESTO   Preguntas enganchadas a un enunciado: encima de
+                            ellas se muestran los hechos, la línea de tiempo,
+                            etc. Es lo que había hasta ahora.
+
+    📝 BLOQUE DE TEORÍA     Preguntas de test normales, sueltas, sin enunciado.
+                            Se ven todas seguidas (apiladas) por defecto.
+
+  Puedes tener:
+    · solo un bloque de supuesto (como hasta ahora),
+    · solo un bloque de teoría (un test puro),
+    · uno de cada, en el orden que quieras,
+    · o tres, cuatro… de cualquiera de los dos tipos.
+
+  Cada bloque tiene, por separado:
+    · su NOMBRE (se ve arriba, delante de sus casillas numeradas),
+    · su COLOR (las casillas de la cabecera, el rótulo y la barra de sección
+      salen en ese color: la teoría se distingue del supuesto de un vistazo;
+      por defecto el supuesto va en azul y la teoría en ámbar),
+    · su FORMA DE VERSE (todas las preguntas seguidas o de una en una),
+    · su BAREMO (cuánto suma un acierto, cuánto descuenta un fallo y cuánto
+      descuenta dejarla en blanco),
+    · y cuántas preguntas suyas salen en un intento aleatorio.
+
+  EL ORDEN DE LOS BLOQUES LO DECIDES TÚ y no cambia nunca: con los botones
+  ▲▼ de la pestaña "2 · Bloques" eliges cuál sale primero. Ni siquiera el
+  modo aleatorio los mezcla: baraja las preguntas DENTRO de cada bloque,
+  pero el bloque que pusiste primero sigue saliendo primero.
+
+
+────────────────────────────────────────────────────────────────────────────────
+ 5. LA VENTANA POR DENTRO
+────────────────────────────────────────────────────────────────────────────────
+
+  BOTONES DE ARRIBA
+
+    📂 Abrir plantilla…    Abre un supuesto .html que ya exista para editarlo.
+    🆕 Nuevo supuesto      Empieza uno desde cero, en blanco.
+    💾 Guardar             Guarda en el archivo abierto (Ctrl+S).
+                           Si aún no hay archivo, pregunta el nombre.
+    💾 Guardar como…       Guarda con otro nombre (para no pisar el original).
+    ⇪ Pasar a plantilla nueva…   Pasa un supuesto antiguo al formato nuevo
+                           (ver apartado 9).
+    🌐 Ver en el navegador  Guarda y abre el supuesto para verlo de verdad.
+    ✔ Comprobar            Revisa despistes (opciones vacías, repetidas...).
+
+  SEIS PESTAÑAS
+
+    1 · Datos generales        título, referencia, ámbito, minutos, % de APTO,
+                               EL ENCABEZADO (logotipo y organismo) y LOS
+                               COLORES DE TODA LA PÁGINA
+    2 · Bloques                las secciones del examen, su orden y su baremo
+    3 · Enunciados y hechos    los casos prácticos: hechos y línea de tiempo
+    4 · Preguntas y respuestas las preguntas, sus 4 opciones, la correcta,
+                               la motivación legal y el consejo
+    5 · Botones y envío        qué botones ve el alumno, cómo se llaman y a
+                               dónde se mandan los resultados
+    6 · Comprobar              informe de revisión y vista de los datos
+
+  CÓMO ESTÁ ROTULADO CADA CUADRO
+
+    Cada campo lleva tres líneas, para que siempre se sepa qué se está tocando:
+
+        Título del expediente                      ← cómo se llama en la página
+        enunciados[].title → HTML: <h2>            ← nombre técnico y etiqueta HTML
+        Titular del bloque de hechos, encima…      ← dónde se ve exactamente
+
+  Abajo del todo, la barra de estado dice qué se acaba de hacer y cuántos
+  bloques, enunciados y preguntas tiene el supuesto en ese momento.
+
+
+────────────────────────────────────────────────────────────────────────────────
+ 5B. LOS COLORES DE LA PÁGINA  (pestaña "1 · Datos generales", abajo)
+────────────────────────────────────────────────────────────────────────────────
+
+  Al final de la primera pestaña hay una lista con los DOCE colores que
+  gobiernan toda la apariencia del examen. Cada línea tiene:
+
+      [muestra] [#3d2a20] [🎨]   Fondo de la página
+                                 tema.fondo → CSS: --navy · el fondo de todo…
+
+  Se puede escribir el código a mano (#rrggbb) o pulsar 🎨 para abrir el
+  selector de color de Windows/macOS/Linux. Justo debajo hay una VISTA PREVIA
+  en miniatura (barra, casilla, tarjeta de pregunta y bloque de hechos) que se
+  actualiza al momento, y un botón "↺ Restaurar los colores originales".
+
+  QUÉ PINTA CADA UNO
+
+     Fondo de la página          SOLO el fondo, detrás de las tarjetas
+     Barra superior, paneles     cabecera, temporizador, panel ⚙, marcador,
+       y chips oscuros           botones oscuros, insignia del expediente,
+                                 letras A/B/C/D, línea de tiempo y la cabecera
+                                 de la motivación legal
+     Color de acento             bordes, líneas, rótulos y cifras del reloj
+     Acento claro                lo mismo al pasar el ratón por encima
+     Azul profundo               detalles finos de la cabecera institucional
+     Texto sobre fondo oscuro    textos dentro de la barra y del marcador
+     Fondo de las tarjetas       fondo de cada pregunta y del enunciado
+     Fondo de los bloques hechos recuadros de la narración (efecto pergamino)
+     Texto principal y titulares preguntas, opciones, título del expediente,
+                                 nombre de cada bloque y el texto escrito
+                                 encima del color de acento
+     Texto secundario            motivación legal, referencias y notas
+     Rojo de fallos              respuestas falladas e hitos críticos
+     Verde de aciertos           respuestas acertadas y recuadro 💡
+
+  IMPORTANTE: al cambiar un color cambian también todas sus transparencias
+  (bordes suaves, sombras, fondos tenues). Por eso el resultado es coherente
+  y no quedan restos del color anterior.
+
+  LOS TEMAS CLAROS FUNCIONAN. "Fondo de la página" pinta únicamente el fondo;
+  todo lo que necesita ser oscuro (chips, botones, cabeceras) usa "Barra
+  superior, paneles y chips oscuros", y todo lo que va escrito sobre las
+  tarjetas usa "Texto principal". Así se puede poner un fondo claro sin que
+  ningún texto se vuelva invisible. La única regla a respetar: mantén oscuro
+  el color de la barra, porque encima se escribe con "Texto sobre fondo
+  oscuro" y con el acento.
+
+  Esto NO es lo mismo que el color de cada bloque de preguntas: ese se elige
+  bloque a bloque en la pestaña "2 · Bloques". La paleta es el aspecto general
+  de la página; el color del bloque distingue una sección de otra.
+
+  LO QUE NO CAMBIA: la hoja de impresión (PDF) sale siempre en blanco y negro
+  con los aciertos en verde y los fallos en rojo, para no gastar tinta ni
+  perder legibilidad al imprimir. Y el "APTO / NO APTO" del marcador conserva
+  su verde y su rojo claros, que son los que se leen bien sobre el panel.
+
+
+────────────────────────────────────────────────────────────────────────────────
+ 6. CREAR UN SUPUESTO NUEVO, PASO A PASO
+────────────────────────────────────────────────────────────────────────────────
+
+  PASO 1 · Pestaña "1 · Datos generales"
+     Escribe el título del supuesto, la referencia, el ámbito (legislación),
+     los minutos y el porcentaje de puntos a partir del cual es APTO.
+     El número de preguntas NO se toca: se cuenta solo.
+
+     EL ENCABEZADO también se edita aquí:
+       · Imagen (logotipo): puede ser una dirección de internet o un archivo
+         de tu ordenador. El botón "📁 Elegir imagen…" lo busca en el disco y
+         guarda la ruta RELATIVA al supuesto (por ejemplo «img/logo.png»),
+         para que el examen siga funcionando si mueves la carpeta entera.
+         Guarda antes el supuesto para que la ruta salga relativa. El botón
+         "↺ La de la plantilla" devuelve el logotipo de ECAP. Si lo dejas
+         vacío, no se muestra ninguna imagen.
+       · Texto alternativo: lo que se lee si la imagen no carga.
+       · Línea del organismo: el renglón pequeño en mayúsculas que va justo
+         encima del título. Vacío = no se muestra.
+
+     Abajo del todo está la PALETA DE COLORES de la página (apartado 5B).
+
+  PASO 2 · Pestaña "2 · Bloques"
+     Decide de cuántas secciones consta el examen.
+       a) La plantilla nueva ya trae dos bloques: "Supuesto práctico" y
+          "Teoría". Si solo quieres uno, borra el que sobre.
+       b) Con "＋ Bloque de supuesto" y "＋ Bloque de teoría" añades más.
+       c) Para cada bloque, revisa:
+          - Nombre: lo que se lee arriba y en la barra de sección.
+          - Tipo: supuesto (con enunciado) o teoría (test suelto).
+          - Color: pulsa uno de los botones de color o "🎨 Elegir color…".
+          - Cómo se ven: "en cadena" (todas seguidas, lo normal en teoría)
+            o "de una en una" (lo normal en un supuesto).
+          - Puntuación: suma por acierto, descuento por fallo y descuento
+            por dejarla en blanco. Se admiten decimales con COMA: 0,33.
+          - Intento aleatorio: 0 = salen todas; un número = salen solo esas,
+            elegidas al azar, cuando se pulsa el botón 🎲 de la página.
+       d) Con ▲▼ colocas los bloques en el orden en que quieres que salgan.
+
+  PASO 3 · Pestaña "3 · Enunciados y hechos"   (solo para bloques de supuesto)
+       a) Pulsa "＋ Añadir" en la lista de la izquierda. Se crea E1.
+       b) Rellena el título del expediente, la referencia y las materias.
+       c) En "Bloques de hechos" pulsa "＋ Añadir" por cada trozo de narración.
+          - Escribe el título del bloque y, debajo, los hechos.
+          - IMPORTANTE: separa los párrafos DEJANDO UNA LÍNEA EN BLANCO.
+          - Marca "Hecho desencadenante" en el bloque crítico: saldrá con
+            borde rojo y el icono ⚠️.
+       d) En "Línea de tiempo" añade los hitos con su fecha. Marca "Hito
+          crítico" el que sea el detonante (saldrá en rojo).
+     Los bloques de teoría no usan esta pestaña.
+
+  PASO 4 · Pestaña "4 · Preguntas y respuestas"
+     Por cada pregunta:
+       a) Pulsa "＋ Añadir pregunta" (la nueva se coloca detrás de la que
+          esté seleccionada y hereda su bloque y su enunciado).
+       b) Arriba, elige el BLOQUE en el que va la pregunta.
+       c) Si es un bloque de supuesto, elige además el enunciado. En los
+          bloques de teoría ese campo se queda desactivado a propósito.
+       d) Escribe el texto de la pregunta.
+       e) Escribe las CUATRO opciones y MARCA EL PUNTO de la que es correcta.
+       f) Escribe la motivación legal (sale al corregir) y, si procede, el
+          consejo con 💡.
+     En la lista de la izquierda cada pregunta lleva su bloque y su enunciado:
+        16 📝B2  --   ¿Qué órgano tiene atribuida…
+     Con "▲ Subir / ▼ Bajar" ordenas las preguntas DENTRO de su bloque. Para
+     cambiar una pregunta de bloque se usa el desplegable de arriba.
+
+  PASO 5 · Pestaña "5 · Botones y envío" (opcional, ver apartado 7B)
+     Solo si quieres quitar botones, cambiarles el nombre o mandar los
+     resultados a un formulario de Google.
+
+  PASO 6 · Pulsa "✔ Comprobar" y corrige lo que salga marcado con ✗.
+     El informe incluye, bloque a bloque, cuántas preguntas tiene, su baremo
+     y la puntuación máxima del examen.
+
+  PASO 7 · Pulsa "💾 Guardar" y dale un nombre, por ejemplo:
+              supuesto_1.html
+           Guárdalo dentro de la carpeta "supuestos" del proyecto.
+
+  PASO 8 · Pulsa "🌐 Ver en el navegador" y haz el test tú mismo.
+
+
+────────────────────────────────────────────────────────────────────────────────
+ 7. CÓMO SE VE Y SE CORRIGE EN LA PÁGINA
+────────────────────────────────────────────────────────────────────────────────
+
+  ARRIBA (cabecera de navegación)
+     CADA BLOQUE OCUPA SU PROPIA FILA: a la izquierda su nombre y a la derecha
+     sus casillas numeradas, en SU color:
+
+         SUPUESTO PRÁCTICO   [1][2][3]
+        TEORÍA · TEMAS 1 A 5 [4][5][6][7]
+                 ORTOGRAFÍA  [8][9]
+
+     Pulsando el nombre del bloque se salta a su primera pregunta.
+
+     BOTÓN DE PLEGAR (⌃), junto al de inicio: aparece solo cuando el examen
+     tiene más de un bloque, y puede arrancar ya plegado (apartado 7B). Al pulsarlo, la cabecera se queda con UNA SOLA
+     FILA: la del bloque en el que estás. Al avanzar o retroceder hasta otro
+     bloque, la fila cambia sola. Volviendo a pulsarlo (⌄) se despliegan
+     todas. Es especialmente cómodo en el móvil y con tres o más bloques.
+     Al responder, la casilla se pone verde; tras corregir, roja si falló.
+     La casilla en la que estás se rellena con el color de su bloque.
+     El temporizador se coloca solo debajo de la cabecera, tenga las filas
+     que tenga. En móvil, cada fila se desplaza en horizontal por separado.
+
+  ENCIMA DE LAS PREGUNTAS
+     Una barra de sección con el nombre del bloque, cuántas preguntas tiene
+     y su baremo ("+1 por acierto · −0,33 por fallo").
+
+  CÓMO SE VEN LAS PREGUNTAS
+     · Bloque "en cadena": todas sus preguntas seguidas; la barra de arriba
+       lleva a cada una y la deja resaltada.
+     · Bloque "de una en una": solo la pregunta actual, como siempre.
+     · El alumno puede forzar "de una en una" en TODO el examen desde el
+       panel ⚙ de la página → "Ver las preguntas de una en una".
+
+  CORRECCIÓN
+     Cada bloque se corrige por separado con su propio baremo y luego se
+     suman. El marcador muestra:
+        · los puntos totales, ya con los descuentos aplicados (4,75 / 7)
+        · el porcentaje, los aciertos, los fallos y las que quedaron en blanco
+        · APTO / NO APTO según el porcentaje que fijaste en la pestaña 1
+        · y, debajo, una línea por bloque con sus aciertos, fallos, blancos
+          y sus puntos.
+     La corrección completa y el PDF también salen separados por bloques.
+
+
+────────────────────────────────────────────────────────────────────────────────
+ 7B. BOTONES, OPCIONES Y ENVÍO  (pestaña "5 · Botones y envío")
+────────────────────────────────────────────────────────────────────────────────
+
+  Tres apartados. En todos, la casilla de la izquierda decide si el elemento
+  se ve, y el cuadro de texto cómo se llama.
+
+  ADEMÁS, las opciones que se marcan y desmarcan llevan una SEGUNDA CASILLA
+  («Empieza activada» / «Empieza plegada») que decide el estado con el que
+  arranca el examen. Son cosas distintas:
+      · la primera casilla → si el alumno puede verla y tocarla;
+      · la segunda        → cómo empieza el examen.
+  Se pueden combinar: por ejemplo, dejar el examen arrancando con las
+  preguntas de una en una y, además, ocultar la opción para que el alumno
+  no pueda cambiarlo.
+
+  A) CABECERA Y PANEL DE OPCIONES (⚙)
+     · Botón de inicio 🏠 — se puede cambiar el icono, el texto que sale al
+       posar el ratón y LA PÁGINA A LA QUE LLEVA (por defecto ../index.html).
+     · Botón de configuración ⚙ — si lo ocultas, el alumno no podrá cambiar
+       el tiempo ni tocar ninguna de las opciones de abajo.
+     · Botón de plegar ⌃ — se puede quitar si no lo quieres, y con «Empieza
+       plegada» cada intento arranca mostrando solo la fila del bloque en el
+       que está el alumno.
+     · Las cuatro opciones del panel: cambiar la duración, corregir pregunta
+       a pregunta, ver las preguntas de una en una y ocultar las etiquetas de
+       pregunta. Cada una se puede ocultar o renombrar, y las tres últimas
+       admiten además «Empieza activada». Ejemplos típicos: ocultar "cambiar
+       la duración" para que el examen dure siempre lo que has puesto en la
+       pestaña 1; o marcar "corregir pregunta a pregunta / Empieza activada"
+       para un test de repaso que se corrige sobre la marcha.
+
+  B) BOTONES DE ABAJO Y DE LA PANTALLA DE RESULTADOS
+     Anterior, Siguiente, Corregir, Ver corrección completa, Imprimir/PDF,
+     Nuevo intento aleatorio, Enviar resultados y Volver al menú.
+     Los cuatro últimos son los que aparecen AL TERMINAR el examen; si
+     desmarcas uno, no sale ni en la botonera de abajo ni en la ventana de
+     resultados.
+
+  C) ENVÍO DE RESULTADOS A UN FORMULARIO DE GOOGLE
+     Viene ya relleno con el formulario y las casillas que usa el proyecto,
+     así que si no quieres cambiar nada, no tienes que tocar este apartado.
+
+     · Dirección: el enlace del formulario terminado en /formResponse (se
+       coge el enlace normal y se cambia el final «/viewform» por
+       «/formResponse»). Si se deja vacía, el botón de enviar no aparece.
+     · Datos generales del intento: examen, alumno, tiempo asignado y tiempo
+       empleado. Nada más: los recuentos van por bloque.
+     · Casillas de cada bloque: preguntas, aciertos, fallos, en blanco y
+       puntos, POR SEPARADO para cada bloque. La tabla crece y mengua sola
+       según los bloques que tenga el examen, y solo se envían los bloques
+       que hayan salido en ese intento.
+     · CON UN SOLO BLOQUE ese bloque ES el examen entero, así que su fila de
+       casillas hace exactamente lo que antes hacían los totales. Por eso las
+       cuatro casillas que ya usaba el proyecto (preguntas, aciertos, fallos
+       y en blanco) vienen asignadas al primer bloque. Si abres un supuesto
+       que las tenía sueltas, el editor las traslada solo a ese bloque.
+     · Las casillas que dejes vacías simplemente no se envían.
+
+     CÓMO SE AVERIGUA EL CÓDIGO DE UNA CASILLA:
+       1. Abre el formulario en modo edición.
+       2. Menú ⋮ (arriba a la derecha) → "Obtener enlace autorrellenado".
+       3. Escribe cualquier cosa en cada campo y pulsa "Obtener enlace".
+       4. Copia el enlace: dentro verás trozos como
+              entry.1234567=lo-que-escribiste
+          Ese "entry.1234567" es lo que se pega en el editor.
+
+     La puntuación se manda con coma decimal (1,75), igual que se ve en
+     pantalla.
+
+
+────────────────────────────────────────────────────────────────────────────────
+ 8. COSAS QUE HAY QUE SABER SÍ O SÍ
+────────────────────────────────────────────────────────────────────────────────
+
+  · LA OPCIÓN CORRECTA SE BARAJA. En el editor marcas cuál es la correcta
+    (A, B, C o D), pero la página cambia el orden de las opciones en cada
+    intento. Por eso NUNCA escribas "la respuesta correcta es la B" dentro
+    de la motivación legal: escribe el texto de la opción.
+
+  · LOS DOS MODOS ALEATORIOS siguen funcionando igual, ahora por bloques:
+      🔁 "Mismas preguntas y mismo orden"  → solo cambian las opciones.
+      🎲 "También cambiar qué preguntas salen" → dentro de cada bloque se
+         barajan las preguntas (en los bloques de supuesto sin separar nunca
+         una pregunta de su enunciado) y, si pusiste un número en "intento
+         aleatorio", salen solo esas. El orden de los bloques no cambia.
+
+  · DECIMALES CON COMA. En los descuentos escribe 0,33 o 0,25 (también vale
+    con punto). Se guardan como número, no como texto.
+
+  · PÁRRAFOS. En los cuadros de hechos, una línea en blanco = un párrafo nuevo.
+
+  · SE ADMITE HTML SENCILLO dentro de los textos, por ejemplo:
+        <strong>negrita</strong>   <em>cursiva</em>   <br>
+    Si escribes "<" por otro motivo (p. ej. "menos de <5 días"), se
+    interpretará como HTML; en ese caso escribe "&lt;5 días".
+
+  · LA ETIQUETA q-tag (Etiqueta de materia) se deja VACÍA salvo que el
+    documento de origen la pida. Si está vacía, la página no deja hueco.
+
+  · EN EL MÓVIL NO SE MARCAN RESPUESTAS SIN QUERER. Al cambiar de pregunta la
+    página sube al principio, y antes bastaba con bajar el dedo para que el
+    navegador marcase de rebote la opción que quedaba debajo. Ahora, en
+    pantallas táctiles, un toque solo cuenta si el dedo NO se ha desplazado
+    (más de 10 píxeles ya se considera desplazamiento) y si la página lleva
+    al menos tres décimas de segundo quieta. Con ratón no cambia nada.
+
+  · COPIA DE SEGURIDAD. Cada vez que guardas encima de un archivo que ya
+    existía, el editor deja una copia del anterior con la extensión .bak
+    (por ejemplo supuesto_1.html.bak). Si algo sale mal, se renombra y listo.
+
+  · EL MOTOR NO SE TOCA. El editor solo cambia el bloque de datos del HTML;
+    el cronómetro, la corrección, el modo aleatorio, la impresión y el envío
+    de resultados se quedan exactamente igual.
+
+
+────────────────────────────────────────────────────────────────────────────────
+ 9. EDITAR SUPUESTOS QUE YA EXISTÍAN
+────────────────────────────────────────────────────────────────────────────────
+
+  El editor entiende los tres formatos que hay en el proyecto:
+
+   A) supuesto_plantilla_python.html  (el nuevo, con bloques)
+      → se lee y se guarda todo: bloques, colores, baremos y preguntas.
+
+   B) supuesto_plantilla_editable.html  (el clásico, con EXAM_CONFIG)
+      → se lee y se guarda respetando su formato JavaScript. OJO: la
+        plantilla clásica NO conoce los bloques. Si el supuesto tiene más de
+        un bloque, alguno de teoría, un baremo con descuentos o la paleta de
+        colores cambiada, al guardar ahí se conservan las preguntas pero se
+        pierde esa configuración. El editor te avisa antes de hacerlo y te
+        recomienda la otra vía.
+
+   C) supuesto_0.html y supuesto_plantilla.html  (los antiguos)
+      → se leen y se guardan los enunciados y las preguntas, pero el título,
+        la referencia, el ámbito y los minutos están escritos a mano dentro
+        del HTML, así que la pestaña "1 · Datos generales" no les afecta.
+        Al abrirlos, todas sus preguntas entran en un único bloque de
+        supuesto (que es como funcionaban).
+
+  PARA MODERNIZAR UN ARCHIVO ANTIGUO (y poder añadirle teoría):
+     1. Ábrelo con "📂 Abrir plantilla…".
+     2. Pulsa "⇪ Pasar a plantilla nueva…" y dale un nombre.
+     A partir de ahí ya puedes editar los datos generales, crear el bloque
+     de teoría y repartir las preguntas.
+
+
+────────────────────────────────────────────────────────────────────────────────
+ 10. PUBLICAR EL SUPUESTO EN EL MENÚ PRINCIPAL
+────────────────────────────────────────────────────────────────────────────────
+
+  El menú (index.html) no se actualiza solo. Para que el supuesto nuevo
+  aparezca en la portada:
+
+    1. Guarda el supuesto dentro de la carpeta  supuestos/
+    2. Abre index.html con Thonny o con el Bloc de notas.
+    3. Busca el bloque:   <div class="supuestos-grid" id="supuestos-grid">
+    4. Copia la tarjeta que ya hay y pégala debajo, cambiando:
+           href="supuestos/supuesto_1.html"     ← el archivo nuevo
+           <div class="exp-number">1</div>      ← el número
+           <span class="ref">REF: S001</span>   ← la referencia
+           <h2>…</h2>                           ← el título
+           <div class="desc">20 preguntas · 30 minutos · …</div>
+    5. Guarda index.html.
+
+
+────────────────────────────────────────────────────────────────────────────────
+ 11. SI ALGO FALLA
+────────────────────────────────────────────────────────────────────────────────
+
+  "No module named 'tkinter'"
+      Linux:  sudo apt install python3-tk
+      Windows/macOS: usa directamente Thonny (ya lo trae).
+
+  "No encuentro supuesto_plantilla_python.html"
+      El .py y el .html tienen que estar en la misma carpeta.
+
+  La página se ve en blanco al abrirla en el navegador
+      Vuelve al editor, pulsa "✔ Comprobar" y guarda otra vez. La plantilla
+      nueva avisa en pantalla si el bloque de datos tiene algún fallo, en vez
+      de quedarse en blanco.
+
+  Un bloque no sale en el examen
+      Comprueba en "2 · Bloques" que tiene preguntas asignadas (la lista de
+      la izquierda muestra cuántas). Un bloque sin preguntas no se pinta.
+
+  He cambiado los colores y la página sigue igual
+      Comprueba que estás guardando en la plantilla nueva: la clásica no tiene
+      apartado de colores (ni de botones ni de envío). El editor avisa antes
+      de guardar en ese caso.
+      Si un código de color está mal escrito, el editor lo devuelve al original
+      (tiene que ser #rrggbb, por ejemplo #243447).
+
+  Las preguntas de teoría muestran el enunciado del supuesto
+      Ese bloque está marcado como "supuesto". Cámbialo a "teoría" en la
+      pestaña 2: al hacerlo, sus preguntas se desenganchan del enunciado.
+
+  Los acentos se ven raros (Ã¡, Ã±…)
+      El archivo debe guardarse en UTF-8. El editor lo hace siempre así; si
+      lo has tocado a mano con otro programa, vuelve a guardarlo desde aquí.
+
+  He borrado algo sin querer
+      Cierra SIN guardar y vuelve a abrir el archivo; o recupera la copia
+      .bak que se genera en cada guardado.
+
+════════════════════════════════════════════════════════════════════════════════
