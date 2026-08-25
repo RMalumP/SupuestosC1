@@ -3,6 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!--
+        Versión del MOTOR de la plantilla (el código que hace funcionar la
+        página, no los datos del supuesto). El editor de Python la compara
+        con la suya y, si el archivo se quedó atrás, ofrece ponerlo al día
+        al guardar. Subir este número al cambiar el motor.
+    -->
+    <meta name="motor-plantilla" content="2">
     <title>[TÍTULO DE LA EVALUACIÓN]</title>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,600;1,8..60,300&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 
@@ -169,6 +176,28 @@
         .settings-check { display: flex; align-items: center; gap: 8px; cursor: pointer; }
         .settings-check label { margin-bottom: 0; cursor: pointer; display: flex; align-items: center; gap: 8px; }
         .settings-check input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--gold); cursor: pointer; }
+        /* Opción dependiente de la de arriba: va sangrada y con un filete
+           que la ata a ella. Se apaga sola cuando no puede aplicarse. */
+        .settings-row.settings-sub {
+            margin-left: 14px; padding-left: 12px;
+            border-left: 2px solid rgba(var(--gold-rgb),0.35);
+            margin-top: -6px;
+        }
+        .settings-row.apagada { opacity: 0.45; }
+        .settings-row.apagada label { cursor: default; }
+        /* Una casilla por bloque dentro de la opción «de una en una» */
+        #una-por-bloque { display: flex; flex-direction: column; gap: 6px; }
+        #una-por-bloque label {
+            display: flex; align-items: center; gap: 8px; margin-bottom: 0;
+            cursor: pointer; font-size: 0.74rem; line-height: 1.3;
+        }
+        #una-por-bloque input[type="checkbox"] {
+            width: 15px; height: 15px; accent-color: var(--gold); cursor: pointer; flex-shrink: 0;
+        }
+        /* Punto del color del bloque, para reconocerlo de un vistazo */
+        #una-por-bloque .punto-bloque {
+            width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
+        }
 
         /* ════════════════════════════════════════
            TEMPORIZADOR
@@ -251,6 +280,35 @@
         .tl-item .tl-date { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; color: var(--gold); font-weight: 700; display: block; margin-bottom: 4px; }
         .tl-item.red-event { background: var(--crimson); }
         .tl-item.red-event .tl-date { color: var(--gold-lt); }
+
+        /* Panel de enunciado incrustado en el hilo del examen.
+           Cada grupo de preguntas lleva el suyo justo delante, de modo que
+           en el modo "en cadena" se lee enunciado 1 → sus preguntas →
+           enunciado 2 → sus preguntas, y de una en una solo se ve el del
+           enunciado al que pertenece la pregunta actual. */
+        .stmt-panel { display: none; }
+        .stmt-panel.visible { display: block; }
+
+        /* Aviso del modo foco: el enunciado sale recortado a los hechos
+           vinculados a la pregunta, con un botón para verlo entero. */
+        .stmt-foco {
+            display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+            background: rgba(var(--gold-rgb),0.12);
+            border: 1px dashed rgba(var(--gold-rgb),0.7);
+            border-radius: var(--radius); padding: 10px 14px; margin-bottom: 18px;
+            font-family: 'JetBrains Mono', monospace; font-size: 0.62rem;
+            letter-spacing: 0.06em; line-height: 1.6; color: var(--slate);
+            position: relative; z-index: 1;
+        }
+        .stmt-foco .btn-foco {
+            margin-left: auto; cursor: pointer; white-space: nowrap;
+            font-family: 'JetBrains Mono', monospace; font-size: 0.6rem;
+            letter-spacing: 0.12em; text-transform: uppercase;
+            padding: 6px 12px; border-radius: var(--radius);
+            border: 1.5px solid var(--blue-deep); background: transparent;
+            color: var(--blue-deep); transition: all 0.2s;
+        }
+        .stmt-foco .btn-foco:hover { background: var(--blue-deep); color: var(--cream); }
         
         /* Clase para ocultar elementos */
         .hide { display: none; visibility: hidden; }
@@ -335,6 +393,17 @@
         .option.correct { border-color:var(--forest); background:rgba(var(--forest-rgb),0.10); color:var(--forest); font-weight:600; }
         .option.wrong   { border-color:var(--crimson); background:rgba(var(--crimson-rgb),0.07); color:var(--crimson); text-decoration:line-through; }
         .opt-letter { flex-shrink:0; width:26px; height:26px; border-radius:50%; background:var(--navy-mid); color:var(--gold); font-family:'JetBrains Mono',monospace; font-size:0.7rem; font-weight:700; display:flex; align-items:center; justify-content:center; margin-top:1px; }
+        /* Respuesta múltiple: la insignia pasa de redonda a cuadrada, como
+           una casilla de verificación, para que se vea de un vistazo que
+           se puede marcar más de una. */
+        .option.multi .opt-letter { border-radius:5px; }
+        .multi-aviso {
+            font-family:'JetBrains Mono',monospace; font-size:0.58rem; letter-spacing:0.18em;
+            text-transform:uppercase; color:var(--blue-deep); margin-top:18px;
+            display:flex; align-items:center; gap:8px;
+        }
+        .multi-aviso::before { content:'☑'; font-size:0.9rem; }
+        .multi-aviso + .options-grid { margin-top:8px; }
         .option.correct .opt-letter { background:var(--forest); color:var(--cream); }
         .option.wrong   .opt-letter { background:var(--crimson); color:var(--cream); }
 
@@ -511,6 +580,8 @@
             .statement { box-shadow:none; border:1px solid #ccc; }
             .question-card { display:block !important; box-shadow:none; border:1px solid #ccc; page-break-inside:avoid; margin-bottom:16px; }
             .block-header { display:flex !important; box-shadow:none; border:1px solid #ccc; page-break-after:avoid; }
+            .stmt-panel { display:block !important; page-break-after:avoid; }
+            .stmt-foco { display:none !important; }
             .block-header h3 { color:#000 !important; }
             .score-bloques .sb-fila { background:#f3f4f6 !important; }
             .score-bloques .sb-nombre, .score-bloques .sb-detalle, .score-bloques .sb-puntos { color:#111827 !important; }
@@ -584,10 +655,21 @@
                     <span id="lbl-corregir">Corregir pregunta a pregunta</span>
                 </label>
             </div>
-            <div class="settings-row settings-check" id="row-una">
+            <!--
+                UNA CASILLA POR BLOQUE. El examen puede tener un bloque o
+                cinco, así que estas casillas las crea sola la página al
+                arrancar (ver montarOpcionesUnaEnUna): una por cada bloque
+                que salga en el intento y que no esté marcado como oculto
+                en el editor. Sin marcar = ese bloque se ve EN CADENA.
+            -->
+            <div class="settings-row" id="row-una">
+                <label><span id="lbl-una">Ver las preguntas de una en una</span></label>
+                <div id="una-por-bloque"></div>
+            </div>
+            <div class="settings-row settings-check settings-sub" id="row-foco">
                 <label>
-                    <input type="checkbox" id="una-en-una-toggle" onchange="toggleUnaEnUna(this.checked)">
-                    <span id="lbl-una">Ver las preguntas de una en una</span>
+                    <input type="checkbox" id="foco-toggle" onchange="toggleModoFoco(this.checked)">
+                    <span id="lbl-foco">Modo foco: solo los hechos de cada pregunta</span>
                 </label>
             </div>
             <div class="settings-row settings-check" id="row-qtags">
@@ -640,23 +722,31 @@
         </div>
     </header>
 
-    <!-- ENUNCIADO -->
     <!--
-        Este contenedor lo rellena JS (renderStatementHTML) a partir de
-        STATEMENTS_BANK. Cada pregunta de QUESTIONS_BANK indica a qué
-        enunciado pertenece mediante "statementId"; el panel del enunciado
-        solo se actualiza cuando, al navegar, se pasa a una pregunta de un
-        enunciado distinto al que se está mostrando (no en cada pregunta).
-        Una pregunta con statementId null/ausente es una "pregunta suelta"
-        y no muestra ningún bloque de hechos.
+        ENUNCIADOS
+        ──────────
+        Ya no hay un panel fijo de enunciado encima de la página: cada
+        enunciado se pinta DENTRO del hilo de preguntas (#quiz-container),
+        justo delante del grupo de preguntas al que pertenece y debajo de
+        la cabecera de su bloque. Así el documento se lee en su orden
+        natural: cabecera del bloque → enunciado 1 → sus preguntas →
+        enunciado 2 → sus preguntas…
+
+        Cada pregunta de QUESTIONS_BANK indica a qué enunciado pertenece
+        mediante "statementId"; una pregunta con statementId null/ausente es
+        una "pregunta suelta" y no muestra ningún bloque de hechos.
 
         Estructura disponible dentro de cada enunciado (ver STATEMENTS_BANK):
         - factBlocks[]  → bloques de hechos (borde dorado; "red:true" = borde rojo/crítico)
+                          cada uno con su "id" (H1, H2…) para poder vincularle preguntas
         - timeline[]    → hitos de la línea de tiempo ("red:true" = hito crítico)
         - "hidden:true" en cualquier factBlock/hito lo omite del renderizado
           (útil para preparar variantes de un mismo supuesto sin borrar datos).
+
+        Cada pregunta puede además vincularse a uno o varios bloques de
+        hechos concretos con "factIds": en el MODO FOCO (⚙, dentro de «ver
+        las preguntas de una en una») el enunciado se recorta a esos hechos.
     -->
-    <div id="statement-container"></div>
 
     <!-- BARRA DE PROGRESO -->
     <div class="progress-bar-wrap">
@@ -789,10 +879,10 @@
 ══════════════════════════════════════════ -->
 <div id="random-modal" onclick="if (event.target === this) closeRandomModal();">
     <div class="modal-box">
-        <h3>🔀 Nuevo intento aleatorio</h3>
-        <p>¿Cómo quieres repetir el expediente?</p>
-        <button class="btn btn-modal-a" onclick="confirmRestart('answers')">🔁 Mismas preguntas y mismo orden<br><small style="font-weight:400;opacity:0.8;">solo cambia el orden de las respuestas</small></button>
-        <button class="btn btn-modal-b" onclick="confirmRestart('full')">🎲 También cambiar qué preguntas salen<br><small style="font-weight:400;opacity:0.8;">y su orden, respetando cada bloque y cada enunciado</small></button>
+        <h3 id="rnd-titulo">🔀 Nuevo intento aleatorio</h3>
+        <p id="rnd-sub">¿Cómo quieres repetir el expediente?</p>
+        <button class="btn btn-modal-a" id="rnd-answers" onclick="confirmRestart('answers')">🔁 Mismas preguntas y mismo orden<br><small style="font-weight:400;opacity:0.8;">solo cambia el orden de las respuestas</small></button>
+        <button class="btn btn-modal-b" id="rnd-order" onclick="confirmRestart('order')">🎲 Mismas preguntas en otro orden<br><small style="font-weight:400;opacity:0.8;">salen todas, barajadas dentro de su bloque y su enunciado</small></button>
         <button class="btn" onclick="closeRandomModal()">Cancelar</button>
     </div>
 </div>
@@ -818,8 +908,14 @@
        bloques    → secciones del examen, en el orden en que salen:
                     tipo "supuesto" (con enunciados) o tipo "test" (teoría),
                     con su color, su forma de verse y su baremo
-       enunciados → bloques de hechos comunes a un grupo de preguntas
-       preguntas  → cada pregunta, con el bloque al que pertenece
+                    ("cabeceraSobreEnunciado": la barra del bloque va
+                     encima del enunciado; con false baja hasta justo
+                     delante de la primera pregunta)
+       enunciados → bloques de hechos comunes a un grupo de preguntas;
+                    cada bloque de hechos lleva su "id" (H1, H2…)
+       preguntas  → cada pregunta, con el bloque al que pertenece y, si
+                    procede, los "factIds" de los hechos concretos de los
+                    que depende (modo foco del panel ⚙)
 ══════════════════════════════════════════ -->
 <script type="application/json" id="datos-supuesto">
 {
@@ -828,7 +924,8 @@
     "referencia": "[REFERENCIA / EXPEDIENTE]",
     "ambito": "[LEGISLACIÓN VIGENTE A ...]",
     "minutos": 30,
-    "aptoPorcentaje": 50,
+    "aptoPorcentaje": 50.0,
+    "respuestas": 0,
     "logo": "https://academia.ecap.es/pluginfile.php?file=%2F1%2Fcore_admin%2Flogo%2F0x200%2F1782109950%2FACADEMIA%20VIRTUAL%20%281%29.png",
     "logoAlt": "ECAP - Escuela Ciudadana de Administración Pública",
     "organismo": "Comunidad ECAP ASS C1"
@@ -874,7 +971,19 @@
     },
     "opcionUnaEnUna": {
       "visible": true,
-      "texto": "Ver las preguntas de una en una",
+      "texto": "Ver las preguntas de una en una"
+    },
+    "opcionRepetirRespuestas": {
+      "visible": true,
+      "texto": "🔁 Mismas preguntas y mismo orden"
+    },
+    "opcionRepetirOrden": {
+      "visible": true,
+      "texto": "🎲 Mismas preguntas en otro orden"
+    },
+    "opcionFoco": {
+      "visible": true,
+      "texto": "Modo foco: solo los hechos de cada pregunta",
       "activa": false
     },
     "opcionQtags": {
@@ -929,10 +1038,12 @@
       "titulo": "Supuesto práctico",
       "color": "#8fc4d9",
       "modo": "individual",
+      "cabeceraSobreEnunciado": true,
+      "opcionUnaEnUna": true,
       "porIntento": 0,
-      "acierto": 1,
+      "acierto": 1.0,
       "fallo": 0.33,
-      "blanco": 0,
+      "blanco": 0.0,
       "envio": {
         "preguntas": "entry.771114786",
         "aciertos": "entry.1903892811",
@@ -947,10 +1058,12 @@
       "titulo": "Teoría",
       "color": "#e0ac4a",
       "modo": "cadena",
+      "cabeceraSobreEnunciado": true,
+      "opcionUnaEnUna": true,
       "porIntento": 0,
-      "acierto": 1,
+      "acierto": 1.0,
       "fallo": 0.25,
-      "blanco": 0,
+      "blanco": 0.0,
       "envio": {
         "preguntas": "",
         "aciertos": "",
@@ -969,22 +1082,24 @@
       "ambito": "[materias que abarca]",
       "factBlocks": [
         {
+          "id": "H1",
           "title": "[Título del bloque de hechos]",
-          "red": false,
-          "hidden": false,
           "paragraphs": [
             "[Narrativa de hechos 1.]",
             "[Narrativa de hechos 2, si procede.]"
-          ]
+          ],
+          "red": false,
+          "hidden": false
         },
         {
+          "id": "H2",
           "title": "[Título del bloque de hechos críticos]",
-          "red": true,
-          "hidden": false,
           "paragraphs": [
             "[Hecho desencadenante 1.]",
             "[Hecho desencadenante 2.]"
-          ]
+          ],
+          "red": true,
+          "hidden": false
         }
       ],
       "timeline": [
@@ -1007,6 +1122,7 @@
     {
       "bloqueId": "B1",
       "statementId": "E1",
+      "factIds": [],
       "tag": "",
       "q": "[Texto de la pregunta del supuesto.]",
       "a": [
@@ -1016,12 +1132,18 @@
         "[Opción incorrecta 4]"
       ],
       "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 0,
       "law": "[Motivación legal: normativa aplicable y razonamiento.]",
       "tip": "[Consejo práctico o error frecuente.]"
     },
     {
       "bloqueId": "B2",
       "statementId": null,
+      "factIds": [],
       "tag": "",
       "q": "[Texto de la pregunta de teoría.]",
       "a": [
@@ -1031,6 +1153,11 @@
         "[Opción incorrecta 4]"
       ],
       "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 0,
       "law": "[Motivación legal: normativa aplicable y razonamiento.]",
       "tip": ""
     }
@@ -1066,6 +1193,10 @@ try {
     throw err;
 }
 
+// Hasta siete opciones por pregunta (A…G)
+const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+const MAX_OPCIONES = LETTERS.length;
+
 /* ═══════════════════════════════════════════
    NORMALIZACIÓN DE LOS BLOQUES
    ───────────────────────────────────────────
@@ -1094,6 +1225,14 @@ function normalizarBloques(datos) {
             modo:       (b.modo === 'cadena' || b.modo === 'individual')
                             ? b.modo
                             : (tipo === 'test' ? 'cadena' : 'individual'),
+            // La cabecera de sección se pinta ENCIMA del enunciado (lo
+            // natural en un supuesto). Poniéndolo a false baja hasta justo
+            // delante de la primera pregunta, como en versiones anteriores.
+            cabeceraSobreEnunciado: b.cabeceraSobreEnunciado !== false,
+            // ¿Sale la casilla de este bloque en la opción «de una en una»
+            // del panel ⚙? A false, el alumno no puede cambiar cómo se ven
+            // las preguntas de este bloque: se quedan como diga "modo".
+            opcionUnaEnUna: b.opcionUnaEnUna !== false,
             porIntento: Math.max(0, parseInt(b.porIntento, 10) || 0),
             envio:      b.envio || {},
             acierto:    numeroSeguro(b.acierto, 1),
@@ -1107,14 +1246,99 @@ function normalizarBloques(datos) {
     (datos.preguntas || []).forEach(q => {
         const b = porId.get(String(q.bloqueId || '')) || bloques[0];
         q.bloqueId = b.id;
-        if (b.tipo === 'test') q.statementId = null;   // la teoría no lleva enunciado
+        // Bloques de hechos concretos de los que depende la pregunta
+        // (hecho desencadenante). Solo se usan en el modo foco.
+        q.factIds = Array.isArray(q.factIds)
+                        ? q.factIds.map(x => String(x)).filter(Boolean)
+                        : [];
+        normalizarRespuestas(q);
+        if (b.tipo === 'test') {          // la teoría no lleva enunciado
+            q.statementId = null;
+            q.factIds = [];
+        }
         b.preguntas.push(q);
     });
     return bloques;
 }
 
+/* ═══════════════════════════════════════════
+   NORMALIZACIÓN DE LAS RESPUESTAS DE UNA PREGUNTA
+   ───────────────────────────────────────────
+   Una pregunta puede tener de 2 a 7 opciones escritas y una o varias
+   correctas. Los archivos antiguos traen exactamente cuatro opciones y
+   la correcta en "c" (un número): se siguen leyendo igual.
+     a[]         → las opciones escritas (se descartan las vacías)
+     c           → la correcta, cuando solo hay una
+     correctas[] → las correctas, cuando hay varias (respuesta múltiple)
+     multiple    → true si hay que marcar todas las que procedan
+     respuestas  → cuántas opciones salen en el examen para ESTA pregunta
+                   (0 = lo que diga config.respuestas; y este, 0 = todas)
+═══════════════════════════════════════════ */
+function normalizarRespuestas(q) {
+    q.a = (Array.isArray(q.a) ? q.a : [])
+              .map(x => String(x === undefined || x === null ? '' : x))
+              .filter(x => x.trim() !== '')
+              .slice(0, MAX_OPCIONES);
+
+    const dentro = i => Number.isInteger(i) && i >= 0 && i < q.a.length;
+
+    let correctas = Array.isArray(q.correctas) ? q.correctas.map(x => parseInt(x, 10)) : [];
+    correctas = correctas.filter(dentro);
+    if (!correctas.length) {
+        const c = parseInt(q.c, 10);
+        correctas = dentro(c) ? [c] : (q.a.length ? [0] : []);
+    }
+    // Sin duplicados y en orden
+    q.correctas = [...new Set(correctas)].sort((x, y) => x - y);
+    q.c         = q.correctas.length ? q.correctas[0] : 0;
+    q.multiple  = q.multiple === true && q.correctas.length > 0;
+    q.respuestas = Math.max(0, Math.min(MAX_OPCIONES, parseInt(q.respuestas, 10) || 0));
+    return q;
+}
+
+/* Qué opciones salen de esta pregunta en este intento.
+   Si la pregunta tiene más opciones escritas de las que deben salir, se
+   quedan siempre las correctas y se sortean los distractores que faltan:
+   así se pueden escribir siete opciones y que cada intento enseñe cuatro
+   distintas. Nunca se recorta por debajo de las correctas más un
+   distractor. */
+function opcionesDePregunta(q) {
+    const correctas    = q.correctas;
+    const distractores = q.a.map((_, i) => i).filter(i => !correctas.includes(i));
+
+    let cuantas = q.respuestas || Math.round(numeroSeguro(EXAM_CONFIG.respuestas, 0)) || q.a.length;
+    cuantas = Math.max(cuantas, correctas.length + (distractores.length ? 1 : 0));
+    cuantas = Math.min(cuantas, q.a.length);
+
+    const elegidos = correctas.concat(
+        shuffle(distractores).slice(0, Math.max(0, cuantas - correctas.length)));
+    return shuffle(elegidos).map(idx => ({ txt: q.a[idx], idx }));
+}
+
+/* ═══════════════════════════════════════════
+   NORMALIZACIÓN DE LOS ENUNCIADOS
+   ───────────────────────────────────────────
+   Cada bloque de hechos recibe un identificador estable (H1, H2…) con el
+   que las preguntas pueden vincularse a una parte concreta del enunciado
+   (su hecho desencadenante) para el modo foco. Los archivos antiguos, que
+   no lo traen, lo reciben aquí sin perder nada.
+═══════════════════════════════════════════ */
+function normalizarEnunciados(lista) {
+    (lista || []).forEach(stmt => {
+        const usados = new Set();
+        (stmt.factBlocks || []).forEach((fb, i) => {
+            let id = String(fb.id || '').replace(/[^A-Za-z0-9_-]/g, '');
+            if (!id) id = 'H' + (i + 1);
+            while (usados.has(id)) id += 'x';
+            usados.add(id);
+            fb.id = id;
+        });
+    });
+    return lista || [];
+}
+
 const EXAM_CONFIG     = DATOS_SUPUESTO.config     || { titulo: '', referencia: '', ambito: '', minutos: 30 };
-const STATEMENTS_BANK = DATOS_SUPUESTO.enunciados || [];
+const STATEMENTS_BANK = normalizarEnunciados(DATOS_SUPUESTO.enunciados || []);
 const BLOCKS_BANK     = normalizarBloques(DATOS_SUPUESTO);
 const BLOCKS_BY_ID    = new Map(BLOCKS_BANK.map(b => [b.id, b]));
 // Orden por defecto del examen: los bloques en su orden y, dentro de
@@ -1139,7 +1363,6 @@ const ENVIO           = DATOS_SUPUESTO.envio    || {};
 /* ═══════════════════════════════════════════
    ESTADO DEL EXAMEN
 ═══════════════════════════════════════════ */
-const LETTERS = ['A', 'B', 'C', 'D'];
 
 let questions          = [];
 let examDurationSeconds = EXAM_CONFIG.minutos * 60; // ver EXAM_CONFIG, arriba
@@ -1155,11 +1378,13 @@ let alerted5             = false;
 let alerted5b            = false;
 let alerted1             = false;
 let instantFeedback      = false;    // Modo "corregir pregunta a pregunta"
-let forzarUnaEnUna       = false;    // ⚙ "Ver las preguntas de una en una"
+// ⚙ "Ver las preguntas de una en una": una casilla por bloque.
+//    { B1: true, B2: false } → B1 de una en una, B2 en cadena.
+let unaEnUnaPorBloque    = {};
+let modoFoco             = false;    // ⚙ "Modo foco" (dentro de la anterior)
 let navPlegada           = false;    // cabecera plegada (solo el bloque actual)
 let dedoEnMovimiento     = false;    // el dedo se ha desplazado: no es un toque
 let ultimoScroll         = 0;        // instante del último desplazamiento
-let currentStatementId   = undefined; // Enunciado mostrado actualmente en #statement-container
 
 /* ═══════════════════════════════════════════
    BLOQUES — utilidades
@@ -1295,9 +1520,50 @@ function actualizarBotonPlegar() {
     if (navPlegada !== deseada) togglePlegado();
 }
 
-// ¿Este bloque se ve con todas sus preguntas seguidas?
+/* ¿Este bloque se ve con todas sus preguntas seguidas?
+   Lo manda su casilla del panel ⚙: sin marcar, EN CADENA; marcada, de una
+   en una. El "modo" que se elige en el editor es solo el estado con el que
+   arranca esa casilla. */
 function enCadena(bloque) {
-    return !forzarUnaEnUna && bloque.modo === 'cadena';
+    return !unaEnUnaPorBloque[bloque.id];
+}
+
+// Estado de arranque de las casillas: cada bloque empieza como diga SU
+// modo en el editor («en cadena» → sin marcar; «de una en una» → marcada).
+// No hay ningún interruptor general que lo pise: si un bloque está puesto
+// en cadena, arranca en cadena.
+function estrenarUnaEnUna() {
+    unaEnUnaPorBloque = {};
+    BLOCKS_BANK.forEach(b => {
+        unaEnUnaPorBloque[b.id] = b.modo === 'individual';
+    });
+}
+
+/* Monta en el panel ⚙ una casilla por cada bloque que salga en el intento
+   (los bloques a los que el editor les haya quitado la casilla no salen).
+   Con un solo bloque queda una sola casilla, como antes. */
+function montarOpcionesUnaEnUna() {
+    const caja = document.getElementById('una-por-bloque');
+    if (!caja) return;
+    caja.innerHTML = '';
+
+    const presentes = new Set(questions.map(q => q.bloqueId));
+    let alguna = false;
+    BLOCKS_BANK.forEach(b => {
+        if (!presentes.has(b.id) || b.opcionUnaEnUna === false) return;
+        alguna = true;
+        const fila = document.createElement('label');
+        fila.innerHTML = `
+            <input type="checkbox" id="una-${b.id}" ${unaEnUnaPorBloque[b.id] ? 'checked' : ''}>
+            <span class="punto-bloque" style="background:${b.color}"></span>
+            <span>${b.titulo}</span>`;
+        fila.querySelector('input').onchange = (e) => toggleUnaEnUna(b.id, e.target.checked);
+        caja.appendChild(fila);
+    });
+
+    // Si no queda ninguna casilla a la vista, sobra el rótulo del grupo.
+    ponerVisible('row-una', alguna && interfazVisible('opcionUnaEnUna'), 'block');
+    actualizarFilaFoco();
 }
 
 // Cabecera de sección que se pinta encima de las preguntas del bloque
@@ -1329,6 +1595,7 @@ function cabeceraBloque(bloque, cuantas) {
 ═══════════════════════════════════════════ */
 function applyExamConfig() {
     aplicarTema();
+    estrenarUnaEnUna();
     aplicarInterfaz();
 
     // Encabezado: imagen y línea del organismo. Si se deja vacío el logo
@@ -1403,6 +1670,7 @@ function interfazVisible(clave) {
 // ¿Puede verse este botón, según la configuración del supuesto?
 function botonPermitido(id) {
     const clave = CLAVE_POR_BOTON[id];
+    if (clave === 'btnReintentar' && !modosAleatoriosDisponibles().length) return false;
     return !clave || interfazVisible(clave);
 }
 
@@ -1449,20 +1717,21 @@ function aplicarInterfaz() {
     if (btnPlegar && plegar.titulo) btnPlegar.title = plegar.titulo;
 
     // Opciones del panel ⚙
-    [['opcionTiempo',   'row-tiempo',   'lbl-tiempo'],
-     ['opcionCorregir', 'row-corregir', 'lbl-corregir'],
-     ['opcionUnaEnUna', 'row-una',      'lbl-una'],
-     ['opcionQtags',    'row-qtags',    'lbl-qtags']].forEach(([clave, fila, rotulo]) => {
+    [['opcionTiempo',   'row-tiempo',   'lbl-tiempo',    'block'],
+     ['opcionCorregir', 'row-corregir', 'lbl-corregir',  'flex'],
+     ['opcionUnaEnUna', 'row-una',      'lbl-una',       'block'],
+     ['opcionFoco',     'row-foco',     'lbl-foco',      'flex'],
+     ['opcionQtags',    'row-qtags',    'lbl-qtags',     'flex']].forEach(([clave, fila, rotulo, caja]) => {
         const ajuste = ajusteInterfaz(clave);
-        ponerVisible(fila, ajuste.visible !== false, clave === 'opcionTiempo' ? 'block' : 'flex');
+        ponerVisible(fila, ajuste.visible !== false, caja);
         ponerTexto(rotulo, ajuste.texto);
     });
 
     // Estado de partida de las opciones que se marcan y desmarcan
     [['opcionCorregir', 'instant-feedback-toggle',
       (v) => { instantFeedback = v; }],
-     ['opcionUnaEnUna', 'una-en-una-toggle',
-      (v) => { forzarUnaEnUna = v; }],
+     ['opcionFoco', 'foco-toggle',
+      (v) => { modoFoco = v; }],
      ['opcionQtags', 'hide-qtags-toggle',
       (v) => { document.body.classList.toggle('hide-qtags', v); }]
     ].forEach(([clave, casilla, aplicar]) => {
@@ -1470,6 +1739,19 @@ function aplicarInterfaz() {
         const el = document.getElementById(casilla);
         if (el) el.checked = activa;
         aplicar(activa);
+    });
+
+    // Las dos formas de repetir el intento (ventana del botón 🔀)
+    [['opcionRepetirRespuestas', 'rnd-answers'],
+     ['opcionRepetirOrden',      'rnd-order']].forEach(([clave, id]) => {
+        const ajuste = ajusteInterfaz(clave);
+        const boton  = document.getElementById(id);
+        if (!boton) return;
+        if (ajuste.texto) {
+            const detalle = boton.querySelector('small');
+            boton.innerHTML = ajuste.texto + (detalle ? '<br>' + detalle.outerHTML : '');
+        }
+        boton.style.display = interfazVisible(clave) ? '' : 'none';
     });
 
     // Botones: primero el texto, después la visibilidad
@@ -1486,6 +1768,8 @@ function aplicarInterfaz() {
             ponerVisible(id, interfazVisible(clave), 'inline-flex');
         });
     });
+
+    actualizarFilaFoco();
 }
 
 /* ═══════════════════════════════════════════
@@ -1501,25 +1785,49 @@ function shuffle(arr) {
 }
 
 /* ═══════════════════════════════════════════
-   ENUNCIADOS — render y agrupación por statementId
+   ENUNCIADOS — render, panel incrustado y modo foco
 ═══════════════════════════════════════════ */
-function renderStatementHTML(stmt) {
-    if (!stmt) return '';
+function getStatement(id) {
+    return STATEMENTS_BANK.find(s => s.id === id) || null;
+}
 
-    let factsHtml = '';
-    (stmt.factBlocks || []).forEach(fb => {
-        if (fb.hidden) return;
+/* Pinta un enunciado entero o, en MODO FOCO, solo los bloques de hechos
+   vinculados a la pregunta actual (opciones.factIds): así el alumno lee
+   únicamente el hecho desencadenante del que depende esa pregunta. El
+   botón «Ver enunciado completo» deshace el recorte. */
+function renderStatementHTML(stmt, opciones) {
+    if (!stmt) return '';
+    const op     = opciones || {};
+    const filtro = (op.factIds && op.factIds.length) ? new Set(op.factIds) : null;
+
+    let visibles  = (stmt.factBlocks || []).filter(fb => !fb.hidden);
+    let recortado = false;
+    if (filtro) {
+        const vinculados = visibles.filter(fb => filtro.has(fb.id));
+        // Si el vínculo apunta a hechos que ya no existen (u ocultos), se
+        // enseña el enunciado entero antes que dejar a la pregunta sin hechos.
+        if (vinculados.length) { visibles = vinculados; recortado = true; }
+    }
+
+    const factsHtml = visibles.map(fb => {
         const cls   = fb.red ? 'fact-block red' : 'fact-block';
         const icon  = fb.red ? '⚠️' : '📋';
         const paras = (fb.paragraphs || []).map(p => `<p>${p}</p>`).join('');
-        factsHtml += `<div class="${cls}"><div class="fact-title">${icon} ${fb.title}</div>${paras}</div>`;
-    });
+        return `<div class="${cls}"><div class="fact-title">${icon} ${fb.title}</div>${paras}</div>`;
+    }).join('');
 
-    const tlItems = (stmt.timeline || []).filter(t => !t.hidden);
+    // En modo foco la cronología se calla: es contexto de todo el expediente.
+    const tlItems = recortado ? [] : (stmt.timeline || []).filter(t => !t.hidden);
     const timelineHtml = tlItems.length
         ? `<div class="timeline">${tlItems.map(t =>
             `<div class="tl-item${t.red ? ' red-event' : ''}"><span class="tl-date">${t.date}</span>${t.text}</div>`
           ).join('')}</div>`
+        : '';
+
+    const avisoFoco = recortado
+        ? `<div class="stmt-foco">🔎 MODO FOCO · solo se muestran los hechos de los que depende esta pregunta
+             <button type="button" class="btn-foco" onclick="verEnunciadoCompleto(this)">Ver enunciado completo</button>
+           </div>`
         : '';
 
     return `
@@ -1531,23 +1839,46 @@ function renderStatementHTML(stmt) {
                     <span class="ref">REF: ${stmt.ref} · ÁMBITO: ${stmt.ambito}</span>
                 </div>
             </div>
+            ${avisoFoco}
             ${factsHtml}
             ${timelineHtml}
         </section>`;
 }
 
-// Solo repinta el panel de enunciado cuando cambia respecto al que ya se
-// está mostrando (es decir, al pasar a la primera pregunta de otro
-// enunciado), nunca en cada pregunta dentro del mismo bloque.
-function updateStatementPanel(statementId) {
-    if (statementId === currentStatementId) return;
-    currentStatementId = statementId;
+/* Panel de enunciado incrustado en el hilo del examen. Se crea uno por
+   cada grupo de preguntas que comparte enunciado, justo delante de la
+   primera pregunta del grupo. */
+function panelEnunciado(statementId, bloque, indicePrimera) {
+    const el = document.createElement('div');
+    el.className       = 'stmt-panel';
+    el.id              = `stmtp-${indicePrimera}`;
+    el.dataset.stmt    = statementId;
+    el.dataset.bloque  = bloque.id;
+    el.dataset.render  = 'full';
+    el.innerHTML       = renderStatementHTML(getStatement(statementId));
+    return el;
+}
 
-    const container = document.getElementById('statement-container');
-    if (!statementId) { container.innerHTML = ''; return; }
+// Deja el enunciado entero a la vista pese al modo foco (botón del aviso).
+function verEnunciadoCompleto(boton) {
+    const panel = boton.closest('.stmt-panel');
+    if (!panel) return;
+    panel.dataset.render = 'full';
+    panel.innerHTML = renderStatementHTML(getStatement(panel.dataset.stmt));
+}
 
-    const stmt = STATEMENTS_BANK.find(s => s.id === statementId);
-    container.innerHTML = renderStatementHTML(stmt);
+// Recorta (o restituye) el enunciado de la pregunta actual según el modo
+// foco. Solo se repinta si hace falta, para no perder el desplazamiento.
+function pintarPanelEnunciado(idPanel, pregunta, bloque) {
+    const panel = document.getElementById(idPanel);
+    if (!panel) return;
+    const vinculos = pregunta.factIds || [];
+    const foco  = modoFoco && bloque.tipo !== 'test' && vinculos.length > 0;
+    const clave = foco ? ('foco:' + vinculos.join(',')) : 'full';
+    if (panel.dataset.render === clave) return;
+    panel.dataset.render = clave;
+    panel.innerHTML = renderStatementHTML(getStatement(panel.dataset.stmt),
+                                          foco ? { factIds: vinculos } : null);
 }
 
 // Agrupa un banco de preguntas por statementId, conservando el orden de
@@ -1572,17 +1903,17 @@ function groupByStatement(bank) {
 //               de cada bloque, sus preguntas en el orden del editor).
 //   'answers' → reutiliza exactamente el mismo conjunto/orden que el
 //               intento anterior (sourceBank); solo cambian las opciones.
-//   'full'    → baraja qué preguntas salen y en qué orden DENTRO de cada
-//               bloque. El orden de los bloques NUNCA cambia: lo decide el
-//               editor, así que si el supuesto va primero y la teoría
-//               después, así se queda en todos los intentos.
-//                 · bloque de teoría  → se barajan sus preguntas.
+//   'order'   → SALEN TODAS LAS PREGUNTAS, en otro orden. No se descarta
+//               ninguna: la única diferencia con 'answers' es el orden.
+//               El orden de los bloques NUNCA cambia: lo decide el editor,
+//               así que si el supuesto va primero y la teoría después, así
+//               se queda en todos los intentos.
+//                 · bloque de teoría   → se barajan sus preguntas.
 //                 · bloque de supuesto → se barajan los enunciados y, dentro
-//                   de cada uno, sale un subconjunto aleatorio de sus
-//                   preguntas conservando el orden narrativo (una pregunta
-//                   nunca se separa de su enunciado).
-//               Si el bloque tiene "porIntento" > 0, se recorta a ese
-//               número de preguntas.
+//                   de cada uno, sus preguntas (una pregunta nunca se
+//                   separa de su enunciado, para no repetir los hechos).
+//               Solo si el bloque tiene "porIntento" > 0 —que es una
+//               decisión expresa del editor— se recorta a ese número.
 function buildQuestionOrder(mode, sourceBank) {
     if (mode === 'answers') return [...sourceBank];
 
@@ -1591,7 +1922,7 @@ function buildQuestionOrder(mode, sourceBank) {
         const banco = b.preguntas;
         if (!banco.length) return;
 
-        if (mode !== 'full') {
+        if (mode !== 'order') {
             result.push(...banco);
             return;
         }
@@ -1602,10 +1933,7 @@ function buildQuestionOrder(mode, sourceBank) {
         } else {
             elegidas = [];
             shuffle(groupByStatement(banco)).forEach(g => {
-                const count  = g.items.length === 1 ? 1 : 1 + Math.floor(Math.random() * g.items.length);
-                const picked = shuffle(g.items).slice(0, count);
-                picked.sort((x, y) => g.items.indexOf(x) - g.items.indexOf(y));
-                elegidas.push(...picked);
+                elegidas.push(...shuffle(g.items));
             });
         }
         if (b.porIntento > 0) elegidas = elegidas.slice(0, b.porIntento);
@@ -1686,11 +2014,37 @@ function toggleInstantFeedback(checked) {
     instantFeedback = checked;
 }
 
-// Fuerza a ver una sola pregunta cada vez, aunque su bloque esté
-// configurado para verse "en cadena" (todas las preguntas seguidas).
-function toggleUnaEnUna(checked) {
-    forzarUnaEnUna = checked;
+// Cambia cómo se ve UN bloque: marcado, sus preguntas salen de una en
+// una; sin marcar, todas seguidas (en cadena). Cada bloque va por su
+// cuenta, así que se puede tener el supuesto de una en una y la teoría
+// encadenada, o al revés.
+function toggleUnaEnUna(bloqueId, checked) {
+    unaEnUnaPorBloque[bloqueId] = checked;
+    actualizarFilaFoco();
     if (questions.length) jump(current);
+}
+
+/* MODO FOCO — cuelga de la opción anterior y solo actúa sobre los bloques
+   que se estén viendo DE UNA EN UNA: cuando una pregunta está vinculada a
+   hechos concretos del enunciado (factIds), se muestra únicamente esa
+   parte. Las preguntas sin vínculo siguen viendo el enunciado entero, y un
+   bloque en cadena no se recorta nunca. */
+function toggleModoFoco(checked) {
+    modoFoco = checked;
+    if (questions.length) jump(current);
+}
+
+// La fila del modo foco se apaga (sin desaparecer) mientras no haya ningún
+// bloque de supuesto viéndose de una en una: en cadena no puede aplicarse.
+function actualizarFilaFoco() {
+    const fila    = document.getElementById('row-foco');
+    const casilla = document.getElementById('foco-toggle');
+    if (!fila || !casilla) return;
+    const presentes = new Set(questions.map(q => q.bloqueId));
+    const aplicable = STATEMENTS_BANK.length > 0 && BLOCKS_BANK.some(
+        b => b.tipo !== 'test' && presentes.has(b.id) && unaEnUnaPorBloque[b.id]);
+    fila.classList.toggle('apagada', !aplicable);
+    casilla.disabled = !aplicable;
 }
 
 function toggleHideQTags(checked) {
@@ -1785,6 +2139,7 @@ function speakText(text) {
 function init(mode = 'default', sourceBank = null) {
     // Resetear estado
     questions  = buildQuestionOrder(mode, sourceBank || questions);
+    if (!Object.keys(unaEnUnaPorBloque).length) estrenarUnaEnUna();
     timeLeft   = examDurationSeconds;
     current    = 0;
     userAns    = {};
@@ -1794,7 +2149,6 @@ function init(mode = 'default', sourceBank = null) {
     alerted5b  = false;
     alerted1   = false;
     timerPaused = false;
-    currentStatementId = undefined; // fuerza a repintar el enunciado de la primera pregunta
 
     // Limpiar DOM (solo las preguntas; el ⚙ de configuración se conserva)
     document.getElementById('nav-boxes').innerHTML  = '';
@@ -1830,8 +2184,11 @@ function init(mode = 'default', sourceBank = null) {
         cuantasPorBloque[q.bloqueId] = (cuantasPorBloque[q.bloqueId] || 0) + 1;
     });
 
-    let bloqueAnterior = null;
-    let filaCasillas   = null;
+    let bloqueAnterior    = null;
+    let filaCasillas      = null;
+    let stmtAnterior      = undefined;  // enunciado del grupo que se va montando
+    let panelActual       = '';         // id del panel de ese grupo
+    let cabeceraPendiente = null;       // cabecera que va DEBAJO del enunciado
 
     questions.forEach((q, i) => {
         const bloque = getBlock(q.bloqueId);
@@ -1841,6 +2198,7 @@ function init(mode = 'default', sourceBank = null) {
         // Además se crea su cabecera de sección sobre las preguntas.
         if (bloque !== bloqueAnterior) {
             bloqueAnterior = bloque;
+            stmtAnterior   = undefined;
             const primera = i;
 
             const fila = document.createElement('div');
@@ -1860,7 +2218,33 @@ function init(mode = 'default', sourceBank = null) {
             fila.appendChild(rotulo);
             fila.appendChild(filaCasillas);
             nav.appendChild(fila);
-            cont.appendChild(cabeceraBloque(bloque, cuantasPorBloque[bloque.id]));
+
+            // La cabecera de sección va ENCIMA del enunciado (lo natural en
+            // un supuesto: primero de qué sección se trata, luego los
+            // hechos). Si el bloque lleva esa opción desactivada, espera y
+            // se cuela justo delante de la primera pregunta.
+            const cabecera = cabeceraBloque(bloque, cuantasPorBloque[bloque.id]);
+            if (bloque.cabeceraSobreEnunciado) cont.appendChild(cabecera);
+            else cabeceraPendiente = cabecera;
+        }
+
+        // Enunciado del grupo: se pinta UNA sola vez, delante de la primera
+        // pregunta que lo comparte. Así, con las preguntas en cadena, el
+        // documento sale como se lee un supuesto: enunciado 1 (completo) →
+        // sus preguntas → enunciado 2 → sus preguntas…
+        const sid = q.statementId || null;
+        if (sid !== stmtAnterior) {
+            stmtAnterior = sid;
+            panelActual  = '';
+            if (sid && getStatement(sid)) {
+                const panel = panelEnunciado(sid, bloque, i);
+                cont.appendChild(panel);
+                panelActual = panel.id;
+            }
+        }
+        if (cabeceraPendiente) {
+            cont.appendChild(cabeceraPendiente);
+            cabeceraPendiente = null;
         }
 
         // Botón nav, dentro de la fila de su bloque
@@ -1872,27 +2256,32 @@ function init(mode = 'default', sourceBank = null) {
         box.onclick  = () => jump(i);
         filaCasillas.appendChild(box);
 
-        // Opciones: siempre se barajan, para cada usuario/carga de la página,
-        // independientemente del modo de intento (que solo afecta a qué
-        // preguntas y en qué orden aparecen, no al orden de sus opciones).
-        const shuffledOpts = shuffle(q.a.map((txt, idx) => ({ txt, idx })));
+        // Opciones: se eligen (si la pregunta tiene más de las que deben
+        // salir) y se barajan en cada carga de la página, sea cual sea el
+        // modo de intento, que solo decide qué preguntas salen y en qué orden.
+        const opciones = opcionesDePregunta(q);
 
-        const correctNewIdx = shuffledOpts.findIndex(o => o.idx === q.c);
+        // Dónde han quedado las correctas después de barajar
+        const correctasNuevas = [];
+        opciones.forEach((o, ni) => { if (q.correctas.includes(o.idx)) correctasNuevas.push(ni); });
+        const multiple = q.multiple === true;
 
         let optHtml = '';
-        shuffledOpts.forEach(({ txt }, ni) => {
+        opciones.forEach(({ txt }, ni) => {
             optHtml += `
-                <div class="option" id="opt-${i}-${ni}" onclick="selectAnswer(${i}, ${ni}, ${correctNewIdx})">
+                <div class="option${multiple ? ' multi' : ''}" id="opt-${i}-${ni}" onclick="selectAnswer(${i}, ${ni})">
                     <span class="opt-letter">${LETTERS[ni]}</span>
-                    <span>${txt.replace(/^[A-D]\)\s*/, '')}</span>
+                    <span>${txt.replace(/^[A-G]\)\s*/, '')}</span>
                 </div>`;
         });
 
         const card    = document.createElement('div');
         card.className = `question-card blq-${bloque.id}`;
         card.id       = `qcard-${i}`;
-        card.dataset.correct = correctNewIdx;
-        card.dataset.bloque  = bloque.id;
+        card.dataset.correct  = correctasNuevas.join(',');
+        card.dataset.multiple = multiple ? '1' : '';
+        card.dataset.bloque   = bloque.id;
+        card.dataset.panel    = panelActual;   // enunciado al que pertenece
         card.innerHTML = `
             <div class="q-header">
                 <div class="q-num">${String(i+1).padStart(2,'0')}</div>
@@ -1901,6 +2290,7 @@ function init(mode = 'default', sourceBank = null) {
                     <div class="q-text">${q.q}</div>
                 </div>
             </div>
+            ${multiple ? '<div class="multi-aviso">Marca todas las respuestas que procedan</div>' : ''}
             <div class="options-grid">${optHtml}</div>
             <div class="feedback" id="feed-${i}">
                 <div class="feedback-header"><span>⚖️ MOTIVACIÓN LEGAL Y NORMATIVA APLICABLE</span></div>
@@ -1912,13 +2302,17 @@ function init(mode = 'default', sourceBank = null) {
         cont.appendChild(card);
     });
 
+    // Casillas «de una en una» del panel ⚙: una por cada bloque del intento
+    montarOpcionesUnaEnUna();
+
     // Con la cabecera ya montada: botón de plegado y altura para el reloj
     actualizarBotonPlegar();
     medirCabecera();
 
     // Colocarse en la primera pregunta: jump() se encarga del enunciado,
-    // de la cabecera de sección y de qué tarjetas se ven.
-    if (questions.length) jump(0);
+    // de la cabecera de sección y de qué tarjetas se ven. Sin desplazar la
+    // página: el examen empieza por su cabecera institucional.
+    if (questions.length) jump(0, true);
 
     // Actualizar progress
     updateProgress();
@@ -1933,9 +2327,37 @@ function init(mode = 'default', sourceBank = null) {
 }
 
 /* ═══════════════════════════════════════════
+   RESPUESTAS — consulta del estado
+   ───────────────────────────────────────────
+   Una pregunta puede tener una sola respuesta correcta o varias, así que
+   tanto lo correcto como lo contestado se guardan SIEMPRE como lista de
+   posiciones (ya barajadas). Sin responder = no hay entrada en userAns.
+═══════════════════════════════════════════ */
+function correctasDe(qIdx) {
+    const card = document.getElementById(`qcard-${qIdx}`);
+    const dato = card ? card.dataset.correct : '';
+    return dato ? dato.split(',').map(Number) : [];
+}
+
+function contestadasDe(qIdx) {
+    return userAns[qIdx] || [];
+}
+
+function sinResponder(qIdx) {
+    return contestadasDe(qIdx).length === 0;
+}
+
+// Acierto = exactamente las correctas, ni una de más ni una de menos.
+function esAcierto(qIdx) {
+    const dadas     = contestadasDe(qIdx);
+    const correctas = correctasDe(qIdx);
+    return dadas.length === correctas.length && correctas.every(c => dadas.includes(c));
+}
+
+/* ═══════════════════════════════════════════
    SELECCIÓN DE RESPUESTA (permite desmarcar y modo corrección instantánea)
 ═══════════════════════════════════════════ */
-function selectAnswer(qIdx, optIdx, correctIdx) {
+function selectAnswer(qIdx, optIdx) {
     if (evaluated) return;
 
     // En pantallas táctiles, un "clic" que en realidad es un desplazamiento
@@ -1946,33 +2368,62 @@ function selectAnswer(qIdx, optIdx, correctIdx) {
         if (Date.now() - ultimoScroll < 300) return;
     }
 
-    const wasSelected = userAns[qIdx] === optIdx;
+    const card     = document.getElementById(`qcard-${qIdx}`);
+    const multiple = card && card.dataset.multiple === '1';
+    let dadas      = [...contestadasDe(qIdx)];
 
-    // Limpiar marcas visuales previas de esta pregunta
-    document.querySelectorAll(`#qcard-${qIdx} .option`).forEach(o => o.classList.remove('selected', 'correct', 'wrong'));
-    const navBox = document.getElementById(`nav-${qIdx}`);
-    navBox.classList.remove('nav-wrong', 'nav-correct');
-
-    if (wasSelected) {
-        // Volver a hacer clic en la opción ya marcada → dejar la pregunta en blanco
-        delete userAns[qIdx];
-        navBox.classList.remove('answered');
-        if (instantFeedback) document.getElementById(`feed-${qIdx}`).style.display = 'none';
+    if (dadas.includes(optIdx)) {
+        // Volver a pulsar una opción ya marcada la desmarca
+        dadas = dadas.filter(x => x !== optIdx);
+    } else if (multiple) {
+        dadas.push(optIdx);            // se pueden marcar varias
     } else {
-        userAns[qIdx] = optIdx;
-        document.getElementById(`opt-${qIdx}-${optIdx}`).classList.add('selected');
-        navBox.classList.add('answered');
-
-        if (instantFeedback) {
-            document.getElementById(`opt-${qIdx}-${correctIdx}`).classList.add('correct');
-            if (optIdx !== correctIdx) {
-                document.getElementById(`opt-${qIdx}-${optIdx}`).classList.add('wrong');
-                navBox.classList.add('nav-wrong');
-            }
-            document.getElementById(`feed-${qIdx}`).style.display = 'block';
-        }
+        dadas = [optIdx];              // una sola: sustituye a la anterior
     }
+    dadas.sort((x, y) => x - y);
+
+    if (dadas.length) userAns[qIdx] = dadas;
+    else delete userAns[qIdx];
+
+    pintarRespuesta(qIdx);
     updateProgress();
+}
+
+// Marca en verde las correctas y en rojo las falladas de una pregunta.
+function marcarSolucion(qIdx) {
+    const dadas     = contestadasDe(qIdx);
+    const correctas = correctasDe(qIdx);
+    document.querySelectorAll(`#qcard-${qIdx} .option`).forEach((o, ni) => {
+        o.classList.remove('correct', 'wrong');
+        if (correctas.includes(ni))   o.classList.add('correct');
+        else if (dadas.includes(ni))  o.classList.add('wrong');
+    });
+}
+
+/* Repinta una pregunta según lo que lleve marcado. Con corrección
+   pregunta a pregunta la solución no se enseña hasta que se han marcado
+   tantas opciones como correctas tiene: si no, en una pregunta de
+   respuesta múltiple se cantaría la solución con el primer clic. */
+function pintarRespuesta(qIdx) {
+    const dadas     = contestadasDe(qIdx);
+    const correctas = correctasDe(qIdx);
+    const navBox    = document.getElementById(`nav-${qIdx}`);
+    const feed      = document.getElementById(`feed-${qIdx}`);
+
+    document.querySelectorAll(`#qcard-${qIdx} .option`).forEach((o, ni) => {
+        o.classList.remove('selected', 'correct', 'wrong');
+        if (dadas.includes(ni)) o.classList.add('selected');
+    });
+    navBox.classList.remove('nav-wrong', 'nav-correct');
+    navBox.classList.toggle('answered', dadas.length > 0);
+
+    if (!instantFeedback || dadas.length < correctas.length) {
+        if (feed) feed.style.display = 'none';
+        return;
+    }
+    marcarSolucion(qIdx);
+    if (!esAcierto(qIdx)) navBox.classList.add('nav-wrong');
+    if (feed) feed.style.display = 'block';
 }
 
 /* ═══════════════════════════════════════════
@@ -2008,7 +2459,10 @@ window.addEventListener('scroll', () => { ultimoScroll = Date.now(); }, { passiv
 /* ═══════════════════════════════════════════
    NAVEGACIÓN
 ═══════════════════════════════════════════ */
-function jump(i) {
+/* Lleva el examen a la pregunta i. Con "sinDesplazar" se actualiza lo que
+   se ve pero la página no se mueve (al arrancar y al corregir, para no
+   saltarse la cabecera ni el marcador). */
+function jump(i, sinDesplazar) {
     current = i;
     const pregunta = questions[i];
     const bloque   = getBlock(pregunta.bloqueId);
@@ -2033,13 +2487,27 @@ function jump(i) {
         c.classList.toggle('active', idx === i);
     });
 
+    // Enunciados: en cadena se ven todos los del bloque (cada uno delante de
+    // sus preguntas); de una en una, solo el de la pregunta actual.
+    const tarjeta = document.getElementById(`qcard-${i}`);
+    const idPanel = (tarjeta && tarjeta.dataset.panel) || '';
+    document.querySelectorAll('.stmt-panel').forEach(p => {
+        const suyo = cadena ? (p.dataset.bloque === bloque.id) : (p.id === idPanel);
+        p.classList.toggle('visible', suyo);
+        // Con las preguntas encadenadas el enunciado va siempre entero: no
+        // hay una única pregunta a la que recortarlo.
+        if (suyo && cadena && p.dataset.render !== 'full') {
+            p.dataset.render = 'full';
+            p.innerHTML = renderStatementHTML(getStatement(p.dataset.stmt));
+        }
+    });
+    if (!cadena && idPanel) pintarPanelEnunciado(idPanel, pregunta, bloque);
+
     document.querySelectorAll('.nav-box').forEach(b => b.classList.remove('active'));
     const navBox = document.getElementById(`nav-${i}`);
     navBox.classList.add('active');
 
-    // El panel de enunciado solo se repinta si la pregunta destino
-    // pertenece a un enunciado distinto al que ya se está mostrando.
-    updateStatementPanel(pregunta.statementId || null);
+    if (sinDesplazar) return;
 
     // En móvil la fila de preguntas se desplaza en horizontal: al cambiar
     // de pregunta la casilla activa siempre vuelve a quedar visible.
@@ -2047,9 +2515,13 @@ function jump(i) {
 
     if (cadena) {
         // Con las preguntas apiladas no se sube al principio: se lleva la
-        // pregunta elegida justo debajo de la cabecera fija.
-        const card = document.getElementById(`qcard-${i}`);
-        const y    = card.getBoundingClientRect().top + window.scrollY - 90;
+        // pregunta elegida justo debajo de la cabecera fija. Y si es la
+        // PRIMERA pregunta de un enunciado, se sube hasta el enunciado: al
+        // llegar a un caso práctico lo primero que hay que leer son los
+        // hechos, no la pregunta.
+        const panelGrupo = (idPanel === `stmtp-${i}`) ? document.getElementById(idPanel) : null;
+        const destino    = panelGrupo || document.getElementById(`qcard-${i}`);
+        const y          = destino.getBoundingClientRect().top + window.scrollY - 90;
         window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
     } else {
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -2134,11 +2606,10 @@ function updateProgress() {
 ═══════════════════════════════════════════ */
 function updateNavResultColors() {
     questions.forEach((q, i) => {
-        const correctNew = parseInt(document.getElementById(`qcard-${i}`).dataset.correct);
         const navBox = document.getElementById(`nav-${i}`);
         navBox.classList.remove('answered', 'nav-wrong');
-        if (userAns[i] === undefined) return;
-        navBox.classList.add(userAns[i] === correctNew ? 'answered' : 'nav-wrong');
+        if (sinResponder(i)) return;
+        navBox.classList.add(esAcierto(i) ? 'answered' : 'nav-wrong');
     });
 }
 
@@ -2163,12 +2634,8 @@ function evaluateExam() {
 
     // Marcar opciones correctas / erróneas en las tarjetas visibles
     questions.forEach((q, i) => {
-        const correctNew = parseInt(document.getElementById(`qcard-${i}`).dataset.correct);
         document.getElementById(`feed-${i}`).style.display = 'block';
-        document.getElementById(`opt-${i}-${correctNew}`).classList.add('correct');
-        if (userAns[i] !== undefined && userAns[i] !== correctNew) {
-            document.getElementById(`opt-${i}-${userAns[i]}`).classList.add('wrong');
-        }
+        marcarSolucion(i);
     });
     updateNavResultColors();
 
@@ -2179,7 +2646,10 @@ function evaluateExam() {
     // Banner de resultado inline
     buildInlineScore();
 
-    jump(0);
+    // Se vuelve a la primera pregunta y se sube al principio, para que lo
+    // primero que se vea sea el marcador.
+    jump(0, true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 /* ═══════════════════════════════════════════
@@ -2187,10 +2657,7 @@ function evaluateExam() {
 ═══════════════════════════════════════════ */
 function calcScore() {
     let score = 0;
-    questions.forEach((q, i) => {
-        const correctNew = parseInt(document.getElementById(`qcard-${i}`).dataset.correct);
-        if (userAns[i] === correctNew) score++;
-    });
+    questions.forEach((q, i) => { if (esAcierto(i)) score++; });
     return score;
 }
 
@@ -2208,15 +2675,13 @@ function calcResultados() {
                              blancos: 0, puntos: 0, max: 0 });
             orden.push(b.id);
         }
-        const r    = mapa.get(b.id);
-        const card = document.getElementById(`qcard-${i}`);
-        const correcta = card ? parseInt(card.dataset.correct) : -1;
+        const r = mapa.get(b.id);
 
         r.total++;
         r.max += b.acierto;
-        if (userAns[i] === undefined)     { r.blancos++;  r.puntos -= b.blanco; }
-        else if (userAns[i] === correcta) { r.aciertos++; r.puntos += b.acierto; }
-        else                              { r.fallos++;   r.puntos -= b.fallo;  }
+        if (sinResponder(i))   { r.blancos++;  r.puntos -= b.blanco; }
+        else if (esAcierto(i)) { r.aciertos++; r.puntos += b.acierto; }
+        else                   { r.fallos++;   r.puntos -= b.fallo;  }
     });
 
     const bloques = orden.map(id => mapa.get(id));
@@ -2276,15 +2741,13 @@ function buildInlineScore() {
         <div style="font-size:1rem;color:${res.apto?'#6fcf97':'#fc8181'};font-weight:600;">${res.apto?'APTO — Buen dominio normativo':'NO APTO — Revise la motivación de cada respuesta'}</div>
         ${desgloseBloquesHTML(res)}`;
 
+    // Los enunciados viven dentro del hilo de preguntas, así que el
+    // marcador se coloca antes de la barra de progreso: encabeza todo el
+    // examen y no se cuela entre un enunciado y sus preguntas.
     const container = document.querySelector('.container');
-    const statement = container.querySelector('.statement');
-    if (statement) {
-        container.insertBefore(banner, statement.nextSibling);
-    } else {
-        // Si se ha eliminado la sección de enunciado (opcional en la plantilla)
-        const progress = container.querySelector('.progress-bar-wrap');
-        container.insertBefore(banner, progress || container.firstChild);
-    }
+    const progress  = container.querySelector('.progress-bar-wrap');
+    container.insertBefore(banner, progress || document.getElementById('quiz-container')
+                                            || container.firstChild);
 }
 
 /* ═══════════════════════════════════════════
@@ -2307,24 +2770,20 @@ function showCorrectionPanel() {
             const r = resumenBloques.get(b.id);
             html += `<div class="corr-bloque blq-${b.id}">${b.titulo} — ${r.aciertos} ✓ · ${r.fallos} ✗ · ${r.blancos} — · ${nUm(r.puntos)} / ${nUm(r.max)} puntos</div>`;
         }
-        const correctNew = parseInt(document.getElementById(`qcard-${i}`).dataset.correct);
-        const given      = userAns[i];
-        const isCorrect  = given === correctNew;
-        const isSkipped  = given === undefined;
+        const correctas = correctasDe(i);
+        const dadas     = contestadasDe(i);
+        const isCorrect = esAcierto(i);
+        const isSkipped = sinResponder(i);
 
         // Marcar visualmente en las tarjetas
-        document.getElementById(`opt-${i}-${correctNew}`).classList.add('correct');
-        if (!isSkipped && !isCorrect) document.getElementById(`opt-${i}-${given}`).classList.add('wrong');
+        marcarSolucion(i);
         document.getElementById(`feed-${i}`).style.display = 'block';
 
-        // Texto de la opción elegida
-        const givenText = isSkipped
-            ? '<em style="color:#9ca3af;">Sin responder</em>'
-            : q.a[/* original idx */ [...document.querySelectorAll(`#qcard-${i} .option`)][given].querySelector('span:last-child').textContent];
-
-        // Obtener textos de opciones del DOM
-        const optEls = document.querySelectorAll(`#qcard-${i} .option span:last-child`);
+        // Textos de las opciones tal y como han salido en esta tarjeta
+        const optEls   = document.querySelectorAll(`#qcard-${i} .option span:last-child`);
         const optTexts = [...optEls].map(el => el.textContent.trim());
+        const listar   = idx => idx.map(n => `${LETTERS[n]}) ${optTexts[n]}`).join('<br>');
+        const varias   = correctas.length > 1;
 
         const badgeClass = isSkipped ? 'skip' : isCorrect ? 'ok' : 'err';
         const badgeText  = isSkipped ? '—'   : isCorrect ? '✓'  : '✗';
@@ -2337,10 +2796,10 @@ function showCorrectionPanel() {
             </div>
             <div class="ci-answers">
                 ${!isSkipped ? `<div class="given ${isCorrect?'':'wrong'}">
-                    <strong>Respuesta elegida:</strong> ${LETTERS[given]}) ${optTexts[given]}
+                    <strong>${varias ? 'Respuestas elegidas:' : 'Respuesta elegida:'}</strong><br>${listar(dadas)}
                 </div>` : `<div class="given wrong"><em>Pregunta no respondida</em></div>`}
                 ${!isCorrect ? `<div class="correct-ans">
-                    <strong>Respuesta correcta:</strong> ${LETTERS[correctNew]}) ${optTexts[correctNew]}
+                    <strong>${varias ? 'Respuestas correctas:' : 'Respuesta correcta:'}</strong><br>${listar(correctas)}
                 </div>` : ''}
             </div>
             <div class="ci-law"><strong>⚖️ Normativa aplicable:</strong><br>${q.law}</div>
@@ -2362,47 +2821,27 @@ function printResults() {
     // Asegurarse de que todo esté corregido y visible
     if (!evaluated) evaluateExam();
 
-    // Mostrar todas las tarjetas para imprimir
+    // El documento ya está montado en el orden de lectura (cabecera de
+    // sección → enunciado → sus preguntas → siguiente enunciado…), así que
+    // para imprimir basta con enseñarlo entero: no hay que recolocar nada.
     document.querySelectorAll('.question-card').forEach(c => {
         c.style.display = 'block';
     });
     document.querySelectorAll('.feedback').forEach(f => {
         f.style.display = 'block';
     });
-
-    // Reconstruir temporalmente el documento para impresión: cada enunciado
-    // aparece justo antes del bloque de preguntas al que está vinculado
-    // (en pantalla solo se muestra un enunciado a la vez).
-    const statementContainer = document.getElementById('statement-container');
-    const quizContainer      = document.getElementById('quiz-container');
-    const printWrap = document.createElement('div');
-    printWrap.id = 'print-wrap';
-    let lastStatementId, lastBlockId;
-    questions.forEach((q, i) => {
-        // Cabecera de sección al empezar cada bloque
-        if (q.bloqueId !== lastBlockId) {
-            lastBlockId = q.bloqueId;
-            lastStatementId = undefined;      // el enunciado se repite en la nueva sección
-            const cab = document.getElementById(`bhdr-${q.bloqueId}`);
-            if (cab) printWrap.appendChild(cab);
-        }
-        const sid = q.statementId || null;
-        if (sid !== lastStatementId) {
-            lastStatementId = sid;
-            if (sid) {
-                const stmt = STATEMENTS_BANK.find(s => s.id === sid);
-                if (stmt) {
-                    const tmp = document.createElement('div');
-                    tmp.innerHTML = renderStatementHTML(stmt);
-                    printWrap.appendChild(tmp.firstElementChild);
-                }
-            }
-        }
-        printWrap.appendChild(document.getElementById(`qcard-${i}`));
+    document.querySelectorAll('.block-header').forEach(h => {
+        h.classList.add('visible');
     });
-    statementContainer.style.display = 'none';
-    quizContainer.style.display = 'none';
-    quizContainer.insertAdjacentElement('afterend', printWrap);
+    // En papel los enunciados salen completos, aunque en pantalla
+    // estuvieran recortados por el modo foco.
+    document.querySelectorAll('.stmt-panel').forEach(p => {
+        if (p.dataset.render !== 'full') {
+            p.dataset.render = 'full';
+            p.innerHTML = renderStatementHTML(getStatement(p.dataset.stmt));
+        }
+        p.classList.add('visible');
+    });
 
     // Ocultar el overlay temporalmente (sin tocar el display inline,
     // para no romper el cierre posterior con classList en closeOverlay)
@@ -2411,25 +2850,16 @@ function printResults() {
 
     window.print();
 
-    // Restaurar tras impresión: devolver cada tarjeta a quiz-container en
-    // su orden original y eliminar el contenedor temporal de impresión.
+    // Restaurar tras impresión: jump() vuelve a dejar a la vista solo lo
+    // que corresponde al modo en que se estaba trabajando.
     setTimeout(() => {
-        // Devolver cabeceras de bloque y tarjetas a su sitio, en el mismo
-        // orden en que se crearon (cabecera del bloque y luego sus preguntas).
-        let bloqueRestaurado;
-        questions.forEach((q, i) => {
-            if (q.bloqueId !== bloqueRestaurado) {
-                bloqueRestaurado = q.bloqueId;
-                const cab = document.getElementById(`bhdr-${q.bloqueId}`);
-                if (cab) quizContainer.appendChild(cab);
-            }
-            quizContainer.appendChild(document.getElementById(`qcard-${i}`));
-        });
-        printWrap.remove();
-        quizContainer.style.display = '';
-        statementContainer.style.display = '';
         document.querySelectorAll('.question-card').forEach(c => { c.style.display = ''; });
-        if (questions.length) jump(current);
+        if (questions.length) {
+            jump(current, true);
+        } else {
+            document.querySelectorAll('.block-header, .stmt-panel')
+                    .forEach(el => el.classList.remove('visible'));
+        }
         if (evaluated && overlayWasShown) {
             document.getElementById('overlay').classList.add('show');
         }
@@ -2548,7 +2978,21 @@ function enviarResultados() {
 /* ═══════════════════════════════════════════
    REINICIAR (elección de aleatoriedad)
 ═══════════════════════════════════════════ */
+/* Cada una de las dos formas de repetir se puede quitar por separado
+   desde el editor. Si solo queda una, no tiene sentido preguntar: se
+   arranca directamente con ella. Si no queda ninguna, el botón 🔀 ni
+   siquiera se muestra (ver botonPermitido). */
+function modosAleatoriosDisponibles() {
+    return [['answers', 'opcionRepetirRespuestas'],
+            ['order',   'opcionRepetirOrden']]
+           .filter(([, clave]) => interfazVisible(clave))
+           .map(([modo]) => modo);
+}
+
 function openRandomModal() {
+    const modos = modosAleatoriosDisponibles();
+    if (modos.length === 1) { confirmRestart(modos[0]); return; }
+    if (!modos.length) return;
     document.getElementById('random-modal').classList.add('show');
 }
 
@@ -2558,9 +3002,9 @@ function closeRandomModal() {
 
 // mode: 'answers' → mismas preguntas y mismo orden, solo cambian las
 //                    opciones de respuesta.
-//       'full'    → también se baraja qué preguntas salen y en qué orden
-//                    (respetando siempre el vínculo pregunta-enunciado y
-//                    renumerando 1..N de forma correlativa y visible).
+//       'order'   → las mismas preguntas, todas, en otro orden (respetando
+//                    siempre el vínculo pregunta-enunciado y renumerando
+//                    1..N de forma correlativa y visible).
 function confirmRestart(mode) {
     closeRandomModal();
     if (timerInt) clearInterval(timerInt);
@@ -2570,7 +3014,7 @@ function confirmRestart(mode) {
     // Ocultar overlay
     document.getElementById('overlay').classList.remove('show');
     // Reinicializar el intento. Para 'answers' se reutiliza el conjunto de
-    // preguntas ya cargado (questions); para 'full' se recalcula desde cero
+    // preguntas ya cargado (questions); para 'order' se recalcula desde cero
     // a partir de QUESTIONS_BANK dentro de buildQuestionOrder().
     init(mode, questions);
 }

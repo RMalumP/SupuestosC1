@@ -39,6 +39,25 @@ from tkinter import font as tkfont
 APP_TITULO = "Editor de Supuestos — plantilla ECAP C1"
 PLANTILLA_BASE = "supuesto_plantilla_python.html"   # se busca junto a este .py
 
+# Versión del MOTOR de la página (el código que la hace funcionar, no los
+# datos del supuesto). Al guardar, el editor compara la versión que lleva
+# el archivo con la de la plantilla que tiene al lado: si el archivo se
+# quedó atrás, ofrece ponerlo al día. Sin esto, un supuesto guardado hace
+# meses conserva para siempre la página con la que se creó, por muchas
+# mejoras que se hagan luego en la plantilla.
+RE_MOTOR = re.compile(
+    r"""<meta\s+name=["']motor-plantilla["']\s+content=["'](\d+)["']""", re.I)
+
+
+def version_motor(html):
+    """Número de versión del motor que lleva un HTML (0 = de antes de que
+    esto existiera)."""
+    m = RE_MOTOR.search(html or "")
+    try:
+        return int(m.group(1)) if m else 0
+    except (TypeError, ValueError):
+        return 0
+
 # Paleta (a juego con la plantilla)
 C_FONDO = "#f3ece4"
 C_PANEL = "#fffef9"
@@ -107,7 +126,14 @@ INTERFAZ_DEFECTO = {
     "opcionTiempo":   {"visible": True, "texto": "Duración del examen (mm:ss)"},
     "opcionCorregir": {"visible": True, "texto": "Corregir pregunta a pregunta",
                        "activa": False},
-    "opcionUnaEnUna": {"visible": True, "texto": "Ver las preguntas de una en una",
+    "opcionUnaEnUna": {"visible": True, "texto": "Ver las preguntas de una en una"},
+    # Las dos formas de repetir el examen que ofrece el botón 🔀
+    "opcionRepetirRespuestas": {"visible": True,
+                                "texto": "🔁 Mismas preguntas y mismo orden"},
+    "opcionRepetirOrden":      {"visible": True,
+                                "texto": "🎲 Mismas preguntas en otro orden"},
+    "opcionFoco":     {"visible": True,
+                       "texto": "Modo foco: solo los hechos de cada pregunta",
                        "activa": False},
     "opcionQtags":    {"visible": True, "texto": "Ocultar las etiquetas de pregunta",
                        "activa": False},
@@ -149,9 +175,21 @@ CAMPOS_CABECERA = [
      "Enseña la solución nada más responder cada pregunta. Marca «Empieza activada» "
      "para que el examen arranque ya en ese modo."),
     ("opcionUnaEnUna", "Opción: ver las preguntas de una en una",
-     '<div class="settings-row" id="row-una">', "Texto",
-     "Anula el modo «en cadena» de los bloques que lo tengan. Con «Empieza activada», "
-     "el examen arranca mostrando una sola pregunta cada vez."),
+     '<div class="settings-row" id="row-una">  ·  una casilla por bloque', "Rótulo del grupo",
+     "En la página NO es una casilla suelta: debajo de este rótulo sale UNA CASILLA POR "
+     "BLOQUE (con su nombre y su color), de modo que se puede tener el supuesto de una en "
+     "una y la teoría en cadena, o al revés. CADA BLOQUE ARRANCA COMO DIGA SU «MODO» EN LA "
+     "PESTAÑA 2 —nada de aquí lo cambia—, y allí mismo se le puede quitar la casilla. "
+     "Aquí solo se decide si el grupo entero se ve y cómo se titula."),
+    ("opcionFoco", "Opción: modo foco (dentro de «una en una»)",
+     '<div class="settings-row settings-sub" id="row-foco">', "Texto",
+     "Sub-opción del panel ⚙ que cuelga de «ver las preguntas de una en una». Con el "
+     "modo foco encendido, cada pregunta que esté vinculada a bloques de hechos "
+     "concretos (pestaña «4 · Preguntas») muestra SOLO esa parte del enunciado, con un "
+     "botón para desplegarlo entero; las preguntas sin vínculo siguen viendo el "
+     "enunciado completo. La fila se apaga sola mientras no haya ningún bloque de "
+     "supuesto viéndose de una en una."),
+
     ("opcionQtags", "Opción: ocultar las etiquetas de pregunta",
      '<div class="settings-row" id="row-qtags">', "Texto",
      "Oculta las etiquetas de materia que aparecen encima de cada pregunta. Con "
@@ -172,7 +210,20 @@ CAMPOS_BOTONERA = [
     ("btnImprimir", "Imprimir / PDF", '#print-btn  ·  #ov-print-btn',
      "Aparece al terminar, abajo y en la ventana de resultados."),
     ("btnReintentar", "Nuevo intento aleatorio", '#restart-btn  ·  #ov-restart-btn',
-     "Aparece al terminar. Abre la elección de tipo de aleatoriedad."),
+     "Aparece al terminar. Abre la ventana con las dos formas de repetir (justo debajo). "
+     "Si quitas las dos, este botón no se muestra; si dejas una sola, no se pregunta nada: "
+     "el botón repite directamente de esa forma."),
+    ("opcionRepetirRespuestas", "· Repetir: mismas preguntas y mismo orden",
+     '<button id="rnd-answers">',
+     "Primera opción de la ventana del botón 🔀. Salen las mismas preguntas, en el mismo "
+     "orden; lo único que cambia es el orden de las respuestas dentro de cada pregunta "
+     "(y qué opciones salen, si alguna pregunta tiene más escritas de las que se muestran)."),
+    ("opcionRepetirOrden", "· Repetir: mismas preguntas en otro orden",
+     '<button id="rnd-order">',
+     "Segunda opción de la ventana del botón 🔀. Salen TODAS las preguntas otra vez, pero "
+     "barajadas: nunca se descarta ninguna. Se respeta el orden de los bloques y cada "
+     "pregunta sigue pegada a su enunciado. (Si un bloque tiene puesto «cuántas preguntas "
+     "salen al azar» en la pestaña 2, ese recorte sí se aplica: es una decisión tuya.)"),
     ("btnEnviar", "Enviar resultados", '#send-btn  ·  #ov-send-btn',
      "Aparece al terminar. Si no hay dirección de envío configurada, no se muestra "
      "aunque esté marcado."),
@@ -233,6 +284,24 @@ LOGO_POR_DEFECTO = ("https://academia.ecap.es/pluginfile.php?file=%2F1%2Fcore_ad
 COLOR_SUPUESTO = "#8fc4d9"      # azul de la plantilla
 COLOR_TEST     = "#e0ac4a"      # ámbar, para distinguir la teoría
 
+# ── RESPUESTAS ──────────────────────────────────────────────────────────
+# Una pregunta puede tener de 2 a 7 opciones escritas (4 es lo normal) y
+# una o varias correctas. Además se puede decidir cuántas de esas opciones
+# SALEN en el examen: si una pregunta tiene siete escritas y salen cuatro,
+# cada intento enseña las correctas más unos distractores sorteados.
+MIN_OPCIONES = 2
+MAX_OPCIONES = 7
+OPCIONES_POR_DEFECTO = 4
+LETRAS = "ABCDEFG"
+
+# Valores del desplegable "cuántas respuestas salen" (0 = todas las escritas)
+RESPUESTAS_EXAMEN = [
+    (0, "Todas las que tenga escritas cada pregunta"),
+    (3, "3 respuestas"),
+    (4, "4 respuestas"),
+    (5, "5 respuestas"),
+]
+
 
 # ══════════════════════════════════════════════════════════════════════
 #  1. MODELO DE DATOS
@@ -247,6 +316,7 @@ def datos_vacios():
             "ambito": "Legislación vigente",
             "minutos": 30,
             "aptoPorcentaje": 50,
+            "respuestas": 0,
             "logo": LOGO_POR_DEFECTO,
             "logoAlt": "ECAP - Escuela Ciudadana de Administración Pública",
             "organismo": "Comunidad ECAP ASS C1",
@@ -270,6 +340,8 @@ def bloque_vacio(tipo="supuesto", sugerencia_id="B1", primero=False):
         "titulo": "Teoría" if es_test else "Supuesto práctico",
         "color": COLOR_TEST if es_test else COLOR_SUPUESTO,
         "modo": "cadena" if es_test else "individual",
+        "cabeceraSobreEnunciado": True,
+        "opcionUnaEnUna": True,
         "porIntento": 0,
         "acierto": 1.0,
         "fallo": 0.0,
@@ -290,9 +362,21 @@ def enunciado_vacio(sugerencia_id="E1"):
     }
 
 
-def bloque_hechos_vacio():
-    return {"title": "Título del bloque de hechos", "paragraphs": [""],
+def bloque_hechos_vacio(ident="H1"):
+    """Un trozo de la narración de hechos. El identificador (H1, H2…) NO se
+    ve en la página: sirve para que una pregunta pueda vincularse a este
+    hecho concreto y el modo foco recorte el enunciado a esa parte."""
+    return {"id": ident, "title": "Título del bloque de hechos", "paragraphs": [""],
             "red": False, "hidden": False}
+
+
+def nuevo_id_hecho(enunciado):
+    """Primer H libre dentro de ese enunciado."""
+    usados = {str(b.get("id") or "") for b in (enunciado.get("factBlocks") or [])}
+    n = 1
+    while ("H%d" % n) in usados:
+        n += 1
+    return "H%d" % n
 
 
 def hito_vacio():
@@ -304,10 +388,19 @@ def pregunta_vacia(statement_id=None, bloque_id="B1"):
     return {
         "bloqueId": bloque_id,
         "statementId": statement_id,
+        # Bloques de hechos concretos de los que depende la pregunta
+        # (su hecho desencadenante). Solo se usan en el modo foco.
+        "factIds": [],
         "tag": "",
         "q": "Texto de la pregunta",
-        "a": ["Opción correcta", "Opción incorrecta", "Opción incorrecta", "Opción incorrecta"],
+        "a": ["Opción correcta"] + ["Opción incorrecta"] * (OPCIONES_POR_DEFECTO - 1),
         "c": 0,
+        # Correctas: una sola (lista de un elemento) salvo respuesta múltiple
+        "correctas": [0],
+        "multiple": False,
+        # Cuántas de sus opciones salen en el examen (0 = lo que diga el
+        # apartado general de la pestaña 1)
+        "respuestas": 0,
         "law": "",
         "tip": "",
     }
@@ -323,6 +416,12 @@ def normalizar(datos):
     except (TypeError, ValueError):
         cfg["minutos"] = 30
     cfg["aptoPorcentaje"] = min(100.0, max(0.0, numero(cfg.get("aptoPorcentaje"), 50.0)))
+    # Cuántas respuestas salen de cada pregunta (0 = todas las escritas)
+    try:
+        respuestas = int(cfg.get("respuestas") or 0)
+    except (TypeError, ValueError):
+        respuestas = 0
+    cfg["respuestas"] = respuestas if respuestas == 0 or MIN_OPCIONES <= respuestas <= MAX_OPCIONES else 0
     for k in ("titulo", "referencia", "ambito", "logo", "logoAlt", "organismo"):
         cfg[k] = "" if cfg.get(k) is None else str(cfg.get(k))
 
@@ -375,6 +474,8 @@ def normalizar(datos):
         nb["color"] = color_valido(b.get("color"), nb["color"])
         modo = str(b.get("modo") or "")
         nb["modo"] = modo if modo in ("cadena", "individual") else nb["modo"]
+        nb["cabeceraSobreEnunciado"] = b.get("cabeceraSobreEnunciado") is not False
+        nb["opcionUnaEnUna"] = b.get("opcionUnaEnUna") is not False
         try:
             nb["porIntento"] = max(0, int(b.get("porIntento") or 0))
         except (TypeError, ValueError):
@@ -407,8 +508,16 @@ def normalizar(datos):
         for k in ("title", "ref", "ambito"):
             n[k] = str(n.get(k) or "")
         bloques_hechos = []
-        for fb in (e.get("factBlocks") or []):
+        ids_hechos = set()
+        for pos, fb in enumerate(e.get("factBlocks") or [], 1):
             b = bloque_hechos_vacio()
+            ident = re.sub(r"[^A-Za-z0-9_-]", "", str(fb.get("id") or ""))
+            if not ident:
+                ident = "H%d" % pos
+            while ident in ids_hechos:
+                ident += "x"
+            ids_hechos.add(ident)
+            b["id"] = ident
             b["title"] = str(fb.get("title") or "")
             parr = fb.get("paragraphs") or []
             b["paragraphs"] = [str(p) for p in parr] if isinstance(parr, list) else [str(parr)]
@@ -427,6 +536,9 @@ def normalizar(datos):
         n["timeline"] = hitos
         enunciados.append(n)
 
+    hechos_por_enunciado = {e["id"]: [b["id"] for b in e["factBlocks"]]
+                            for e in enunciados}
+
     preguntas = []
     for p in (datos.get("preguntas") or []):
         q = pregunta_vacia()
@@ -436,16 +548,17 @@ def normalizar(datos):
         q["statementId"] = str(sid) if sid else None
         if tipos[q["bloqueId"]] == "test":
             q["statementId"] = None      # la teoría nunca lleva enunciado
+        # Vínculos con bloques de hechos: solo valen los que existan de
+        # verdad dentro del enunciado al que apunta la pregunta.
+        propios = hechos_por_enunciado.get(q["statementId"] or "", [])
+        brutos = p.get("factIds")
+        brutos = brutos if isinstance(brutos, list) else []
+        vistos_f = set()
+        q["factIds"] = [x for x in (str(y) for y in brutos)
+                        if x in propios and not (x in vistos_f or vistos_f.add(x))]
         q["tag"] = str(p.get("tag") or "")
         q["q"] = str(p.get("q") or "")
-        opciones = [str(x) for x in (p.get("a") or [])]
-        while len(opciones) < 4:
-            opciones.append("")
-        q["a"] = opciones[:4]
-        try:
-            q["c"] = max(0, min(3, int(p.get("c", 0))))
-        except (TypeError, ValueError):
-            q["c"] = 0
+        normalizar_respuestas(q, p)
         q["law"] = str(p.get("law") or "")
         q["tip"] = str(p.get("tip") or "")
         preguntas.append(q)
@@ -456,6 +569,51 @@ def normalizar(datos):
 
     return {"config": cfg, "tema": tema, "interfaz": interfaz, "envio": envio,
             "bloques": bloques, "enunciados": enunciados, "preguntas": preguntas}
+
+
+def normalizar_respuestas(q, p):
+    """Deja en q las opciones, las correctas y cuántas salen.
+
+    Admite tanto el formato de siempre (cuatro opciones y la correcta en
+    "c") como el nuevo (de 2 a 7 opciones, varias correctas en
+    "correctas" y "multiple"). Las opciones que se dejen en blanco se
+    descartan, para que una pregunta de tres respuestas se guarde con
+    tres y no con una vacía."""
+    opciones = [str(x) for x in (p.get("a") or []) if str(x).strip() != ""]
+    while len(opciones) < MIN_OPCIONES:
+        opciones.append("Opción %s" % LETRAS[len(opciones)])
+    q["a"] = opciones[:MAX_OPCIONES]
+
+    def dentro(i):
+        return isinstance(i, int) and 0 <= i < len(q["a"])
+
+    correctas = []
+    for x in (p.get("correctas") or []):
+        try:
+            n = int(x)
+        except (TypeError, ValueError):
+            continue
+        if dentro(n) and n not in correctas:
+            correctas.append(n)
+    if not correctas:
+        try:
+            c = int(p.get("c", 0))
+        except (TypeError, ValueError):
+            c = 0
+        correctas = [c] if dentro(c) else [0]
+
+    q["correctas"] = sorted(correctas)
+    q["c"] = q["correctas"][0]
+    q["multiple"] = bool(p.get("multiple"))
+
+    try:
+        cuantas = int(p.get("respuestas") or 0)
+    except (TypeError, ValueError):
+        cuantas = 0
+    if cuantas and not (MIN_OPCIONES <= cuantas <= MAX_OPCIONES):
+        cuantas = 0
+    q["respuestas"] = cuantas
+    return q
 
 
 def numero(valor, por_defecto):
@@ -719,8 +877,19 @@ def bloques_se_pierden(datos):
         return True
     for b in bloques:
         if b["tipo"] == "test" or b["fallo"] or b["blanco"] or b["porIntento"] \
-           or b["acierto"] != 1.0 or b["modo"] != "individual":
+           or b["acierto"] != 1.0 or b["modo"] != "individual" \
+           or b.get("cabeceraSobreEnunciado") is False \
+           or b.get("opcionUnaEnUna") is False:
             return True
+    for q in (datos.get("preguntas") or []):
+        # Vínculos del modo foco, respuesta múltiple y preguntas que no
+        # tengan exactamente cuatro opciones: nada de esto cabe en la
+        # plantilla antigua.
+        if q.get("factIds") or q.get("multiple") or q.get("respuestas") \
+           or len(q.get("a") or []) != 4 or len(q.get("correctas") or [0]) > 1:
+            return True
+    if (datos.get("config") or {}).get("respuestas"):
+        return True
     return False
 
 
@@ -1231,6 +1400,25 @@ class EditorApp(tk.Tk):
                 self._vigilar(ent)
                 self.w_cfg[clave] = var
 
+        caja = ttk.LabelFrame(m, text=" Cuántas respuestas salen en cada pregunta ")
+        caja.pack(fill="x", padx=16, pady=6)
+        rotulo(caja, "Respuestas que se muestran", "config.respuestas",
+               '<div class="options-grid"> → nº de <div class="option">', con_titulo=False,
+               ayuda=
+                    "Lo normal son cuatro. Si eliges 3, 4 o 5, todas las preguntas saldrán con "
+                    "ese número de respuestas: se muestran siempre la correcta (o las correctas) "
+                    "y se sortean los distractores que falten. Eso permite escribir hasta SIETE "
+                    "opciones en una pregunta y que cada intento enseñe unas cuantas distintas. "
+                    "Una pregunta que tenga menos opciones escritas sale con las que tenga, y en "
+                    "la pestaña 4 se puede dar a una pregunta suelta un número propio."
+               ).pack(anchor="w", padx=10, pady=(8, 4))
+        self.var_cfg_respuestas = tk.StringVar()
+        self._etiquetas_respuestas = [texto for _valor, texto in RESPUESTAS_EXAMEN]
+        combo = ttk.Combobox(caja, textvariable=self.var_cfg_respuestas, state="readonly",
+                             font=("Georgia", 10), values=self._etiquetas_respuestas)
+        combo.pack(anchor="w", fill="x", padx=10, pady=(0, 10))
+        combo.bind("<<ComboboxSelected>>", lambda e: self._tocado())
+
         caja = ttk.LabelFrame(m, text=" Número de preguntas (automático) ")
         caja.pack(fill="x", padx=16, pady=6)
         rotulo(caja, "Nº de preguntas",
@@ -1369,6 +1557,10 @@ class EditorApp(tk.Tk):
         for clave, *_ in CAMPOS_CONFIG:
             valor = cfg.get(clave, "")
             self.w_cfg[clave].set(nUm(valor) if clave == "aptoPorcentaje" else str(valor))
+        valores = [v for v, _t in RESPUESTAS_EXAMEN]
+        actual = cfg.get("respuestas", 0)
+        pos = valores.index(actual) if actual in valores else 0
+        self.var_cfg_respuestas.set(self._etiquetas_respuestas[pos])
         tema = self.datos.get("tema") or TEMA_DEFECTO
         for clave in TEMA_DEFECTO:
             self.w_tema[clave].set(tema.get(clave, TEMA_DEFECTO[clave]))
@@ -1384,6 +1576,8 @@ class EditorApp(tk.Tk):
             elif clave == "aptoPorcentaje":
                 valor = min(100.0, max(0.0, numero(valor, 50.0)))
             cfg[clave] = valor
+        etiqueta = self.var_cfg_respuestas.get()
+        cfg["respuestas"] = next((v for v, t in RESPUESTAS_EXAMEN if t == etiqueta), 0)
         self.datos["tema"] = {
             clave: color_valido(self.w_tema[clave].get(), TEMA_DEFECTO[clave])
             for clave in TEMA_DEFECTO}
@@ -1489,18 +1683,53 @@ class EditorApp(tk.Tk):
             ttk.Button(fila, text=nombre, width=13,
                        command=lambda v=valor: self.poner_color(v)).pack(side="left", padx=(6, 0))
 
-        rotulo(caja, "Cómo se ven las preguntas", "bloques[].modo",
+        rotulo(caja, "Cómo EMPIEZAN viéndose las preguntas de este bloque", "bloques[].modo",
                '.question-card.visible  ·  .question-card.encadenada',
                "«En cadena» muestra todas las preguntas del bloque seguidas, una debajo de "
-               "otra (lo habitual en la teoría). «De una en una» muestra solo la pregunta "
-               "actual (lo habitual en un supuesto). El alumno siempre puede forzar «de una "
-               "en una» desde el panel ⚙ de la página."
+               "otra (lo habitual en la teoría, y también en un supuesto que se lea de "
+               "corrido). «De una en una» muestra solo la pregunta actual. Esto es solo el "
+               "estado de PARTIDA: en la página, cada bloque tiene su propia casilla en el "
+               "panel ⚙ y el alumno puede cambiarlo sin tocar los demás bloques."
                ).pack(anchor="w", padx=10, pady=(10, 4))
         self.var_sec_modo = tk.StringVar(value="individual")
         for valor, texto in (("cadena", "En cadena — todas las preguntas del bloque seguidas"),
                              ("individual", "De una en una — solo la pregunta actual")):
             ttk.Radiobutton(caja, text=texto, value=valor, variable=self.var_sec_modo,
                             command=self._tocado).pack(anchor="w", padx=18, pady=1)
+
+        rotulo(caja, "¿Puede el alumno cambiarlo en este bloque?", "bloques[].opcionUnaEnUna",
+               '<div id="una-por-bloque"> → una casilla por bloque',
+               "Marcada (lo normal): el panel ⚙ de la página enseña una casilla para ESTE "
+               "bloque, con su nombre y su color, y el alumno decide si lo ve en cadena o de "
+               "una en una. Desmarcada: ese bloque no sale en el panel y se queda siempre "
+               "como lo hayas dejado aquí arriba. Si desmarcas todos, la opción entera "
+               "desaparece del panel."
+               ).pack(anchor="w", padx=10, pady=(10, 4))
+        self.var_sec_opcion_una = tk.BooleanVar(value=True)
+        ttk.Checkbutton(caja, variable=self.var_sec_opcion_una, command=self._tocado,
+                        text="Sacar la casilla de este bloque en el panel ⚙"
+                        ).pack(anchor="w", padx=18, pady=1)
+
+        ttk.Label(caja, style="Ayuda.TLabel", wraplength=820, justify="left",
+                  text="EN CADENA, un bloque de supuesto se lee de corrido y en su orden "
+                       "natural: enunciado 1 completo (con todas sus secciones) → todas las "
+                       "preguntas de ese enunciado → enunciado 2 → sus preguntas, y así "
+                       "sucesivamente."
+                  ).pack(anchor="w", padx=18, pady=(6, 2))
+
+        rotulo(caja, "Dónde va la barra con el nombre del bloque",
+               "bloques[].cabeceraSobreEnunciado",
+               '<div class="block-header"> antes o después de <section class="statement">',
+               "Marcada (lo normal): la barra del bloque —nombre, nº de preguntas y "
+               "baremo— sale ENCIMA del enunciado, encabezando toda la sección. "
+               "Desmarcada: baja hasta justo delante de la primera pregunta, debajo de "
+               "los hechos (como en las versiones anteriores de la plantilla). En los "
+               "bloques de teoría da igual: no llevan enunciado."
+               ).pack(anchor="w", padx=10, pady=(10, 4))
+        self.var_sec_cabecera = tk.BooleanVar(value=True)
+        ttk.Checkbutton(caja, variable=self.var_sec_cabecera, command=self._tocado,
+                        text="La barra del bloque va encima del enunciado"
+                        ).pack(anchor="w", padx=18, pady=1)
         ttk.Frame(caja, height=8).pack()
 
         # ---------- puntuación ----------
@@ -1614,6 +1843,10 @@ class EditorApp(tk.Tk):
             self.w_sec[clave].set("" if b is None else str(b.get(clave, "")))
         self.var_sec_tipo.set("supuesto" if b is None else b["tipo"])
         self.var_sec_modo.set("individual" if b is None else b["modo"])
+        self.var_sec_cabecera.set(True if b is None
+                                  else b.get("cabeceraSobreEnunciado", True) is not False)
+        self.var_sec_opcion_una.set(True if b is None
+                                    else b.get("opcionUnaEnUna", True) is not False)
         self.var_sec_color.set(COLOR_SUPUESTO if b is None else b["color"])
         self.var_sec_por.set("0" if b is None else str(b["porIntento"]))
         self.var_sec_ac.set("1" if b is None else nUm(b["acierto"]))
@@ -1640,6 +1873,8 @@ class EditorApp(tk.Tk):
                                                              else "Supuesto práctico")
         b["tipo"] = self.var_sec_tipo.get()
         b["modo"] = self.var_sec_modo.get()
+        b["cabeceraSobreEnunciado"] = bool(self.var_sec_cabecera.get())
+        b["opcionUnaEnUna"] = bool(self.var_sec_opcion_una.get())
         b["color"] = color_valido(self.var_sec_color.get(),
                                   COLOR_TEST if b["tipo"] == "test" else COLOR_SUPUESTO)
         try:
@@ -1835,7 +2070,10 @@ class EditorApp(tk.Tk):
                   ).pack(anchor="w", padx=8, pady=(8, 0))
         ttk.Label(pb, style="Ayuda.TLabel", wraplength=780, justify="left",
                   text="Trozos de narración de los hechos, en el orden en que se leen. "
-                       "Marca «hecho desencadenante» el bloque crítico: sale con borde rojo y ⚠️."
+                       "Marca «hecho desencadenante» el bloque crítico: sale con borde rojo y ⚠️. "
+                       "Cada bloque lleva delante su código (H1, H2…): es el que se usa en la "
+                       "pestaña «4 · Preguntas» para vincular una pregunta a este hecho concreto "
+                       "y que el modo foco recorte el enunciado a esta parte."
                   ).pack(anchor="w", padx=8)
 
         fila = ttk.Frame(pb)
@@ -1880,6 +2118,8 @@ class EditorApp(tk.Tk):
         ttk.Checkbutton(filac, variable=self.var_bloque_hidden, command=self._tocado,
                         text="No mostrar este bloque  ·  factBlocks[].hidden  →  "
                              "(se guarda en el archivo pero la página no lo pinta)").pack(anchor="w")
+        self.lbl_bloque_vinculos = ttk.Label(filac, text="", style="Tec.TLabel")
+        self.lbl_bloque_vinculos.pack(anchor="w", pady=(6, 0))
 
         # ---------- línea de tiempo ----------
         pt = ttk.Frame(interno)
@@ -2059,7 +2299,8 @@ class EditorApp(tk.Tk):
             marca = "⚠ " if b["red"] else "📋 "
             if b["hidden"]:
                 marca = "👁 "
-            self.lst_bloques.insert("end", marca + resumen(b["title"], 44))
+            self.lst_bloques.insert("end", "%-4s %s%s" % (b.get("id", ""), marca,
+                                                          resumen(b["title"], 40)))
         if seleccionar is None:
             seleccionar = self.i_bloque
         if bloques:
@@ -2096,11 +2337,31 @@ class EditorApp(tk.Tk):
         poner_texto(self.txt_bloque_parr, "" if b is None else "\n\n".join(b["paragraphs"]))
         self.var_bloque_red.set(bool(b and b["red"]))
         self.var_bloque_hidden.set(bool(b and b["hidden"]))
+        self._pintar_vinculos_bloque()
+
+    def _pintar_vinculos_bloque(self):
+        """Cuántas preguntas se apoyan en este hecho concreto (modo foco)."""
+        if not hasattr(self, "lbl_bloque_vinculos"):
+            return
+        e = self.enunciado_actual()
+        b = self.bloque_actual()
+        if e is None or b is None:
+            self.lbl_bloque_vinculos.config(text="")
+            return
+        cuantas = sum(1 for q in self.datos["preguntas"]
+                      if q["statementId"] == e["id"] and b["id"] in q.get("factIds", []))
+        self.lbl_bloque_vinculos.config(
+            text="factBlocks[].id = %s   ·   %s (modo foco; se vincula en la pestaña "
+                 "«4 · Preguntas»)"
+                 % (b["id"], "sin preguntas vinculadas" if not cuantas
+                    else "%d pregunta(s) vinculada(s)" % cuantas))
 
     def volcar_bloque(self):
         b = self.bloque_actual()
         if b is None:
             return
+        if not b.get("id"):
+            b["id"] = nuevo_id_hecho(self.enunciado_actual() or {})
         b["title"] = self.var_bloque_titulo.get().strip()
         crudo = sacar_texto(self.txt_bloque_parr)
         b["paragraphs"] = [p.strip() for p in re.split(r"\n\s*\n", crudo) if p.strip()]
@@ -2113,7 +2374,7 @@ class EditorApp(tk.Tk):
             messagebox.showinfo("Sin enunciado", "Primero añade un enunciado.", parent=self)
             return
         self.volcar_bloque()
-        e["factBlocks"].append(bloque_hechos_vacio())
+        e["factBlocks"].append(bloque_hechos_vacio(nuevo_id_hecho(e)))
         self.refrescar_lista_bloques(len(e["factBlocks"]) - 1)
         self._tocado()
 
@@ -2122,12 +2383,23 @@ class EditorApp(tk.Tk):
         b = self.bloque_actual()
         if b is None:
             return
+        vinculadas = [q for q in self.datos["preguntas"]
+                      if q["statementId"] == e["id"] and b["id"] in q.get("factIds", [])]
+        aviso = ("" if not vinculadas else
+                 "\n\n%d pregunta(s) están vinculadas a este hecho para el modo foco: "
+                 "perderán el vínculo y volverán a mostrar el enunciado entero."
+                 % len(vinculadas))
         if not messagebox.askyesno("Borrar bloque",
-                                   "¿Borrar el bloque «%s»?" % resumen(b["title"], 40),
+                                   "¿Borrar el bloque «%s»?%s"
+                                   % (resumen(b["title"], 40), aviso),
                                    parent=self):
             return
+        for q in vinculadas:
+            q["factIds"] = [x for x in q["factIds"] if x != b["id"]]
         del e["factBlocks"][self.i_bloque]
         self.refrescar_lista_bloques(max(0, self.i_bloque - 1))
+        if hasattr(self, "lst_factlink"):
+            self.refrescar_lista_factlink()
         self._tocado()
 
     def mover_bloque(self, paso):
@@ -2307,6 +2579,30 @@ class EditorApp(tk.Tk):
         self.combo_stmt.pack(fill="x", padx=10, pady=(0, 4))
         self.combo_stmt.bind("<<ComboboxSelected>>", self._cambio_stmt)
 
+        rotulo(caja, "Partes del enunciado de las que depende (modo foco)",
+               "preguntas[].factIds",
+               'factBlocks[].id  →  <div class="fact-block"> que se muestran en modo foco',
+               "Marca aquí el hecho (o los hechos) desencadenantes concretos de los que "
+               "depende esta pregunta. Con el MODO FOCO encendido en el panel ⚙ —y las "
+               "preguntas de una en una—, esta pregunta mostrará SOLO esos bloques de "
+               "hechos en vez del enunciado entero, con un botón para desplegarlo completo. "
+               "Si no marcas ninguno, la pregunta enseña siempre el enunciado entero. "
+               "Con Ctrl+clic se marcan y desmarcan varios."
+               ).pack(anchor="w", padx=10, pady=(8, 2))
+        marco_fl = ttk.Frame(caja, style="Panel.TFrame")
+        marco_fl.pack(fill="x", padx=10, pady=(0, 2))
+        self.lst_factlink = tk.Listbox(marco_fl, font=("Consolas", 9), height=5,
+                                       selectmode="extended", activestyle="none",
+                                       exportselection=False)
+        self.lst_factlink.pack(side="left", fill="both", expand=True)
+        self.lst_factlink.bind("<<ListboxSelect>>", self._sel_factlink)
+        colf = ttk.Frame(marco_fl, style="Panel.TFrame")
+        colf.pack(side="left", padx=(6, 0))
+        ttk.Button(colf, text="Ninguno", width=11,
+                   command=self.limpiar_factlink).pack(pady=1)
+        self.lbl_factlink = ttk.Label(caja, text="", style="Tec.TLabel")
+        self.lbl_factlink.pack(anchor="w", padx=10, pady=(0, 4))
+
         rotulo(caja, "Etiqueta de materia (q-tag)", "preguntas[].tag",
                '<span class="q-tag">',
                "Línea pequeña en mayúsculas encima de la pregunta (por ejemplo: "
@@ -2325,31 +2621,68 @@ class EditorApp(tk.Tk):
         self._vigilar(self.txt_preg_q)
 
         # --- respuestas ---
-        caja = ttk.LabelFrame(m, text=" Respuestas — marca cuál es la correcta ")
+        caja = ttk.LabelFrame(m, text=" Respuestas — marca cuál (o cuáles) es la correcta ")
         caja.pack(fill="x", padx=10, pady=6)
-        rotulo(caja, "Las cuatro opciones", "preguntas[].a[0..3]",
-               '<div class="option"> → <span class="opt-letter">A/B/C/D</span>',
-               "El punto de la izquierda marca la opción correcta (preguntas[].c). "
-               "OJO: la página baraja las opciones en cada intento, así que la correcta "
-               "no siempre saldrá en la letra que ocupa aquí."
+        rotulo(caja, "Las opciones de esta pregunta", "preguntas[].a[]",
+               '<div class="option"> → <span class="opt-letter">A…G</span>',
+               "De 2 a 7 opciones; lo normal son cuatro. La casilla de la izquierda marca "
+               "la correcta (preguntas[].correctas). OJO: la página baraja las opciones en "
+               "cada intento, así que la correcta no saldrá siempre en la letra que ocupa aquí."
                ).pack(anchor="w", padx=10, pady=(8, 6))
 
-        self.var_preg_c = tk.IntVar(value=0)
+        # Respuesta múltiple
+        self.var_preg_multiple = tk.BooleanVar(value=False)
+        ttk.Checkbutton(caja, variable=self.var_preg_multiple, command=self._cambio_multiple,
+                        text="Respuesta múltiple  ·  preguntas[].multiple  →  hay que marcar "
+                             "TODAS las que procedan (solo cuenta si se aciertan todas)"
+                        ).pack(anchor="w", padx=10, pady=(0, 8))
+
+        # Filas de opciones: se crean las siete y se enseñan las que tenga
+        # la pregunta. Así añadir o quitar una es solo mostrar u ocultar.
+        self.var_preg_ok = []
+        self.filas_opcion = []
         self.txt_opciones = []
-        for i in range(4):
+        for i in range(MAX_OPCIONES):
             fila = ttk.Frame(caja, style="Panel.TFrame")
-            fila.pack(fill="x", padx=10, pady=2)
-            ttk.Radiobutton(fila, text="  %s  " % "ABCD"[i], value=i,
-                            variable=self.var_preg_c,
-                            command=self._marcar_correcta).pack(side="left", anchor="n", pady=4)
+            var = tk.BooleanVar(value=(i == 0))
+            ttk.Checkbutton(fila, text="  %s  " % LETRAS[i], variable=var,
+                            command=lambda n=i: self._marcar_correcta(n)
+                            ).pack(side="left", anchor="n", pady=4)
             marco, txt = caja_texto(fila, alto=3, ancho=70)
             marco.pack(side="left", fill="x", expand=True)
             self._vigilar(txt)
+            self.var_preg_ok.append(var)
+            self.filas_opcion.append(fila)
             self.txt_opciones.append(txt)
 
-        self.lbl_correcta = ttk.Label(caja, text="Correcta: A", font=("Consolas", 10, "bold"),
+        linea = ttk.Frame(caja, style="Panel.TFrame")
+        linea.pack(fill="x", padx=10, pady=(6, 2))
+        ttk.Button(linea, text="＋ Añadir respuesta", width=20, style="Accion.TButton",
+                   command=self.anadir_opcion).pack(side="left")
+        ttk.Button(linea, text="🗑 Quitar la última", width=20,
+                   command=self.quitar_opcion).pack(side="left", padx=(6, 0))
+        self.lbl_correcta = ttk.Label(linea, text="", font=("Consolas", 10, "bold"),
                                       foreground=C_VERDE, background=C_FONDO)
-        self.lbl_correcta.pack(anchor="w", padx=10, pady=(4, 10))
+        self.lbl_correcta.pack(side="left", padx=(16, 0))
+
+        rotulo(caja, "Cuántas de estas respuestas salen en el examen",
+               "preguntas[].respuestas",
+               'nº de <div class="option"> de ESTA pregunta',
+               "Normalmente, lo que hayas puesto en la pestaña 1 para todo el examen. Aquí "
+               "se le puede dar un número propio a una pregunta suelta: por ejemplo, escribir "
+               "siete opciones y que salgan solo cuatro (la correcta y tres distractores "
+               "sorteados en cada intento). Nunca se recorta por debajo de las correctas."
+               ).pack(anchor="w", padx=10, pady=(10, 2))
+        self.var_preg_respuestas = tk.StringVar()
+        self._etiquetas_preg_resp = ["Las que diga la pestaña 1 (todo el examen)"] + \
+                                    ["%d respuestas" % n for n in range(MIN_OPCIONES, MAX_OPCIONES + 1)]
+        self._valores_preg_resp = [0] + list(range(MIN_OPCIONES, MAX_OPCIONES + 1))
+        combo = ttk.Combobox(caja, textvariable=self.var_preg_respuestas, state="readonly",
+                             font=("Georgia", 10), values=self._etiquetas_preg_resp)
+        combo.pack(fill="x", padx=10, pady=(0, 4))
+        combo.bind("<<ComboboxSelected>>", lambda e: self._tocado())
+        self.lbl_aviso_resp = ttk.Label(caja, text="", style="Tec.TLabel")
+        self.lbl_aviso_resp.pack(anchor="w", padx=10, pady=(0, 10))
 
         # --- corrección ---
         caja = ttk.LabelFrame(m, text=" Solución y motivación ")
@@ -2443,8 +2776,169 @@ class EditorApp(tk.Tk):
         self.refrescar_lista_preg(self.i_preg)
         self._tocado()
 
-    def _marcar_correcta(self):
-        self.lbl_correcta.config(text="Correcta: %s" % "ABCD"[self.var_preg_c.get()])
+    # ---------- vínculo con los bloques de hechos (modo foco) ----------
+    def refrescar_lista_factlink(self):
+        """Rellena la lista de bloques de hechos del enunciado de la pregunta
+        actual y marca los que tenga vinculados."""
+        if not hasattr(self, "lst_factlink"):
+            return
+        self._silencio_fact = True
+        self.lst_factlink.delete(0, "end")
+        p = self.pregunta_actual()
+        enun = None
+        if p and p.get("statementId"):
+            enun = next((e for e in self.datos["enunciados"]
+                         if e["id"] == p["statementId"]), None)
+        hechos = enun["factBlocks"] if enun else []
+        self._ids_factlink = [h["id"] for h in hechos]
+        for h in hechos:
+            marca = "⚠" if h["red"] else "📋"
+            if h["hidden"]:
+                marca = "👁"
+            self.lst_factlink.insert("end", "%-4s %s %s" % (h["id"], marca,
+                                                            resumen(h["title"], 44)))
+        if p is not None:
+            # Se descartan los vínculos que ya no existan en ese enunciado
+            p["factIds"] = [x for x in p.get("factIds", []) if x in self._ids_factlink]
+            for i, ident in enumerate(self._ids_factlink):
+                if ident in p["factIds"]:
+                    self.lst_factlink.selection_set(i)
+        self._silencio_fact = False
+
+        if p is None:
+            texto = ""
+        elif not p.get("statementId"):
+            texto = "Esta pregunta no depende de ningún enunciado: el modo foco no le afecta."
+        elif not hechos:
+            texto = ("El enunciado %s todavía no tiene bloques de hechos (pestaña 3)."
+                     % p["statementId"])
+        elif not p["factIds"]:
+            texto = "Sin vincular: en modo foco esta pregunta muestra el enunciado entero."
+        else:
+            texto = ("En modo foco se mostrarán solo: %s." % ", ".join(p["factIds"]))
+        self.lbl_factlink.config(text=texto)
+
+    def _sel_factlink(self, _e=None):
+        if getattr(self, "_silencio_fact", False) or self._silencio:
+            return
+        p = self.pregunta_actual()
+        if p is None or not getattr(self, "_ids_factlink", None):
+            return
+        p["factIds"] = [self._ids_factlink[i] for i in self.lst_factlink.curselection()
+                        if i < len(self._ids_factlink)]
+        self.lbl_factlink.config(
+            text="Sin vincular: en modo foco esta pregunta muestra el enunciado entero."
+                 if not p["factIds"]
+                 else "En modo foco se mostrarán solo: %s." % ", ".join(p["factIds"]))
+        self._pintar_vinculos_bloque()
+        self._tocado()
+
+    def limpiar_factlink(self):
+        """Quita todos los vínculos de la pregunta actual."""
+        p = self.pregunta_actual()
+        if p is None:
+            return
+        p["factIds"] = []
+        self.refrescar_lista_factlink()
+        self._pintar_vinculos_bloque()
+        self._tocado()
+
+    def _marcar_correcta(self, n=None):
+        """Al marcar una casilla: si la pregunta NO es de respuesta múltiple,
+        marcar una desmarca las demás (se comporta como un botón de radio)."""
+        if n is not None and not self.var_preg_multiple.get() and self.var_preg_ok[n].get():
+            for i, var in enumerate(self.var_preg_ok):
+                if i != n:
+                    var.set(False)
+        if n is not None and not any(v.get() for v in self.var_preg_ok):
+            # Siempre tiene que haber al menos una correcta
+            self.var_preg_ok[n].set(True)
+        self._pintar_correctas()
+        self._tocado()
+
+    def _cambio_multiple(self):
+        """Al dejar de ser múltiple, se queda solo la primera correcta."""
+        if not self.var_preg_multiple.get():
+            visto = False
+            for var in self.var_preg_ok:
+                if var.get():
+                    if visto:
+                        var.set(False)
+                    visto = True
+        self._pintar_correctas()
+        self._tocado()
+
+    def _n_opciones(self):
+        """Cuántas filas de respuesta hay a la vista."""
+        return sum(1 for f in self.filas_opcion if f.winfo_manager())
+
+    def _pintar_filas_opciones(self, cuantas):
+        cuantas = max(MIN_OPCIONES, min(MAX_OPCIONES, cuantas))
+        for i, fila in enumerate(self.filas_opcion):
+            if i < cuantas:
+                fila.pack(fill="x", padx=10, pady=2)
+            else:
+                fila.pack_forget()
+                self.var_preg_ok[i].set(False)
+        return cuantas
+
+    def _pintar_correctas(self):
+        marcadas = [LETRAS[i] for i, v in enumerate(self.var_preg_ok)
+                    if v.get() and self.filas_opcion[i].winfo_manager()]
+        if not marcadas:
+            texto = "⚠ sin respuesta correcta marcada"
+        elif len(marcadas) == 1:
+            texto = "Correcta: %s" % marcadas[0]
+        else:
+            texto = "Correctas: %s" % ", ".join(marcadas)
+        self.lbl_correcta.config(text=texto)
+        self._pintar_aviso_respuestas()
+
+    def _pintar_aviso_respuestas(self):
+        """Explica, en cristiano, cuántas respuestas verá el alumno."""
+        if not hasattr(self, "lbl_aviso_resp"):
+            return
+        escritas = self._n_opciones()
+        propio = next((v for v, t in zip(self._valores_preg_resp, self._etiquetas_preg_resp)
+                       if t == self.var_preg_respuestas.get()), 0)
+        general = self.datos["config"].get("respuestas", 0)
+        cuantas = propio or general or escritas
+        correctas = sum(1 for i, v in enumerate(self.var_preg_ok)
+                        if v.get() and i < escritas)
+        minimo = correctas + (1 if escritas > correctas else 0)
+        cuantas = min(escritas, max(cuantas, minimo))
+        if cuantas >= escritas:
+            texto = "Salen las %d opciones escritas." % escritas
+        else:
+            texto = ("De las %d escritas saldrán %d: la(s) correcta(s) y %d distractor(es) "
+                     "sorteados en cada intento." % (escritas, cuantas, cuantas - correctas))
+        self.lbl_aviso_resp.config(text=texto)
+
+    def anadir_opcion(self):
+        cuantas = self._n_opciones()
+        if cuantas >= MAX_OPCIONES:
+            self.estado("Una pregunta admite como mucho %d respuestas." % MAX_OPCIONES)
+            return
+        self._pintar_filas_opciones(cuantas + 1)
+        poner_texto(self.txt_opciones[cuantas], "")
+        self._pintar_correctas()
+        self.txt_opciones[cuantas].focus_set()
+        self._tocado()
+
+    def quitar_opcion(self):
+        cuantas = self._n_opciones()
+        if cuantas <= MIN_OPCIONES:
+            self.estado("Una pregunta necesita al menos %d respuestas." % MIN_OPCIONES)
+            return
+        if sacar_texto(self.txt_opciones[cuantas - 1]).strip() and not messagebox.askyesno(
+                "Quitar respuesta",
+                "La respuesta %s tiene texto escrito. ¿Quitarla igualmente?" % LETRAS[cuantas - 1],
+                parent=self):
+            return
+        self._pintar_filas_opciones(cuantas - 1)
+        if not any(v.get() for v in self.var_preg_ok):
+            self.var_preg_ok[0].set(True)
+        self._pintar_correctas()
         self._tocado()
 
     # ---------- lista de preguntas ----------
@@ -2453,8 +2947,11 @@ class EditorApp(tk.Tk):
         self.lst_preg.delete(0, "end")
         for i, p in enumerate(self.datos["preguntas"]):
             marca = "📝" if self.tipo_de_bloque(p["bloqueId"]) == "test" else "📁"
-            etiqueta = "%02d %s%-3s %-3s %s" % (i + 1, marca, p["bloqueId"],
-                                                p["statementId"] or "--", resumen(p["q"], 26))
+            foco = "🔎" if p.get("factIds") else " "
+            varias = "☑" if p.get("multiple") else " "
+            etiqueta = "%02d %s%-3s %-3s%s%s %s" % (i + 1, marca, p["bloqueId"],
+                                                    p["statementId"] or "--", foco, varias,
+                                                    resumen(p["q"], 22))
             self.lst_preg.insert("end", etiqueta)
         if seleccionar is None:
             seleccionar = self.i_preg
@@ -2494,14 +2991,24 @@ class EditorApp(tk.Tk):
         p = self.pregunta_actual()
         self.var_preg_tag.set("" if p is None else p["tag"])
         poner_texto(self.txt_preg_q, "" if p is None else p["q"])
-        for i in range(4):
-            poner_texto(self.txt_opciones[i], "" if p is None else p["a"][i])
-        self.var_preg_c.set(0 if p is None else p["c"])
+
+        opciones = (p["a"] if p else [])[:MAX_OPCIONES]
+        cuantas = self._pintar_filas_opciones(len(opciones) or OPCIONES_POR_DEFECTO)
+        correctas = set(p["correctas"]) if p else {0}
+        for i in range(MAX_OPCIONES):
+            poner_texto(self.txt_opciones[i], opciones[i] if i < len(opciones) else "")
+            self.var_preg_ok[i].set(i in correctas and i < cuantas)
+        self.var_preg_multiple.set(bool(p and p.get("multiple")))
+        propio = p.get("respuestas", 0) if p else 0
+        pos = self._valores_preg_resp.index(propio) if propio in self._valores_preg_resp else 0
+        self.var_preg_respuestas.set(self._etiquetas_preg_resp[pos])
+
         poner_texto(self.txt_preg_law, "" if p is None else p["law"])
         poner_texto(self.txt_preg_tip, "" if p is None else p["tip"])
-        self.lbl_correcta.config(text="Correcta: %s" % "ABCD"[self.var_preg_c.get()])
+        self._pintar_correctas()
         self._sincronizar_combo_bloque()
         self._sincronizar_combo()
+        self.refrescar_lista_factlink()
 
     def volcar_pregunta(self):
         p = self.pregunta_actual()
@@ -2509,8 +3016,18 @@ class EditorApp(tk.Tk):
             return
         p["tag"] = self.var_preg_tag.get().strip()
         p["q"] = " ".join(sacar_texto(self.txt_preg_q).split())
-        p["a"] = [" ".join(sacar_texto(t).split()) for t in self.txt_opciones]
-        p["c"] = int(self.var_preg_c.get())
+
+        # Solo cuentan las filas de respuesta que estén a la vista
+        cuantas = self._n_opciones()
+        p["a"] = [" ".join(sacar_texto(self.txt_opciones[i]).split()) for i in range(cuantas)]
+        correctas = [i for i in range(cuantas) if self.var_preg_ok[i].get()]
+        p["correctas"] = correctas or [0]
+        p["c"] = p["correctas"][0]
+        p["multiple"] = bool(self.var_preg_multiple.get())
+        etiqueta = self.var_preg_respuestas.get()
+        p["respuestas"] = next((v for v, t in zip(self._valores_preg_resp,
+                                                  self._etiquetas_preg_resp) if t == etiqueta), 0)
+
         p["law"] = sacar_texto(self.txt_preg_law).strip()
         p["tip"] = sacar_texto(self.txt_preg_tip).strip()
         if getattr(self, "_ids_bloque", None) and self.combo_bloque["values"]:
@@ -2519,6 +3036,15 @@ class EditorApp(tk.Tk):
             p["statementId"] = self._ids_combo[self.combo_stmt.current()]
         if self.tipo_de_bloque(p["bloqueId"]) == "test":
             p["statementId"] = None
+        # Vínculos con partes del enunciado (modo foco): solo se conservan
+        # mientras la pregunta siga colgando de ese enunciado.
+        if not p["statementId"]:
+            p["factIds"] = []
+        else:
+            propios = next((set(h["id"] for h in e["factBlocks"])
+                            for e in self.datos["enunciados"]
+                            if e["id"] == p["statementId"]), set())
+            p["factIds"] = [x for x in p.get("factIds", []) if x in propios]
 
     def anadir_pregunta(self):
         self.volcar_pregunta()
@@ -2848,9 +3374,14 @@ class EditorApp(tk.Tk):
             vistos.add(e["id"])
             if not e["factBlocks"]:
                 avisos.append("El enunciado %s no tiene ningún bloque de hechos." % e["id"])
+            ids_hechos = set()
             for j, b in enumerate(e["factBlocks"], 1):
                 if not b["paragraphs"]:
                     avisos.append("Enunciado %s, bloque %d: no tiene texto." % (e["id"], j))
+                if b["id"] in ids_hechos:
+                    errores.append("Enunciado %s: código de bloque de hechos repetido «%s»."
+                                   % (e["id"], b["id"]))
+                ids_hechos.add(b["id"])
 
         if not d["preguntas"]:
             errores.append("El supuesto no tiene ninguna pregunta.")
@@ -2874,19 +3405,89 @@ class EditorApp(tk.Tk):
                 avisos.append("El bloque «%s» mezcla preguntas con y sin enunciado (%d sueltas)."
                               % (b["titulo"], len(sin_enunciado)))
 
+        # ── opciones del panel de la página que dejan cosas sin usar ──
+        interfaz = d.get("interfaz") or {}
+        opcion_una = interfaz.get("opcionUnaEnUna") or {}
+        opcion_foco = interfaz.get("opcionFoco") or {}
+        con_casilla = [b for b in d["bloques"] if b.get("opcionUnaEnUna", True)]
+        if opcion_una.get("visible") is False:
+            avisos.append("La opción «ver las preguntas de una en una» está OCULTA (pestaña 5): "
+                          "el alumno no verá las casillas de cada bloque y cada uno se quedará "
+                          "como diga su modo en la pestaña 2.")
+        elif not con_casilla:
+            avisos.append("Ningún bloque saca su casilla en el panel ⚙ (pestaña 2): la opción "
+                          "«ver las preguntas de una en una» no aparecerá.")
+
+        vinculadas = [q for q in d["preguntas"] if q.get("factIds")]
+        if opcion_foco.get("visible") is not False and not vinculadas and d["enunciados"]:
+            avisos.append("El modo foco está a la vista pero ninguna pregunta tiene hechos "
+                          "vinculados (pestaña 4): encenderlo no cambiará nada.")
+        if vinculadas:
+            if opcion_foco.get("visible") is False and not opcion_foco.get("activa"):
+                avisos.append("Hay %d pregunta(s) con hechos vinculados, pero el modo foco está "
+                              "oculto y no arranca activado: nunca se usarán." % len(vinculadas))
+            alcanzable = [b for b in d["bloques"]
+                          if b["tipo"] != "test" and (b["modo"] == "individual"
+                                                      or opcion_una.get("activa")
+                                                      or (b.get("opcionUnaEnUna", True)
+                                                          and opcion_una.get("visible") is not False))]
+            if not alcanzable:
+                avisos.append("Hay preguntas con hechos vinculados, pero ningún bloque de "
+                              "supuesto puede verse de una en una: el modo foco no llegará a "
+                              "aplicarse (solo actúa de una en una, nunca en cadena).")
+
+        hechos_de = {e["id"]: {b["id"] for b in e["factBlocks"]} for e in d["enunciados"]}
+        ocultos_de = {e["id"]: {b["id"] for b in e["factBlocks"] if b["hidden"]}
+                      for e in d["enunciados"]}
+
         for i, p in enumerate(d["preguntas"], 1):
             if not p["q"].strip():
                 errores.append("Pregunta %d: falta el texto de la pregunta." % i)
             if p["statementId"] and p["statementId"] not in vistos:
                 errores.append("Pregunta %d: apunta al enunciado «%s», que no existe."
                                % (i, p["statementId"]))
+            if p.get("factIds"):
+                propios = hechos_de.get(p["statementId"] or "", set())
+                perdidos = [x for x in p["factIds"] if x not in propios]
+                if perdidos:
+                    avisos.append("Pregunta %d: vinculada a hechos que no están en su "
+                                  "enunciado (%s): en modo foco mostrará el enunciado entero."
+                                  % (i, ", ".join(perdidos)))
+                escondidos = ocultos_de.get(p["statementId"] or "", set())
+                ocultos = [x for x in p["factIds"] if x in escondidos]
+                if ocultos:
+                    avisos.append("Pregunta %d: vinculada a hechos marcados como «no "
+                                  "mostrar» (%s)." % (i, ", ".join(ocultos)))
             vacias = [n for n, t in enumerate(p["a"]) if not t.strip()]
             if vacias:
                 errores.append("Pregunta %d: opciones vacías (%s)."
-                               % (i, ", ".join("ABCD"[n] for n in vacias)))
+                               % (i, ", ".join(LETRAS[n] for n in vacias)))
+            if len(p["a"]) < MIN_OPCIONES:
+                errores.append("Pregunta %d: solo tiene %d respuesta(s); hacen falta al menos %d."
+                               % (i, len(p["a"]), MIN_OPCIONES))
             normal = [" ".join(t.lower().split()) for t in p["a"] if t.strip()]
             if len(set(normal)) != len(normal):
                 avisos.append("Pregunta %d: hay dos opciones con el mismo texto." % i)
+
+            correctas = p.get("correctas") or []
+            if not correctas:
+                errores.append("Pregunta %d: no tiene marcada ninguna respuesta correcta." % i)
+            if p.get("multiple") and len(correctas) < 2:
+                avisos.append("Pregunta %d: está marcada como de respuesta múltiple pero solo "
+                              "tiene una correcta." % i)
+            if not p.get("multiple") and len(correctas) > 1:
+                avisos.append("Pregunta %d: tiene %d correctas pero NO es de respuesta múltiple: "
+                              "solo se dará por buena la primera." % (i, len(correctas)))
+
+            # Cuántas respuestas verá el alumno en esta pregunta
+            cuantas = p.get("respuestas") or d["config"].get("respuestas") or len(p["a"])
+            if cuantas < len(correctas) + (1 if len(p["a"]) > len(correctas) else 0):
+                avisos.append("Pregunta %d: se pide que salgan %d respuestas, pero tiene %d "
+                              "correctas: saldrán más para que quepan todas."
+                              % (i, cuantas, len(correctas)))
+            elif p.get("respuestas") and p["respuestas"] > len(p["a"]):
+                avisos.append("Pregunta %d: se piden %d respuestas y solo tiene %d escritas: "
+                              "saldrán las %d." % (i, p["respuestas"], len(p["a"]), len(p["a"])))
             if not p["law"].strip():
                 avisos.append("Pregunta %d: sin motivación legal (la corrección saldrá vacía)." % i)
 
@@ -2897,7 +3498,7 @@ class EditorApp(tk.Tk):
             if not orden or orden[-1] != sid:
                 if sid and sid in bloques_vistos:
                     avisos.append("Las preguntas del enunciado «%s» no van todas seguidas: "
-                                  "el panel de hechos se repintará varias veces." % sid)
+                                  "el enunciado se repetirá, uno delante de cada grupo." % sid)
                 orden.append(sid)
                 if sid:
                     bloques_vistos.add(sid)
@@ -2909,6 +3510,15 @@ class EditorApp(tk.Tk):
         lineas.append("Enunciados  : %d" % len(d["enunciados"]))
         lineas.append("Preguntas   : %d" % len(d["preguntas"]))
         lineas.append("APTO desde  : %s%% de la puntuación" % nUm(d["config"]["aptoPorcentaje"]))
+        general = d["config"].get("respuestas", 0)
+        lineas.append("Respuestas  : %s"
+                      % ("las que tenga escritas cada pregunta" if not general
+                         else "%d por pregunta (el resto se sortean)" % general))
+        multiples = sum(1 for q in d["preguntas"] if q.get("multiple"))
+        propias = sum(1 for q in d["preguntas"] if q.get("respuestas"))
+        if multiples or propias:
+            lineas.append("              %d de respuesta múltiple · %d con nº propio de respuestas"
+                          % (multiples, propias))
         cambiados = [c for c in TEMA_DEFECTO if d["tema"][c] != TEMA_DEFECTO[c]]
         lineas.append("Colores     : %s"
                       % ("los originales de la plantilla" if not cambiados
@@ -2926,9 +3536,19 @@ class EditorApp(tk.Tk):
             lineas.append("     %d preguntas · máximo %s puntos" % (len(suyas), nUm(maximo)))
             lineas.append("     +%s por acierto · −%s por fallo · −%s en blanco"
                           % (nUm(b["acierto"]), nUm(b["fallo"]), nUm(b["blanco"])))
-            lineas.append("     se ven %s · en el aleatorio salen %s"
+            lineas.append("     empiezan %s (%s) · en el aleatorio salen %s"
                           % ("todas seguidas" if b["modo"] == "cadena" else "de una en una",
+                             "el alumno puede cambiarlo" if b.get("opcionUnaEnUna", True)
+                             else "sin casilla en el panel: no se puede cambiar",
                              "todas" if not b["porIntento"] else "%d al azar" % b["porIntento"]))
+            if b["tipo"] != "test":
+                con_foco = sum(1 for q in suyas if q.get("factIds"))
+                lineas.append("     barra del bloque %s · %s"
+                              % ("encima del enunciado"
+                                 if b.get("cabeceraSobreEnunciado", True) is not False
+                                 else "delante de la primera pregunta",
+                                 "sin preguntas vinculadas al modo foco" if not con_foco
+                                 else "%d pregunta(s) vinculadas al modo foco" % con_foco))
         lineas.append("  ----------------------------------------")
         lineas.append("  Puntuación máxima del examen: %s puntos" % nUm(maximo_total))
         lineas.append("  APTO a partir de %s puntos"
@@ -3071,6 +3691,12 @@ class EditorApp(tk.Tk):
                 parent=self)
         elif self.modo == "js":
             self.estado(self.lbl_estado.cget("text") + "   ·   formato JavaScript (plantilla clásica)")
+        else:
+            plantilla = self._plantilla_base()
+            if plantilla and version_motor(self.html_base) < version_motor(plantilla):
+                self.estado(self.lbl_estado.cget("text") +
+                            "   ·   página de una versión anterior: al guardar se ofrecerá "
+                            "ponerla al día")
 
     def _nombre_sugerido(self):
         texto = self.datos["config"]["titulo"].lower()
@@ -3103,7 +3729,11 @@ class EditorApp(tk.Tk):
 
         Sirve para modernizar los supuestos antiguos (los que llevan el
         título escrito a mano dentro del HTML): a partir de la conversión,
-        los datos generales también se editan desde el programa."""
+        los datos generales también se editan desde el programa.
+
+        Para los archivos que YA usan la plantilla nueva no hace falta:
+        al guardar, el editor detecta solo si la página se quedó en una
+        versión anterior y ofrece rehacerla."""
         self.volcar_todo()
         base = Path(__file__).resolve().parent / PLANTILLA_BASE
         if not base.exists():
@@ -3126,11 +3756,59 @@ class EditorApp(tk.Tk):
                 "Convertido",
                 "Supuesto guardado con la plantilla nueva.\n\n"
                 "A partir de ahora también se pueden cambiar desde el programa el "
-                "título, la referencia, el ámbito y los minutos.", parent=self)
+                "título, la referencia, el ámbito y los minutos, y la página estrena "
+                "el motor actual de la plantilla.", parent=self)
             return True
         return False
 
+    def _plantilla_base(self):
+        """La plantilla que viene junto al programa, si está."""
+        base = Path(__file__).resolve().parent / PLANTILLA_BASE
+        if not base.exists():
+            return None
+        try:
+            return base.read_text(encoding="utf-8")
+        except OSError:
+            return None
+
+    def _poner_motor_al_dia(self):
+        """Si el archivo abierto se quedó con una versión anterior de la
+        PÁGINA, ofrece rehacerla con la plantilla actual.
+
+        Al guardar solo se sustituyen los datos dentro del HTML, así que un
+        supuesto creado hace meses conserva su página tal cual, sin las
+        mejoras posteriores de la plantilla. Aquí se detecta y se arregla,
+        que es justo lo que uno espera al guardar."""
+        if self.modo != "json":
+            return          # las plantillas antiguas van por «⇪ Pasar a plantilla nueva…»
+        plantilla = self._plantilla_base()
+        if plantilla is None:
+            return
+        nueva = version_motor(plantilla)
+        vieja = version_motor(self.html_base)
+        if vieja >= nueva:
+            return          # ya está al día
+
+        if not messagebox.askyesno(
+                "Poner la página al día",
+                "Este supuesto se creó con una versión anterior de la plantilla, así que "
+                "su página no tiene las mejoras que sí trae la plantilla que acompaña al "
+                "programa.\n\n"
+                "Si NO se actualiza, se guardarán los datos nuevos pero la página seguirá "
+                "comportándose como el día en que se creó el archivo: es lo que hace que "
+                "opciones nuevas del editor no se noten al abrir el supuesto.\n\n"
+                "¿Rehacer la página con la plantilla actual?\n"
+                "(No se toca ni una pregunta: solo se cambia el armazón. Del archivo "
+                "anterior queda una copia .bak.)", parent=self):
+            self.estado("Guardado SIN actualizar la página: las novedades de la plantilla "
+                        "no se verán en este archivo.")
+            return
+
+        self.html_base = plantilla
+        self.estado("Página rehecha con la plantilla actual (versión %d)." % nueva)
+
     def _escribir(self, destino):
+        self._poner_motor_al_dia()
         if self.modo != "json" and bloques_se_pierden(self.datos):
             seguir = messagebox.askyesno(
                 "La plantilla clásica no tiene bloques",

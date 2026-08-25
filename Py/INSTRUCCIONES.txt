@@ -211,6 +211,15 @@
        · Línea del organismo: el renglón pequeño en mayúsculas que va justo
          encima del título. Vacío = no se muestra.
 
+     CUÁNTAS RESPUESTAS SALEN EN CADA PREGUNTA (apartado nuevo):
+       · "Todas las que tenga escritas cada pregunta" (lo de siempre).
+       · 3, 4 o 5 → todas las preguntas saldrán con ese número: se muestran
+         siempre la correcta (o las correctas) y se sortean los distractores
+         que falten. Así puedes escribir hasta SIETE opciones en una
+         pregunta y que cada intento enseñe cuatro distintas.
+       Una pregunta con menos opciones escritas sale con las que tenga, y en
+       la pestaña 4 se le puede dar a una pregunta suelta su propio número.
+
      Abajo del todo está la PALETA DE COLORES de la página (apartado 5B).
 
   PASO 2 · Pestaña "2 · Bloques"
@@ -222,8 +231,19 @@
           - Nombre: lo que se lee arriba y en la barra de sección.
           - Tipo: supuesto (con enunciado) o teoría (test suelto).
           - Color: pulsa uno de los botones de color o "🎨 Elegir color…".
-          - Cómo se ven: "en cadena" (todas seguidas, lo normal en teoría)
-            o "de una en una" (lo normal en un supuesto).
+          - Cómo EMPIEZAN viéndose: "en cadena" (todas seguidas) o "de una
+            en una" (solo la pregunta actual). Es solo el estado de
+            PARTIDA: en la página, cada bloque tiene SU PROPIA casilla en
+            el panel ⚙ y el alumno lo cambia bloque a bloque.
+            En un bloque de supuesto, "en cadena" significa que se lee de
+            corrido y en su orden natural: enunciado 1 entero → todas sus
+            preguntas → enunciado 2 entero → sus preguntas, etc.
+          - "Sacar la casilla de este bloque en el panel ⚙": desmárcalo si
+            no quieres que el alumno pueda cambiar cómo se ve ESTE bloque;
+            se quedará siempre como lo hayas dejado arriba.
+          - Dónde va la barra del bloque: marcada (lo normal) va ENCIMA del
+            enunciado, encabezando toda la sección; desmarcada, baja hasta
+            justo delante de la primera pregunta.
           - Puntuación: suma por acierto, descuento por fallo y descuento
             por dejarla en blanco. Se admiten decimales con COMA: 0,33.
           - Intento aleatorio: 0 = salen todas; un número = salen solo esas,
@@ -238,6 +258,10 @@
           - IMPORTANTE: separa los párrafos DEJANDO UNA LÍNEA EN BLANCO.
           - Marca "Hecho desencadenante" en el bloque crítico: saldrá con
             borde rojo y el icono ⚠️.
+          - Cada bloque de hechos lleva delante su código (H1, H2, H3…).
+            NO se ve en la página: sirve para vincularle preguntas en la
+            pestaña 4 y que el MODO FOCO recorte el enunciado a esa parte.
+            Debajo de las casillas se indica cuántas preguntas lo usan.
        d) En "Línea de tiempo" añade los hitos con su fecha. Marca "Hito
           crítico" el que sea el detonante (saldrá en rojo).
      Los bloques de teoría no usan esta pestaña.
@@ -249,12 +273,36 @@
        b) Arriba, elige el BLOQUE en el que va la pregunta.
        c) Si es un bloque de supuesto, elige además el enunciado. En los
           bloques de teoría ese campo se queda desactivado a propósito.
-       d) Escribe el texto de la pregunta.
-       e) Escribe las CUATRO opciones y MARCA EL PUNTO de la que es correcta.
-       f) Escribe la motivación legal (sale al corregir) y, si procede, el
+       d) OPCIONAL — "Partes del enunciado de las que depende (modo foco)":
+          la lista muestra los bloques de hechos de ese enunciado (H1, H2…).
+          Marca el hecho desencadenante concreto del que depende la pregunta
+          (con Ctrl+clic se marcan varios; "Ninguno" los quita todos).
+          Solo se usa si el alumno enciende el MODO FOCO en el panel ⚙: la
+          pregunta mostrará entonces SOLO esos hechos, con un botón para
+          desplegar el enunciado entero. Sin vincular, se ve el enunciado
+          completo siempre.
+       e) Escribe el texto de la pregunta.
+       f) Escribe las opciones y MARCA LA CASILLA de la que es correcta.
+          - De 2 a 7 opciones. Con "＋ Añadir respuesta" y "🗑 Quitar la
+            última" cambias cuántas tiene ESA pregunta (de base son 4).
+          - "Respuesta múltiple": marca varias casillas y el alumno tendrá
+            que acertarlas TODAS (ni una de más ni una de menos) para que
+            la pregunta cuente como acertada. En la página esas opciones
+            salen con la insignia cuadrada y el aviso "marca todas las
+            respuestas que procedan".
+          - Sin respuesta múltiple, marcar una casilla desmarca la anterior.
+          - "Cuántas de estas respuestas salen en el examen": normalmente lo
+            que hayas puesto en la pestaña 1, pero aquí puedes darle un
+            número propio a una pregunta suelta. Debajo se te dice en
+            cristiano lo que verá el alumno.
+       g) Escribe la motivación legal (sale al corregir) y, si procede, el
           consejo con 💡.
-     En la lista de la izquierda cada pregunta lleva su bloque y su enunciado:
-        16 📝B2  --   ¿Qué órgano tiene atribuida…
+     En la lista de la izquierda cada pregunta lleva su bloque y su enunciado,
+     una lupa 🔎 si tiene hechos vinculados para el modo foco y un ☑ si es de
+     respuesta múltiple:
+        16 📝B2  --    ¿Qué órgano tiene atribuida…
+        17 📁B1  E1 🔎 Ante esa notificación defectuosa…
+        18 📝B2  --  ☑ Señale cuáles de los siguientes…
      Con "▲ Subir / ▼ Bajar" ordenas las preguntas DENTRO de su bloque. Para
      cambiar una pregunta de bloque se usa el desplegable de arriba.
 
@@ -297,18 +345,65 @@
      El temporizador se coloca solo debajo de la cabecera, tenga las filas
      que tenga. En móvil, cada fila se desplaza en horizontal por separado.
 
-  ENCIMA DE LAS PREGUNTAS
+  ENCIMA DE TODO EL BLOQUE
      Una barra de sección con el nombre del bloque, cuántas preguntas tiene
-     y su baremo ("+1 por acierto · −0,33 por fallo").
+     y su baremo ("+1 por acierto · −0,33 por fallo"). En los supuestos va
+     ENCIMA DEL ENUNCIADO, encabezando la sección entera (se puede bajar
+     hasta delante de la primera pregunta desde la pestaña 2).
 
-  CÓMO SE VEN LAS PREGUNTAS
-     · Bloque "en cadena": todas sus preguntas seguidas; la barra de arriba
-       lleva a cada una y la deja resaltada.
-     · Bloque "de una en una": solo la pregunta actual, como siempre.
-     · El alumno puede forzar "de una en una" en TODO el examen desde el
-       panel ⚙ de la página → "Ver las preguntas de una en una".
+  DÓNDE SALE EL ENUNCIADO
+     Cada enunciado se pinta DENTRO del hilo del examen, delante del grupo
+     de preguntas que lo comparte. Así el documento se lee en su orden:
+
+         ══ SUPUESTO PRÁCTICO · 6 preguntas · +1 / −0,33 ══
+         ENUNCIADO 1 (hechos + línea de tiempo)
+            preguntas 1, 2, 3 de ese enunciado
+         ENUNCIADO 2
+            preguntas 4, 5, 6
+         ══ TEORÍA · 4 preguntas ══
+            preguntas 7 a 10
+
+  CÓMO SE VEN LAS PREGUNTAS  —  UNA CASILLA POR BLOQUE
+     En el panel ⚙, bajo "Ver las preguntas de una en una", hay UNA CASILLA
+     POR CADA BLOQUE del examen, con su nombre y su color:
+
+         Ver las preguntas de una en una
+            ☑ ● Supuesto práctico
+            ☐ ● Teoría
+
+     · Casilla SIN marcar → ese bloque sale EN CADENA: todas sus preguntas
+       seguidas y, si es un supuesto, cada enunciado delante de las suyas
+       (el esquema de arriba).
+     · Casilla MARCADA → ese bloque sale DE UNA EN UNA: solo la pregunta
+       actual, con su enunciado encima.
+     Cada bloque va por su cuenta: se puede tener el supuesto de una en una
+     y la teoría en cadena, o justo al revés. Cada casilla arranca como
+     hayas dejado el "modo" de ese bloque en la pestaña 2.
+
+  MODO FOCO  (panel ⚙, colgando de "ver las preguntas de una en una")
+     Pensado para estudiar un supuesto largo sin releerlo entero en cada
+     pregunta. SOLO actúa sobre los bloques que estén marcados como "de una
+     en una": un bloque en cadena no se recorta nunca (no tendría sentido,
+     porque se ven todas las preguntas a la vez). Con el modo foco
+     encendido, en un bloque que vaya de una en una:
+       · si la pregunta está vinculada a hechos concretos (pestaña 4), sale
+         SOLO esa parte del enunciado, con el aviso «🔎 MODO FOCO» y un
+         botón "Ver enunciado completo" por si hace falta el resto;
+       · si no está vinculada a nada, sale el enunciado entero, como siempre;
+       · la línea de tiempo se calla mientras el enunciado esté recortado:
+         es contexto de todo el expediente.
+     La casilla se queda apagada (en gris) mientras no haya ningún bloque de
+     supuesto marcado como "de una en una", porque entonces no puede
+     aplicarse; en cuanto marcas uno, se enciende sola.
+     Al imprimir o generar el PDF los enunciados salen SIEMPRE completos.
 
   CORRECCIÓN
+     Una pregunta de respuesta múltiple solo cuenta como acertada si se han
+     marcado EXACTAMENTE las correctas: ni sobra ni falta ninguna. No hay
+     medios puntos. Con "corregir pregunta a pregunta", la solución de esas
+     preguntas no se enseña hasta haber marcado tantas opciones como
+     correctas tiene, para no cantarla con el primer clic.
+
      Cada bloque se corrige por separado con su propio baremo y luego se
      suman. El marcador muestra:
         · los puntos totales, ya con los descuentos aplicados (4,75 / 7)
@@ -343,13 +438,21 @@
      · Botón de plegar ⌃ — se puede quitar si no lo quieres, y con «Empieza
        plegada» cada intento arranca mostrando solo la fila del bloque en el
        que está el alumno.
-     · Las cuatro opciones del panel: cambiar la duración, corregir pregunta
-       a pregunta, ver las preguntas de una en una y ocultar las etiquetas de
-       pregunta. Cada una se puede ocultar o renombrar, y las tres últimas
-       admiten además «Empieza activada». Ejemplos típicos: ocultar "cambiar
-       la duración" para que el examen dure siempre lo que has puesto en la
-       pestaña 1; o marcar "corregir pregunta a pregunta / Empieza activada"
-       para un test de repaso que se corrige sobre la marcha.
+     · Las cinco opciones del panel: cambiar la duración, corregir pregunta
+       a pregunta, ver las preguntas de una en una, el modo foco (que cuelga
+       de la anterior y va sangrado debajo de ella) y ocultar las etiquetas
+       de pregunta. Cada una se puede ocultar o renombrar, y las cuatro
+       últimas admiten además «Empieza activada». Ejemplos típicos: ocultar
+       "cambiar la duración" para que el examen dure siempre lo que has
+       puesto en la pestaña 1; marcar "corregir pregunta a pregunta /
+       Empieza activada" para un test de repaso que se corrige sobre la
+       marcha; o dejar el "modo foco" oculto en un examen de verdad y
+       visible en el mismo supuesto usado para estudiar.
+       OJO con "ver las preguntas de una en una": en la página no es UNA
+       casilla, sino una por bloque. Lo que hay aquí manda sobre el GRUPO
+       entero (si se ve y cómo se titula) y, con «Empieza activada», hace
+       que TODOS los bloques arranquen de una en una. Para quitarle la
+       casilla a un bloque suelto, se hace en la pestaña 2.
 
   B) BOTONES DE ABAJO Y DE LA PANTALLA DE RESULTADOS
      Anterior, Siguiente, Corregir, Ver corrección completa, Imprimir/PDF,
@@ -357,6 +460,23 @@
      Los cuatro últimos son los que aparecen AL TERMINAR el examen; si
      desmarcas uno, no sale ni en la botonera de abajo ni en la ventana de
      resultados.
+
+     EL BOTÓN 🔀 Y SUS DOS FORMAS DE REPETIR
+     Debajo de "Nuevo intento aleatorio" hay ahora una línea por cada una de
+     las dos opciones que ofrece su ventana, y cada una se quita por su
+     cuenta:
+       · "Mismas preguntas y mismo orden" → salen las mismas preguntas en el
+         mismo orden; solo cambia el orden de las respuestas dentro de cada
+         pregunta (y qué opciones salen, si alguna tiene más escritas de las
+         que se muestran).
+       · "Mismas preguntas en otro orden" → salen TODAS las preguntas otra
+         vez, barajadas. NO se descarta ninguna: la única diferencia con la
+         anterior es el orden. Se respeta el orden de los bloques y cada
+         pregunta sigue pegada a su enunciado.
+     Si dejas una sola, el botón 🔀 no pregunta nada: repite directamente de
+     esa forma. Si quitas las dos, el botón desaparece.
+     (Lo único que sí descarta preguntas es "cuántas preguntas salen al
+     azar" de la pestaña 2, que es una decisión expresa tuya.)
 
   C) ENVÍO DE RESULTADOS A UN FORMULARIO DE GOOGLE
      Viene ya relleno con el formulario y las casillas que usa el proyecto,
@@ -464,6 +584,23 @@
      2. Pulsa "⇪ Pasar a plantilla nueva…" y dale un nombre.
      A partir de ahí ya puedes editar los datos generales, crear el bloque
      de teoría y repartir las preguntas.
+
+  CUANDO LA PLANTILLA MEJORA Y TU SUPUESTO SE HA QUEDADO ATRÁS
+     Un archivo de supuesto lleva dos cosas: los DATOS (tus enunciados y
+     preguntas) y la PÁGINA que los muestra. Al guardar, el editor cambia
+     los datos dentro del archivo que abriste; la página se quedaría tal y
+     como estaba el día en que se creó.
+     Para que eso no te deje con opciones nuevas que no se notan, la
+     plantilla lleva un número de versión y el editor lo vigila:
+       · Al abrir un supuesto atrasado, la barra de abajo te avisa.
+       · Al guardarlo, te pregunta una sola vez: "¿Rehacer la página con la
+         plantilla actual?". Di que SÍ y el archivo estrena la página nueva
+         sin tocar ni una pregunta (queda una copia .bak de la anterior).
+         Si dices que no, se guarda igual pero seguirá con la página vieja.
+     Es decir: NO hace falta hacer nada especial. Abre, guarda y di que sí.
+     El botón "⇪ Pasar a plantilla nueva…" queda solo para los archivos
+     realmente antiguos (los del apartado C de aquí arriba, con el título
+     escrito a mano dentro del HTML).
 
 
 ────────────────────────────────────────────────────────────────────────────────
