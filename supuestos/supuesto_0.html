@@ -905,6 +905,9 @@
        tema       → colores de toda la página (fondos, textos, acentos)
        interfaz   → qué botones se ven y cómo se llaman
        envio      → dirección del formulario y casilla de cada dato
+       envioDetalle → (opcional) segundo formulario, el del detalle
+                    pregunta a pregunta que sale solo al corregir. Si no
+                    aparece, se usa el del proyecto, que ya viene puesto
        bloques    → secciones del examen, en el orden en que salen:
                     tipo "supuesto" (con enunciados) o tipo "test" (teoría),
                     con su color, su forma de verse y su baremo
@@ -1594,7 +1597,13 @@ function normalizarBloques(datos) {
     });
 
     const porId = new Map(bloques.map(b => [b.id, b]));
-    (datos.preguntas || []).forEach(q => {
+    (datos.preguntas || []).forEach((q, idx) => {
+        // Nº de orden ORIGINAL de la pregunta dentro del supuesto, el del
+        // editor y anterior a cualquier barajado. Se conserva pase lo que
+        // pase para que el envío automático del detalle mande siempre cada
+        // pregunta a su casilla fija del formulario (Pregunta 1 … 80),
+        // aunque el intento salga aleatorizado o solo con parte de ellas.
+        q.__ord = idx;
         const b = porId.get(String(q.bloqueId || '')) || bloques[0];
         q.bloqueId = b.id;
         // Bloques de hechos concretos de los que depende la pregunta
@@ -1700,6 +1709,60 @@ const APTO_PCT        = numeroSeguro(EXAM_CONFIG.aptoPorcentaje, 50);
 // Qué botones se ven y cómo se llaman, y a dónde se envían los resultados
 const INTERFAZ        = DATOS_SUPUESTO.interfaz || {};
 const ENVIO           = DATOS_SUPUESTO.envio    || {};
+
+/* ═══════════════════════════════════════════
+   SEGUNDO FORMULARIO — DETALLE PREGUNTA A PREGUNTA
+   ───────────────────────────────────────────
+   COMPLEMENTO, no sustituto: el envío de arriba (botón 📤) se queda
+   como está. Este otro sale solo, sin preguntar nada y sin salir de la
+   página, en cuanto el alumno pulsa «Corregir» (o se le agota el
+   tiempo), y manda:
+       · el nombre del supuesto
+       · la fecha y hora del envío
+       · los aciertos y los fallos en bruto (sin baremo)
+       · una casilla por pregunta, «Pregunta 1» … «Pregunta 80»
+   Cada pregunta viaja SIEMPRE a la casilla de su número de orden
+   ORIGINAL en el supuesto (el del editor), sin importar en qué bloque
+   esté ni en qué orden haya salido en el intento.
+   Las casillas son fijas; si algún día cambiara el formulario, se
+   pueden sobrescribir desde el JSON con un apartado "envioDetalle".
+═══════════════════════════════════════════ */
+const ENVIO_DETALLE_DEFECTO = {
+    url:      'https://docs.google.com/forms/d/e/1FAIpQLSfICCUGWcmcJ1zLFtphE1pictGOyfY9epNbSrHtEFfGvvK8HQ/formResponse',
+    nombre:   'entry.315726614',   // Nombre supuesto
+    tiempo:   'entry.1329722701',   // Tiempo (fecha y hora del envío)
+    aciertos: 'entry.979170555',    // Nº de aciertos en bruto
+    fallos:   'entry.1962238201',    // Nº de fallos en bruto
+    preguntas: [
+        'entry.712361381', 'entry.709874002', 'entry.661924675', 'entry.1030651222', 'entry.200283712', //  1- 5
+        'entry.134789499', 'entry.966701265', 'entry.2110630525', 'entry.1056110206', 'entry.960222499', //  6-10
+        'entry.1846963224', 'entry.900211285', 'entry.1003793269', 'entry.263573841', 'entry.784118366', // 11-15
+        'entry.1588074600', 'entry.1770731044', 'entry.211278072', 'entry.1659967631', 'entry.1690155252', // 16-20
+        'entry.2143039054', 'entry.1904113686', 'entry.1470800200', 'entry.1255018865', 'entry.1513500', // 21-25
+        'entry.1854371083', 'entry.1620187954', 'entry.729113678', 'entry.293340307', 'entry.1724050220', // 26-30
+        'entry.1062380832', 'entry.2085402594', 'entry.950414350', 'entry.602730095', 'entry.614220064', // 31-35
+        'entry.1856632108', 'entry.909455125', 'entry.693661547', 'entry.632847159', 'entry.335441030', // 36-40
+        'entry.1456618893', 'entry.852090648', 'entry.589626122', 'entry.183473563', 'entry.1217213161', // 41-45
+        'entry.1968115194', 'entry.531136136', 'entry.1209534835', 'entry.1577734057', 'entry.312691398', // 46-50
+        'entry.1116760340', 'entry.768501311', 'entry.694863628', 'entry.673940089', 'entry.1533606077', // 51-55
+        'entry.253021395', 'entry.1326657452', 'entry.2041886464', 'entry.1051043932', 'entry.1809273037', // 56-60
+        'entry.1108878147', 'entry.1471749573', 'entry.1082014329', 'entry.2112539399', 'entry.15417682', // 61-65
+        'entry.2104298979', 'entry.949437792', 'entry.2071397813', 'entry.2001115340', 'entry.1445602013', // 66-70
+        'entry.911131704', 'entry.1517320485', 'entry.548517073', 'entry.932772700', 'entry.1987322673', // 71-75
+        'entry.529360562', 'entry.2050801750', 'entry.82935037', 'entry.48912348', 'entry.1553896761' // 76-80
+    ]
+};
+
+const ENVIO_DETALLE = (() => {
+    const dado = DATOS_SUPUESTO.envioDetalle || {};
+    const cfg  = Object.assign({}, ENVIO_DETALLE_DEFECTO, dado);
+    // La lista de casillas de pregunta solo se sustituye si viene con
+    // contenido; si no, se mantiene la del formulario del proyecto.
+    cfg.preguntas = (Array.isArray(dado.preguntas) && dado.preguntas.length)
+                        ? dado.preguntas.map(x => String(x || '').trim())
+                        : ENVIO_DETALLE_DEFECTO.preguntas.slice();
+    return cfg;
+})();
 /* ═══════════ FIN DE LA ZONA EDITABLE ═══════════ */
 
 
@@ -1721,6 +1784,7 @@ let timeLeft            = examDurationSeconds;
 let current              = 0;
 let userAns              = {};
 let evaluated            = false;
+let detalleEnviado       = false;    // El detalle pregunta a pregunta ya salió en este intento
 let timerInt             = null;
 let timerPaused          = false;
 let audioCtx             = null;
@@ -2495,6 +2559,7 @@ function init(mode = 'default', sourceBank = null) {
     current    = 0;
     userAns    = {};
     evaluated  = false;
+    detalleEnviado = false;
     alerted10  = false;
     alerted5   = false;
     alerted5b  = false;
@@ -2630,6 +2695,10 @@ function init(mode = 'default', sourceBank = null) {
         card.className = `question-card blq-${bloque.id}`;
         card.id       = `qcard-${i}`;
         card.dataset.correct  = correctasNuevas.join(',');
+        // Traducción "opción tal y como se ve" → "opción tal y como está
+        // escrita en el supuesto". Hace falta para poder mandar al
+        // formulario el texto exacto que marcó el alumno.
+        card.dataset.opciones = opciones.map(o => o.idx).join(',');
         card.dataset.multiple = multiple ? '1' : '';
         card.dataset.bloque   = bloque.id;
         card.dataset.panel    = panelActual;   // enunciado al que pertenece
@@ -2939,6 +3008,9 @@ function triggerTimeUp() {
     showCorrectionPanel();
     // Mostrar botón de envío de resultados
     document.getElementById('send-btn').style.display = 'inline-flex';
+
+    // Envío automático del detalle pregunta a pregunta (segundo formulario)
+    enviarDetalleCorreccion();
 }
 
 /* ═══════════════════════════════════════════
@@ -2996,6 +3068,9 @@ function evaluateExam() {
 
     // Banner de resultado inline
     buildInlineScore();
+
+    // Envío automático del detalle pregunta a pregunta (segundo formulario)
+    enviarDetalleCorreccion();
 
     // Se vuelve a la primera pregunta y se sube al principio, para que lo
     // primero que se vea sea el marcador.
@@ -3218,6 +3293,148 @@ function printResults() {
 }
 
 /* ═══════════════════════════════════════════
+   ENVÍO A GOOGLE FORMS — UTILIDAD COMÚN
+   ───────────────────────────────────────────
+   Manda un juego de casillas a un formulario de Google mediante un
+   formulario oculto dirigido a un iframe oculto: así no se navega
+   fuera de la página ni hay problemas de CORS.
+═══════════════════════════════════════════ */
+function postAFormulario(url, campos, nombreMarco) {
+    const marco = nombreMarco || 'hidden-send-frame';
+
+    let iframe = document.getElementById(marco);
+    if (!iframe) {
+        iframe = document.createElement('iframe');
+        iframe.id = marco;
+        iframe.name = marco;
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+    }
+
+    const form = document.createElement('form');
+    form.action = url;
+    form.method = 'POST';
+    form.target = marco;
+    form.style.display = 'none';
+
+    Object.keys(campos).forEach(entryName => {
+        const input = document.createElement('input');
+        input.type  = 'hidden';
+        input.name  = entryName;
+        input.value = campos[entryName];
+        form.appendChild(input);
+    });
+
+    document.body.appendChild(form);
+    form.submit();
+    form.remove();
+}
+
+/* ═══════════════════════════════════════════
+   ENVÍO AUTOMÁTICO DEL DETALLE PREGUNTA A PREGUNTA
+   ───────────────────────────────────────────
+   Se dispara solo al corregir (botón «Corregir» o tiempo agotado). No
+   pide nada al alumno, no muestra avisos y no sustituye al envío
+   manual del botón 📤: son dos formularios distintos y complementarios.
+
+   Qué manda:
+     · Nombre supuesto  → el título del supuesto
+     · Tiempo           → fecha y hora del envío (dd/mm/aaaa hh:mm)
+     · Nº de aciertos   → recuento en bruto, sin baremo
+     · Nº de fallos     → recuento en bruto, sin baremo
+     · Pregunta 1 … 80  → "Correcta: <lo que marcó>" si acertó,
+                          "Incorrecta: <lo que marcó>" si falló,
+                          "En blanco" si no la contestó.
+   En las preguntas de respuesta múltiple se mandan todas las opciones
+   que marcó, separadas por " | ", y cuentan como acierto solo si marcó
+   exactamente las correctas (el mismo criterio que la corrección).
+
+   Cada pregunta va a la casilla de su número ORIGINAL en el supuesto
+   (q.__ord + 1), tal y como se planteó en el editor, aunque el intento
+   la haya barajado o cambiado de sitio. Las preguntas que no hayan
+   salido en el intento no ocupan casilla: se quedan vacías.
+═══════════════════════════════════════════ */
+
+// Texto de una opción sin la letra "A) " que a veces se escribe delante,
+// igual que se presenta en pantalla.
+function textoOpcionLimpio(txt) {
+    return String(txt === undefined || txt === null ? '' : txt)
+                .replace(/^[A-G]\)\s*/, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+}
+
+// Fecha y hora del envío en formato dd/mm/aaaa hh:mm
+function fechaHoraEnvio() {
+    const d  = new Date();
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mi = String(d.getMinutes()).padStart(2, '0');
+    return `${dd}/${mm}/${d.getFullYear()} ${hh}:${mi}`;
+}
+
+// Qué contestó el alumno en una pregunta, con el texto tal y como está
+// escrito en el supuesto (no la letra, que cambia en cada intento).
+function loQueContesto(qIdx, q) {
+    const card = document.getElementById(`qcard-${qIdx}`);
+    // Posición en pantalla → posición en la lista de opciones del editor
+    const barajado = String(card ? card.dataset.opciones || '' : '')
+                        .split(',').filter(s => s !== '').map(Number);
+    return contestadasDe(qIdx)
+                .map(pos => barajado.length ? barajado[pos] : pos)
+                // En el orden en que están escritas en el supuesto, no en el
+                // barajado de este intento: así las mismas respuestas se
+                // mandan siempre igual y se pueden comparar entre alumnos.
+                .sort((x, y) => x - y)
+                .map(idx => textoOpcionLimpio((q.a || [])[idx]))
+                .filter(t => t !== '')
+                .join(' | ');
+}
+
+function enviarDetalleCorreccion() {
+    if (detalleEnviado) return;                 // una sola vez por intento
+    if (!ENVIO_DETALLE || !ENVIO_DETALLE.url) return;
+
+    const campos = {};
+    const anota = (casilla, valor) => {
+        const nombre = String(casilla || '').trim();
+        if (nombre) campos[nombre] = valor;
+    };
+
+    const res = calcResultados();
+
+    anota(ENVIO_DETALLE.nombre,   (EXAM_CONFIG.titulo || document.title || '').trim());
+    anota(ENVIO_DETALLE.tiempo,   fechaHoraEnvio());
+    anota(ENVIO_DETALLE.aciertos, res.aciertos);
+    anota(ENVIO_DETALLE.fallos,   res.fallos);
+
+    const casillasPregunta = ENVIO_DETALLE.preguntas || [];
+
+    questions.forEach((q, i) => {
+        // Casilla fija según el orden original del supuesto
+        const orden   = (typeof q.__ord === 'number') ? q.__ord : i;
+        const casilla = casillasPregunta[orden];
+        if (!casilla) return;                   // fuera de las 80 casillas
+
+        let valor;
+        if (sinResponder(i)) {
+            valor = 'En blanco';
+        } else {
+            valor = (esAcierto(i) ? 'Correcta: ' : 'Incorrecta: ') + loQueContesto(i, q);
+        }
+        anota(casilla, valor);
+    });
+
+    detalleEnviado = true;
+    try {
+        postAFormulario(ENVIO_DETALLE.url, campos, 'hidden-detalle-frame');
+    } catch (err) {
+        detalleEnviado = false;                 // que pueda reintentarlo al repetir
+    }
+}
+
+/* ═══════════════════════════════════════════
    ENVÍO DE RESULTADOS A GOOGLE FORMS
 ═══════════════════════════════════════════ */
 function enviarResultados() {
@@ -3276,40 +3493,14 @@ function enviarResultados() {
         anota(casillas.puntos,    nUm(r.puntos));
     });
 
-    // Iframe oculto de destino para evitar navegar fuera de la página (y problemas de CORS)
-    let iframe = document.getElementById('hidden-send-frame');
-    if (!iframe) {
-        iframe = document.createElement('iframe');
-        iframe.id = 'hidden-send-frame';
-        iframe.name = 'hidden-send-frame';
-        iframe.style.display = 'none';
-        document.body.appendChild(iframe);
-    }
-
-    // Formulario oculto que replica los campos del Google Form
-    const form = document.createElement('form');
-    form.action = FORM_ACTION_URL;
-    form.method = 'POST';
-    form.target = 'hidden-send-frame';
-    form.style.display = 'none';
-
-    Object.keys(fieldMap).forEach(entryName => {
-        const input = document.createElement('input');
-        input.type  = 'hidden';
-        input.name  = entryName;
-        input.value = fieldMap[entryName];
-        form.appendChild(input);
-    });
-
-    document.body.appendChild(form);
-
     if (sendBtn) {
         sendBtn.disabled = true;
         sendBtn.textContent = '✔ Resultados enviados';
     }
 
-    form.submit();
-    form.remove();
+    // Formulario oculto dirigido a un iframe oculto: no se navega fuera de
+    // la página y se evitan los problemas de CORS.
+    postAFormulario(FORM_ACTION_URL, fieldMap, 'hidden-send-frame');
 
     const desglose = res.bloques.length < 2 ? '' :
         '\n\nPor bloques:' + res.bloques.map(r =>
