@@ -277,6 +277,59 @@ CAMPOS_ENVIO_BLOQUE = [
     ("blancos", "En blanco"), ("puntos", "Puntos"),
 ]
 
+# ── SEGUNDO FORMULARIO: EL DETALLE PREGUNTA A PREGUNTA ───────────────────
+# Es un COMPLEMENTO del anterior, no un sustituto. El alumno no lo ve ni lo
+# pulsa: sale solo, en cuanto pulsa «Corregir» (o se le agota el tiempo), y
+# lleva el nombre del supuesto, la fecha y hora del envío, los aciertos y los
+# fallos en bruto y, pregunta a pregunta, si la acertó y qué opción marcó.
+#
+# Cada pregunta viaja SIEMPRE a la casilla de su número de orden en este
+# programa (la 1ª pregunta de la lista → «Pregunta 1», y así hasta 80), sin
+# importar en qué bloque esté ni si el intento salió aleatorizado.
+ENTRADAS_PREGUNTA_DETALLE = [
+    "entry.982131887", "entry.1252459471", "entry.2122087498", "entry.1701337640", "entry.481865180", #  1- 5
+    "entry.1980388247", "entry.471050720", "entry.535260973", "entry.398162341", "entry.1938630037", #  6-10
+    "entry.273774934", "entry.809562742", "entry.542946710", "entry.2062577704", "entry.661226567", # 11-15
+    "entry.947722440", "entry.1670129246", "entry.901376715", "entry.1928613726", "entry.263102789", # 16-20
+    "entry.1690369262", "entry.1615437836", "entry.145366855", "entry.1961818796", "entry.737788617", # 21-25
+    "entry.501709869", "entry.1099120456", "entry.813297695", "entry.107891826", "entry.602015208", # 26-30
+    "entry.270400682", "entry.1238802935", "entry.849887819", "entry.2072958717", "entry.1403185949", # 31-35
+    "entry.1918612084", "entry.1063054184", "entry.1719017044", "entry.1053812021", "entry.992820349", # 36-40
+    "entry.2006517240", "entry.288137864", "entry.1294410022", "entry.1324585022", "entry.1332675045", # 41-45
+    "entry.1904953134", "entry.2131843780", "entry.1932152957", "entry.682592937", "entry.1666153956", # 46-50
+    "entry.1174590444", "entry.761354539", "entry.773662993", "entry.795783476", "entry.1664004498", # 51-55
+    "entry.1220512094", "entry.524694109", "entry.1902868321", "entry.1713527907", "entry.1333826065", # 56-60
+    "entry.2130082039", "entry.184366590", "entry.1375200646", "entry.691246838", "entry.774850923", # 61-65
+    "entry.1566321854", "entry.2024865961", "entry.1917726039", "entry.2034804372", "entry.1668233507", # 66-70
+    "entry.429534889", "entry.908469287", "entry.1015785946", "entry.337688311", "entry.464947808", # 71-75
+    "entry.81080012", "entry.1467640317", "entry.1077779743", "entry.1369467538", "entry.618242717" # 76-80
+]
+
+ENVIO_DETALLE_DEFECTO = {
+    "url": ("https://docs.google.com/forms/d/e/"
+            "1FAIpQLSfICCUGWcmcJ1zLFtphE1pictGOyfY9epNbSrHtEFfGvvK8HQ/formResponse"),
+    "nombre":   "entry.1030457666",
+    "tiempo":   "entry.1404888703",
+    "aciertos": "entry.961910084",
+    "fallos":   "entry.521215841",
+    "preguntas": list(ENTRADAS_PREGUNTA_DETALLE),
+}
+
+# (clave, nombre visible, qué valor se manda)
+CAMPOS_ENVIO_DETALLE = [
+    ("nombre",   "Nombre supuesto", "el título del supuesto (pestaña 1)"),
+    ("tiempo",   "Tiempo",          "fecha y hora del envío (dd/mm/aaaa hh:mm)"),
+    ("aciertos", "Nº aciertos",     "recuento en bruto, sin baremo"),
+    ("fallos",   "Nº fallos",       "recuento en bruto, sin baremo"),
+]
+
+
+def envio_detalle_por_defecto():
+    """Copia independiente de la configuración del segundo formulario."""
+    cfg = dict(ENVIO_DETALLE_DEFECTO)
+    cfg["preguntas"] = list(ENVIO_DETALLE_DEFECTO["preguntas"])
+    return cfg
+
 # Colores por defecto de cada tipo de bloque (los del HTML)
 LOGO_POR_DEFECTO = ("https://academia.ecap.es/pluginfile.php?file=%2F1%2Fcore_admin"
                     "%2Flogo%2F0x200%2F1782109950%2FACADEMIA%20VIRTUAL%20%281%29.png")
@@ -324,6 +377,7 @@ def datos_vacios():
         "tema": dict(TEMA_DEFECTO),
         "interfaz": {k: dict(v) for k, v in INTERFAZ_DEFECTO.items()},
         "envio": dict(ENVIO_DEFECTO),
+        "envioDetalle": envio_detalle_por_defecto(),
         "bloques": [bloque_vacio("supuesto", "B1", primero=True)],
         "enunciados": [],
         "preguntas": [],
@@ -459,6 +513,19 @@ def normalizar(datos):
     heredadas = {destino: str(envio_bruto.get(origen, "") or "").strip()
                  for origen, destino in EQUIVALENCIA_ENVIO_ANTIGUO.items()}
 
+    # ── segundo formulario: detalle pregunta a pregunta ───────────────
+    # Es el mismo para todo el proyecto, así que un archivo que no lo traiga
+    # (los de antes de esta versión) lo estrena tal cual. Si lo trae, se
+    # respeta lo que tenga y solo se completa lo que falte.
+    detalle_bruto = datos.get("envioDetalle") or {}
+    detalle = {clave: str(detalle_bruto.get(clave, ENVIO_DETALLE_DEFECTO[clave]) or "").strip()
+               for clave in ("url", "nombre", "tiempo", "aciertos", "fallos")}
+    casillas = detalle_bruto.get("preguntas")
+    if isinstance(casillas, list) and casillas:
+        detalle["preguntas"] = [str(c or "").strip() for c in casillas][:80]
+    else:
+        detalle["preguntas"] = list(ENTRADAS_PREGUNTA_DETALLE)
+
     # ── bloques ───────────────────────────────────────────────────────
     brutos = datos.get("bloques") or []
     bloques, usados = [], set()
@@ -568,7 +635,8 @@ def normalizar(datos):
     preguntas.sort(key=lambda q: orden[q["bloqueId"]])
 
     return {"config": cfg, "tema": tema, "interfaz": interfaz, "envio": envio,
-            "bloques": bloques, "enunciados": enunciados, "preguntas": preguntas}
+            "envioDetalle": detalle, "bloques": bloques, "enunciados": enunciados,
+            "preguntas": preguntas}
 
 
 def normalizar_respuestas(q, p):
@@ -871,6 +939,9 @@ def bloques_se_pierden(datos):
     if (datos.get("interfaz") or {}) != INTERFAZ_DEFECTO:
         return True
     if (datos.get("envio") or ENVIO_DEFECTO) != ENVIO_DEFECTO:
+        return True
+    # La plantilla clásica no manda el detalle pregunta a pregunta
+    if (datos.get("envioDetalle") or envio_detalle_por_defecto()) != envio_detalle_por_defecto():
         return True
     bloques = datos.get("bloques") or []
     if len(bloques) > 1:
@@ -3199,6 +3270,74 @@ class EditorApp(tk.Tk):
         self.marco_envio_bloques.pack(fill="x", padx=10, pady=(0, 14))
         self.w_envio_bloque = {}
 
+        # ---------- D. segundo formulario: detalle pregunta a pregunta ----------
+        caja = ttk.LabelFrame(m, text=" Envío automático del detalle pregunta a pregunta ")
+        caja.pack(fill="x", padx=16, pady=(6, 18))
+
+        ttk.Label(caja, style="Ayuda.TLabel", wraplength=860, justify="left",
+                  text="Este segundo formulario NO sustituye al de arriba: es un complemento "
+                       "y se manda solo, sin que el alumno tenga que pulsar nada, en cuanto "
+                       "corrige el examen (o se le agota el tiempo). Lleva el nombre del "
+                       "supuesto, la fecha y hora del envío, los aciertos y los fallos en "
+                       "bruto (sin baremo) y, de cada pregunta, si la acertó y qué opción "
+                       "marcó: «Correcta: …» o «Incorrecta: …», y «En blanco» si no la "
+                       "contestó.\n\n"
+                       "Cada pregunta va SIEMPRE a la casilla de su número de orden en la "
+                       "pestaña «4 · Preguntas» (la 1ª a «Pregunta 1», y así hasta 80), "
+                       "aunque el intento salga aleatorizado o solo con parte de ellas. Las "
+                       "preguntas que no salgan en el intento dejan su casilla vacía.\n\n"
+                       "Viene ya configurado con el formulario del proyecto: no hace falta "
+                       "tocar nada."
+                  ).pack(anchor="w", padx=10, pady=(10, 8))
+
+        rotulo(caja, "Dirección del formulario del detalle", "envioDetalle.url",
+               "formulario que se manda solo al corregir",
+               "Igual que la de arriba: la del formulario, terminada en /formResponse. "
+               "Si se deja vacía, no se manda nada."
+               ).pack(anchor="w", padx=10, pady=(0, 2))
+        self.var_detalle_url = tk.StringVar()
+        ent = ttk.Entry(caja, textvariable=self.var_detalle_url, font=("Consolas", 9))
+        ent.pack(fill="x", padx=10, pady=(0, 8))
+        self._vigilar(ent)
+
+        rejilla = ttk.Frame(caja, style="Panel.TFrame")
+        rejilla.pack(fill="x", padx=10)
+        self.w_detalle = {}
+        for fila, (clave, visible, que) in enumerate(CAMPOS_ENVIO_DETALLE):
+            ttk.Label(rejilla, text=visible, style="Campo.TLabel"
+                      ).grid(row=fila, column=0, sticky="w", pady=2)
+            var = tk.StringVar()
+            e = ttk.Entry(rejilla, textvariable=var, font=("Consolas", 9), width=22)
+            e.grid(row=fila, column=1, sticky="w", padx=10)
+            self._vigilar(e)
+            self.w_detalle[clave] = var
+            ttk.Label(rejilla, text="envioDetalle.%s   ·   %s" % (clave, que),
+                      style="Tec.TLabel").grid(row=fila, column=2, sticky="w")
+
+        ttk.Label(caja, text="Casillas de las 80 preguntas", style="Campo.TLabel"
+                  ).pack(anchor="w", padx=10, pady=(14, 0))
+        ttk.Label(caja, style="Tec.TLabel",
+                  text="envioDetalle.preguntas   ·   una casilla por línea, en orden: "
+                       "Pregunta 1, Pregunta 2 …").pack(anchor="w", padx=10)
+        ttk.Label(caja, style="Ayuda.TLabel", wraplength=860, justify="left",
+                  text="Solo hay que tocarlas si algún día cambia el formulario. Si se "
+                       "borran todas, se vuelven a poner las del proyecto."
+                  ).pack(anchor="w", padx=10, pady=(0, 6))
+        marco_cas = ttk.Frame(caja, style="Panel.TFrame")
+        marco_cas.pack(fill="x", padx=10, pady=(0, 6))
+        self.txt_detalle_preguntas = tk.Text(
+            marco_cas, height=8, wrap="none", font=("Consolas", 9), relief="solid",
+            borderwidth=1, background="white", foreground="#111827",
+            insertbackground="#111827", padx=6, pady=4)
+        barra_cas = ttk.Scrollbar(marco_cas, orient="vertical",
+                                  command=self.txt_detalle_preguntas.yview)
+        self.txt_detalle_preguntas.configure(yscrollcommand=barra_cas.set)
+        self.txt_detalle_preguntas.pack(side="left", fill="both", expand=True)
+        barra_cas.pack(side="right", fill="y")
+        self._vigilar(self.txt_detalle_preguntas)
+        ttk.Button(caja, text="↺  Restaurar las casillas del proyecto",
+                   command=self.restaurar_casillas_detalle).pack(anchor="w", padx=10, pady=(0, 14))
+
     def _fila_interfaz(self, padre, clave, visible, html, ayuda, rotulo_texto,
                        compacto=False):
         """Una línea de configuración: casilla «se ve» + campos de texto."""
@@ -3313,6 +3452,13 @@ class EditorApp(tk.Tk):
             var.set(envio.get(clave, ""))
         self.refrescar_envio_bloques()
 
+        detalle = self.datos.get("envioDetalle") or envio_detalle_por_defecto()
+        self.var_detalle_url.set(detalle.get("url", ""))
+        for clave, var in self.w_detalle.items():
+            var.set(detalle.get(clave, ""))
+        self._poner_casillas_detalle(detalle.get("preguntas")
+                                     or ENTRADAS_PREGUNTA_DETALLE)
+
     def volcar_botones(self):
         if not getattr(self, "w_ui", None):
             return
@@ -3334,6 +3480,24 @@ class EditorApp(tk.Tk):
             envio[clave] = var.get().strip()
         self.datos["envio"] = envio
         self.volcar_envio_bloques()
+
+        detalle = {"url": self.var_detalle_url.get().strip()}
+        for clave, var in self.w_detalle.items():
+            detalle[clave] = var.get().strip()
+        casillas = [l.strip() for l in
+                    self.txt_detalle_preguntas.get("1.0", "end").splitlines()]
+        casillas = [c for c in casillas if c]
+        detalle["preguntas"] = casillas[:80] or list(ENTRADAS_PREGUNTA_DETALLE)
+        self.datos["envioDetalle"] = detalle
+
+    # ---------- casillas del segundo formulario ----------
+    def _poner_casillas_detalle(self, casillas):
+        self.txt_detalle_preguntas.delete("1.0", "end")
+        self.txt_detalle_preguntas.insert("1.0", "\n".join(casillas))
+
+    def restaurar_casillas_detalle(self):
+        self._poner_casillas_detalle(ENTRADAS_PREGUNTA_DETALLE)
+        self._tocado()
     def _pestana_comprobar(self):
         panel = ttk.Frame(self.cuaderno)
         self.cuaderno.add(panel, text="  6 · Comprobar  ")

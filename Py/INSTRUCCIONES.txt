@@ -118,7 +118,9 @@
     4 · Preguntas y respuestas las preguntas, sus 4 opciones, la correcta,
                                la motivación legal y el consejo
     5 · Botones y envío        qué botones ve el alumno, cómo se llaman y a
-                               dónde se mandan los resultados
+                               dónde se mandan los resultados (dos
+                               formularios: el del botón 📤 y el del detalle
+                               pregunta a pregunta, que sale solo al corregir)
     6 · Comprobar              informe de revisión y vista de los datos
 
   CÓMO ESTÁ ROTULADO CADA CUADRO
@@ -307,8 +309,9 @@
      cambiar una pregunta de bloque se usa el desplegable de arriba.
 
   PASO 5 · Pestaña "5 · Botones y envío" (opcional, ver apartado 7B)
-     Solo si quieres quitar botones, cambiarles el nombre o mandar los
-     resultados a un formulario de Google.
+     Solo si quieres quitar botones, cambiarles el nombre o cambiar a qué
+     formulario de Google van los resultados. El envío del detalle pregunta
+     a pregunta (el que sale solo al corregir) ya viene configurado.
 
   PASO 6 · Pulsa "✔ Comprobar" y corrige lo que salga marcado con ✗.
      El informe incluye, bloque a bloque, cuántas preguntas tiene, su baremo
@@ -508,6 +511,60 @@
 
      La puntuación se manda con coma decimal (1,75), igual que se ve en
      pantalla.
+
+  D) ENVÍO AUTOMÁTICO DEL DETALLE PREGUNTA A PREGUNTA (segundo formulario)
+     OJO: esto NO sustituye al apartado C. Son dos formularios distintos y
+     complementarios. El del apartado C lo manda el alumno pulsando 📤; este
+     otro sale SOLO, sin que el alumno pulse nada ni vea ningún aviso, en
+     cuanto corrige el examen (botón «Corregir») o se le agota el tiempo.
+
+     Viene ya configurado con el formulario del proyecto, así que lo normal
+     es no tocar nada de este apartado.
+
+     QUÉ MANDA:
+       · Nombre supuesto  → el título del supuesto (pestaña 1).
+       · Tiempo           → la fecha y hora del envío (dd/mm/aaaa hh:mm).
+       · Nº aciertos      → recuento EN BRUTO, sin aplicar el baremo.
+       · Nº fallos        → recuento EN BRUTO, sin aplicar el baremo.
+       · Pregunta 1 … 80  → una casilla por pregunta, con:
+                              «Correcta: <lo que marcó>»    si acertó
+                              «Incorrecta: <lo que marcó>»  si falló
+                              «En blanco»                   si no la contestó
+         Se manda el TEXTO de la opción, no la letra (que cambia en cada
+         intento). En las preguntas de respuesta múltiple se mandan todas
+         las opciones que marcó, separadas por « | », y cuentan como acierto
+         solo si marcó exactamente las correctas, igual que en la corrección.
+
+     A QUÉ CASILLA VA CADA PREGUNTA:
+       Siempre a la de su NÚMERO DE ORDEN EN EL EDITOR, el de la pestaña
+       «4 · Preguntas y respuestas»: la 1ª pregunta de la lista va a
+       «Pregunta 1», la 2ª a «Pregunta 2», y así hasta 80. Ese número no
+       cambia nunca:
+         · da igual en qué bloque esté la pregunta y en qué orden salgan los
+           bloques;
+         · da igual que el intento sea aleatorio: aunque al alumno le salgan
+           barajadas, la página se acuerda por dentro del orden original y
+           manda cada una a su casilla;
+         · da igual que se barajen las opciones, o que la pregunta tenga
+           siete escritas y solo salgan cuatro: se manda el texto de la que
+           marcó.
+       Las preguntas que no salgan en ese intento (bloques con «por intento»
+       o supuestos que sacan solo parte de las preguntas) dejan su casilla
+       vacía. Si el supuesto tiene más de 80 preguntas, de la 81 en adelante
+       no se manda nada: el formulario solo tiene 80 casillas.
+
+     QUÉ SE PUEDE CAMBIAR:
+       · Dirección del formulario del detalle: igual que en el apartado C,
+         terminada en /formResponse. Si se deja vacía, no se manda nada.
+       · Las cuatro casillas generales (nombre, tiempo, aciertos, fallos).
+       · La lista de las 80 casillas de pregunta, una por línea y en orden.
+         El botón «↺ Restaurar las casillas del proyecto» las vuelve a
+         dejar como venían.
+
+     EN EL ARCHIVO HTML todo esto vive en el apartado «envioDetalle». Un
+     supuesto antiguo que no lo tenga lo estrena solo al abrirlo con el
+     editor. La plantilla clásica (la de formato JavaScript) NO sabe hacer
+     este envío: el editor avisa antes de guardar en ese formato.
 
 
 ────────────────────────────────────────────────────────────────────────────────
