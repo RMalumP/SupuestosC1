@@ -1,0 +1,3773 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!--
+        Versión del MOTOR de la plantilla (el código que hace funcionar la
+        página, no los datos del supuesto). El editor de Python la compara
+        con la suya y, si el archivo se quedó atrás, ofrece ponerlo al día
+        al guardar. Subir este número al cambiar el motor.
+    -->
+    <meta name="motor-plantilla" content="2">
+    <title>[TÍTULO DE LA EVALUACIÓN]</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,600;1,8..60,300&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* ════════════════════════════════════════
+           VARIABLES Y RESET
+        ════════════════════════════════════════ */
+        :root {
+            /* Versión "r,g,b" de los colores base: permite construir
+               transparencias — rgba(var(--gold-rgb),0.3) — de modo que al
+               cambiar la paleta desde el editor cambie TODA la página y no
+               solo los colores planos. */
+            --gold-rgb:    143,196,217;
+            --navy-rgb:    61,42,32;
+            --crimson-rgb: 139,26,26;
+            --forest-rgb:  26,71,49;
+
+            --navy:     #3d2a20;
+            --navy-mid: #5c4033;
+            --gold:     #8fc4d9;
+            --gold-lt:  #b8dceb;
+            --blue-deep: #2f6f93;
+            --cream:    #fdf8f0;
+            --parch:    #f7ece7;
+            --crimson:  #8b1a1a;
+            --forest:   #1a4731;
+            --slate:    #4a5568;
+            --ink:      #1a1a2e;
+            --paper:    #fffef9;
+            --shadow:   rgba(var(--navy-rgb),0.18);
+            --radius:   4px;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Source Serif 4', Georgia, serif;
+            background: var(--navy);
+            color: var(--ink);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        body::before {
+            content: '';
+            position: fixed; inset: 0;
+            background:
+                repeating-linear-gradient(0deg, transparent, transparent 60px,
+                    rgba(var(--gold-rgb),0.03) 60px, rgba(var(--gold-rgb),0.03) 61px),
+                radial-gradient(ellipse at 20% 80%, rgba(var(--gold-rgb),0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(var(--crimson-rgb),0.06) 0%, transparent 50%);
+            pointer-events: none; z-index: 0;
+        }
+
+        /* ════════════════════════════════════════
+           NAVEGACIÓN
+        ════════════════════════════════════════ */
+        #nav-header {
+            background: var(--navy-mid);
+            padding: 14px 20px;
+            position: sticky; top: 0; z-index: 1000;
+            border-bottom: 3px solid var(--gold);
+            display: flex; align-items: flex-start; gap: 6px; flex-wrap: nowrap;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        /* Rótulo de cada bloque dentro de la cabecera de navegación.
+           Sustituye al antiguo rótulo fijo "PREGUNTAS": ahora cada bloque
+           (supuesto o teoría) pone su propio nombre en su propio color. */
+        .nav-group-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.58rem; letter-spacing: 0.18em; text-transform: uppercase;
+            opacity: 0.9; line-height: 1.2; cursor: pointer;
+            flex: 0 0 150px; text-align: right;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .nav-group-label:hover { opacity: 1; text-decoration: underline; }
+        /* Cada bloque del examen ocupa su propia fila: nombre a la izquierda
+           y sus casillas numeradas a la derecha. */
+        #nav-boxes { display: flex; flex-direction: column; align-items: stretch; gap: 8px; flex: 1; min-width: 0; }
+        .nav-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+        .nav-row + .nav-row { border-top: 1px solid rgba(var(--gold-rgb),0.18); padding-top: 8px; }
+        /* Cabecera plegada: solo queda a la vista la fila del bloque actual */
+        body.nav-plegada .nav-row { display: none; border-top: none; padding-top: 0; }
+        body.nav-plegada .nav-row.fila-actual { display: flex; }
+        .nav-row-boxes { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; flex: 1; min-width: 0; }
+        .nav-box {
+            width: 36px; height: 36px;
+            border: 1.5px solid rgba(var(--gold-rgb),0.35);
+            color: rgba(255,255,255,0.6);
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700; font-size: 0.78rem;
+            cursor: pointer; transition: all 0.25s; border-radius: var(--radius);
+            background: rgba(255,255,255,0.04); user-select: none;
+        }
+        .nav-box:hover { border-color: var(--gold); color: var(--gold-lt); background: rgba(var(--gold-rgb),0.1); transform: translateY(-2px); }
+        .nav-box.active { background: var(--gold); color: var(--ink); border-color: var(--gold); box-shadow: 0 0 12px rgba(var(--gold-rgb),0.4); }
+        .nav-box.answered { background: rgba(var(--forest-rgb),0.7); color: #6fcf97; border-color: #2d8c5a; }
+        .nav-box.answered.active { background: var(--gold); color: var(--ink); }
+        .nav-box.nav-wrong { background: rgba(var(--crimson-rgb),0.75) !important; color: #fecaca !important; border-color: var(--crimson) !important; }
+        .nav-box.nav-wrong.active { background: var(--gold) !important; color: var(--ink) !important; }
+
+        /* ════════════════════════════════════════
+           PANEL DE CONFIGURACIÓN (temporizador + modo corrección)
+        ════════════════════════════════════════ */
+        .settings-wrap { position: relative; margin-left: auto; flex-shrink: 0; }
+        #settings-toggle {
+            width: 36px; height: 36px;
+            border: 1.5px solid rgba(var(--gold-rgb),0.35);
+            border-radius: var(--radius);
+            background: rgba(255,255,255,0.04);
+            color: rgba(255,255,255,0.7);
+            font-size: 1.05rem;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.25s;
+        }
+        #settings-toggle:hover, #settings-toggle.open { border-color: var(--gold); color: var(--gold-lt); background: rgba(var(--gold-rgb),0.1); }
+
+        /* Botón volver al menú principal (cabecera) */
+        .home-btn {
+            width: 36px; height: 36px; flex-shrink: 0;
+            border: 1.5px solid rgba(var(--gold-rgb),0.35);
+            border-radius: var(--radius);
+            background: rgba(255,255,255,0.04);
+            color: rgba(255,255,255,0.7);
+            font-size: 1.05rem; text-decoration: none;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.25s;
+        }
+        .home-btn:hover { border-color: var(--gold); color: var(--gold-lt); background: rgba(var(--gold-rgb),0.1); }
+        #settings-panel {
+            display: none;
+            position: absolute; top: 44px; right: 0;
+            width: 270px; background: var(--navy-mid);
+            border: 1.5px solid var(--gold); border-radius: var(--radius);
+            padding: 16px; z-index: 1001;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+        }
+        #settings-panel.open { display: block; animation: fadeUp 0.2s ease; }
+        .settings-title {
+            font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; letter-spacing: 0.2em;
+            color: var(--gold); opacity: 0.8; margin-bottom: 12px; text-transform: uppercase;
+        }
+        .settings-row { margin-bottom: 14px; }
+        .settings-row:last-child { margin-bottom: 0; }
+        .settings-row label {
+            display: block; font-size: 0.78rem; color: rgba(255,255,255,0.75);
+            margin-bottom: 6px; line-height: 1.4;
+        }
+        .settings-row .time-edit-line { display: flex; gap: 8px; }
+        #time-input {
+            flex: 1; min-width: 0; background: rgba(255,255,255,0.06);
+            border: 1.5px solid rgba(var(--gold-rgb),0.3); border-radius: var(--radius);
+            color: var(--cream); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;
+            padding: 8px 10px; text-align: center;
+        }
+        #time-input:focus { outline: none; border-color: var(--gold); }
+        .btn-mini {
+            font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; font-weight: 700;
+            letter-spacing: 0.1em; text-transform: uppercase; padding: 8px 12px;
+            border: 1.5px solid var(--gold); border-radius: var(--radius);
+            background: var(--gold); color: var(--ink); cursor: pointer; white-space: nowrap;
+            transition: all 0.2s;
+        }
+        .btn-mini:hover { background: var(--gold-lt); }
+        .settings-check { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+        .settings-check label { margin-bottom: 0; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+        .settings-check input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--gold); cursor: pointer; }
+        /* Opción dependiente de la de arriba: va sangrada y con un filete
+           que la ata a ella. Se apaga sola cuando no puede aplicarse. */
+        .settings-row.settings-sub {
+            margin-left: 14px; padding-left: 12px;
+            border-left: 2px solid rgba(var(--gold-rgb),0.35);
+            margin-top: -6px;
+        }
+        .settings-row.apagada { opacity: 0.45; }
+        .settings-row.apagada label { cursor: default; }
+        /* Una casilla por bloque dentro de la opción «de una en una» */
+        #una-por-bloque { display: flex; flex-direction: column; gap: 6px; }
+        #una-por-bloque label {
+            display: flex; align-items: center; gap: 8px; margin-bottom: 0;
+            cursor: pointer; font-size: 0.74rem; line-height: 1.3;
+        }
+        #una-por-bloque input[type="checkbox"] {
+            width: 15px; height: 15px; accent-color: var(--gold); cursor: pointer; flex-shrink: 0;
+        }
+        /* Punto del color del bloque, para reconocerlo de un vistazo */
+        #una-por-bloque .punto-bloque {
+            width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
+        }
+
+        /* ════════════════════════════════════════
+           TEMPORIZADOR
+        ════════════════════════════════════════ */
+        #timer {
+            position: fixed; right: 24px; top: calc(var(--nav-h, 64px) + 16px);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2rem; font-weight: 700; color: var(--gold);
+            background: var(--navy-mid); padding: 10px 18px;
+            border: 2px solid var(--gold); border-radius: var(--radius);
+            z-index: 999; box-shadow: 0 0 30px rgba(var(--gold-rgb),0.2), 0 8px 32px rgba(0,0,0,0.4);
+            letter-spacing: 0.05em; line-height: 1; text-align: center;
+            min-width: 110px;
+        }
+        #timer .timer-label {
+            display: block; font-size: 0.45rem; letter-spacing: 0.3em;
+            color: rgba(var(--gold-rgb),0.6); margin-bottom: 4px;
+        }
+        #timer.warn10 { color: #f59e0b; border-color: #f59e0b; }
+        #timer.warn5  { color: #ef4444; border-color: #ef4444; animation: pulse-timer 0.7s infinite; }
+        #timer.warn1  { color: #fff; border-color: #ef4444; background: #7f1d1d; animation: pulse-timer 0.4s infinite; }
+        #timer { cursor: pointer; user-select: none; }
+        #timer.paused { opacity: 0.55; animation: none !important; }
+        #timer.paused .timer-label::after { content: ' · PAUSA'; }
+        @keyframes pulse-timer {
+            0%,100% { box-shadow: 0 0 10px rgba(239,68,68,0.3); }
+            50%      { box-shadow: 0 0 30px rgba(239,68,68,0.8); }
+        }
+
+        /* ════════════════════════════════════════
+           CONTENEDOR Y ESTRUCTURA
+        ════════════════════════════════════════ */
+        .container { max-width: 860px; margin: 0 auto; padding: 40px 24px 80px; position: relative; z-index: 1; }
+
+        .inst-header {
+            background: var(--navy-mid); border: 1px solid rgba(var(--gold-rgb),0.25);
+            border-radius: var(--radius); padding: 28px 36px; margin-bottom: 8px;
+            text-align: center; position: relative; overflow: hidden;
+        }
+        .inst-header::before {
+            content: ''; position: absolute; top:0; left:0; right:0; height:3px;
+            background: linear-gradient(90deg, transparent, var(--gold), var(--crimson), var(--gold), transparent);
+        }
+        .inst-header .escudo { font-size: 2.2rem; margin-bottom: 8px; display: block; }
+        .inst-header .logo-img { max-height: 64px; width: auto; margin-bottom: 10px; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.35)); }
+        .inst-header .organismo { font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; letter-spacing: 0.3em; color: var(--gold); opacity: 0.8; padding-top: 8px; border-top: 1px solid rgba(184,220,235,0.3); display: inline-block; }
+        .inst-header h1 { font-family: 'Playfair Display', serif; font-size: 1.35rem; font-weight: 900; color: var(--cream); margin: 8px 0 4px; letter-spacing: 0.04em; }
+        .inst-header .meta-strip { display: flex; justify-content: center; gap: 12px; margin-top: 14px; flex-wrap: wrap; }
+        .meta-pill { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; letter-spacing: 0.15em; color: rgba(var(--gold-rgb),0.8); background: rgba(var(--gold-rgb),0.08); border: 1px solid rgba(var(--gold-rgb),0.2); padding: 5px 14px; border-radius: 2px; }
+
+        /* ════════════════════════════════════════
+           ENUNCIADO
+        ════════════════════════════════════════ */
+        .statement {
+            background: var(--paper); border: 1px solid rgba(var(--gold-rgb),0.2);
+            border-radius: var(--radius); padding: 48px 52px; margin-bottom: 32px;
+            position: relative; box-shadow: 0 16px 48px var(--shadow), inset 0 1px 0 rgba(255,255,255,0.8);
+            line-height: 1.9;
+        }
+        .statement::after {
+            content: ''; position: absolute; inset: 0;
+            background: repeating-linear-gradient(transparent, transparent 31px, rgba(var(--gold-rgb),0.06) 31px, rgba(var(--gold-rgb),0.06) 32px);
+            pointer-events: none; border-radius: var(--radius);
+        }
+        .statement-header { display: flex; align-items: flex-start; gap: 24px; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 2px solid var(--gold); position: relative; z-index: 1; }
+        .exp-number { flex-shrink: 0; width: 64px; height: 64px; background: var(--navy-mid); color: var(--gold); display: flex; align-items: center; justify-content: center; font-family: 'Playfair Display', serif; font-size: 1.6rem; font-weight: 900; border-radius: var(--radius); }
+        .statement-title-block h2 { font-family: 'Playfair Display', serif; font-size: 1.15rem; font-weight: 700; color: var(--ink); line-height: 1.3; text-transform: uppercase; letter-spacing: 0.05em; }
+        .statement-title-block .ref { font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; letter-spacing: 0.2em; color: var(--blue-deep); margin-top: 4px; display: block; }
+        .statement p { font-size: 0.95rem; color: #2d3748; margin-bottom: 18px; position: relative; z-index: 1; }
+        .statement strong { color: var(--ink); font-weight: 600; }
+        .statement em { color: var(--crimson); font-style: italic; }
+        .fact-block { background: rgba(var(--navy-rgb),0.04); border-left: 4px solid var(--gold); padding: 16px 20px; margin: 20px 0; border-radius: 0 var(--radius) var(--radius) 0; position: relative; z-index: 1; }
+        .fact-block.red { border-left-color: var(--crimson); background: rgba(var(--crimson-rgb),0.04); }
+        .fact-block .fact-title { font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; letter-spacing: 0.25em; color: var(--blue-deep); text-transform: uppercase; margin-bottom: 8px; font-weight: 700; }
+        .fact-block.red .fact-title { color: var(--crimson); }
+        .timeline { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 2px; margin: 24px 0; position: relative; z-index: 1; }
+        .tl-item { background: var(--navy-mid); color: var(--cream); padding: 12px 14px; text-align: center; font-size: 0.75rem; line-height: 1.4; }
+        .tl-item:first-child { border-radius: var(--radius) 0 0 var(--radius); }
+        .tl-item:last-child  { border-radius: 0 var(--radius) var(--radius) 0; }
+        .tl-item .tl-date { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; color: var(--gold); font-weight: 700; display: block; margin-bottom: 4px; }
+        .tl-item.red-event { background: var(--crimson); }
+        .tl-item.red-event .tl-date { color: var(--gold-lt); }
+
+        /* Panel de enunciado incrustado en el hilo del examen.
+           Cada grupo de preguntas lleva el suyo justo delante, de modo que
+           en el modo "en cadena" se lee enunciado 1 → sus preguntas →
+           enunciado 2 → sus preguntas, y de una en una solo se ve el del
+           enunciado al que pertenece la pregunta actual. */
+        .stmt-panel { display: none; }
+        .stmt-panel.visible { display: block; }
+
+        /* Aviso del modo foco: el enunciado sale recortado a los hechos
+           vinculados a la pregunta, con un botón para verlo entero. */
+        .stmt-foco {
+            display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+            background: rgba(var(--gold-rgb),0.12);
+            border: 1px dashed rgba(var(--gold-rgb),0.7);
+            border-radius: var(--radius); padding: 10px 14px; margin-bottom: 18px;
+            font-family: 'JetBrains Mono', monospace; font-size: 0.62rem;
+            letter-spacing: 0.06em; line-height: 1.6; color: var(--slate);
+            position: relative; z-index: 1;
+        }
+        .stmt-foco .btn-foco {
+            margin-left: auto; cursor: pointer; white-space: nowrap;
+            font-family: 'JetBrains Mono', monospace; font-size: 0.6rem;
+            letter-spacing: 0.12em; text-transform: uppercase;
+            padding: 6px 12px; border-radius: var(--radius);
+            border: 1.5px solid var(--blue-deep); background: transparent;
+            color: var(--blue-deep); transition: all 0.2s;
+        }
+        .stmt-foco .btn-foco:hover { background: var(--blue-deep); color: var(--cream); }
+        
+        /* Clase para ocultar elementos */
+        .hide { display: none; visibility: hidden; }
+
+        /* ════════════════════════════════════════
+           TARJETAS PREGUNTA
+        ════════════════════════════════════════ */
+        .question-card {
+            background: var(--paper); border: 1px solid rgba(var(--gold-rgb),0.15);
+            border-radius: var(--radius); padding: 36px 44px;
+            display: none; margin-bottom: 24px;
+            box-shadow: 0 8px 32px var(--shadow);
+            animation: fadeUp 0.35s ease; position: relative; overflow: hidden;
+        }
+        .question-card::before { content: ''; position: absolute; top:0; left:0; width:6px; height:100%; background: linear-gradient(180deg, var(--gold), var(--crimson)); }
+        .question-card.active { display: block; }
+        /* Modo "en cadena": se ven varias tarjetas del mismo bloque a la vez.
+           La tarjeta en la que está el usuario se resalta con un halo. */
+        .question-card.visible { display: block; }
+        .question-card.encadenada.active { box-shadow: 0 8px 32px var(--shadow), 0 0 0 2px var(--gold); }
+
+        /* Cabecera de sección de cada bloque (encima de sus preguntas) */
+        .block-header {
+            display: none; align-items: center; gap: 14px; flex-wrap: wrap;
+            background: var(--paper); border-left: 6px solid var(--gold);
+            border-radius: var(--radius); padding: 14px 20px; margin-bottom: 20px;
+            box-shadow: 0 6px 24px var(--shadow); position: relative; z-index: 1;
+        }
+        .block-header.visible { display: flex; }
+        .block-header .bh-tipo {
+            font-family: 'JetBrains Mono', monospace; font-size: 0.55rem;
+            letter-spacing: 0.2em; text-transform: uppercase;
+            border: 1.5px solid; border-radius: var(--radius); padding: 4px 8px;
+        }
+        .block-header h3 {
+            font-family: 'Playfair Display', serif; font-size: 1.15rem;
+            color: var(--ink); font-weight: 700; margin: 0; flex: 1;
+        }
+        .block-header .bh-datos {
+            font-family: 'JetBrains Mono', monospace; font-size: 0.6rem;
+            letter-spacing: 0.08em; color: var(--slate); text-align: right; line-height: 1.6;
+        }
+
+        /* Desglose por bloques dentro del marcador */
+        .score-bloques { margin-top: 16px; display: flex; flex-direction: column; gap: 6px; }
+        .score-bloques .sb-fila {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            background: rgba(255,255,255,0.05); border-left: 4px solid var(--gold);
+            border-radius: var(--radius); padding: 8px 12px; text-align: left;
+        }
+        .score-bloques .sb-nombre {
+            font-family: 'JetBrains Mono', monospace; font-size: 0.62rem;
+            letter-spacing: 0.14em; text-transform: uppercase; flex: 1; min-width: 120px;
+        }
+        .score-bloques .sb-detalle {
+            font-family: 'JetBrains Mono', monospace; font-size: 0.62rem;
+            color: rgba(255,255,255,0.65); letter-spacing: 0.06em;
+        }
+        .score-bloques .sb-puntos {
+            font-family: 'Playfair Display', serif; font-size: 1.1rem;
+            font-weight: 700; color: var(--cream); min-width: 92px; text-align: right;
+        }
+        /* Separador de bloque dentro de la corrección completa */
+        .corr-bloque {
+            font-family: 'JetBrains Mono', monospace; font-size: 0.62rem;
+            letter-spacing: 0.2em; text-transform: uppercase;
+            border-bottom: 2px solid; padding: 14px 4px 6px; margin: 22px 0 12px;
+        }
+        @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+
+        .q-header { display: flex; align-items: flex-start; gap: 18px; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid rgba(var(--gold-rgb),0.2); }
+        .q-num { flex-shrink:0; font-family:'Playfair Display',serif; font-size:2.5rem; font-weight:900; color:rgba(0,0,0,0.15); line-height:1; min-width:50px; }
+        .q-body { flex: 1; }
+        .q-tag { font-family:'JetBrains Mono',monospace; font-size:0.55rem; letter-spacing:0.25em; color:var(--ink); text-transform:uppercase; margin-bottom:8px; display:block; }
+        body.hide-qtags .q-tag { display: none; }
+        .q-text { font-family:'Source Serif 4',serif; font-size:1.0rem; font-weight:600; color:var(--ink); line-height:1.6; }
+
+        .options-grid { display:flex; flex-direction:column; gap:10px; margin-top:20px; }
+        .option { display:flex; align-items:flex-start; gap:14px; padding:14px 18px; border:1.5px solid rgba(var(--gold-rgb),0.15); border-radius:var(--radius); cursor:pointer; transition:all 0.2s; font-size:0.9rem; color:var(--ink); line-height:1.5; background:rgba(255,255,255,0.5); }
+        .option:hover { border-color:var(--blue-deep); background:rgba(var(--gold-rgb),0.1); transform:translateX(4px); }
+        .option.selected { border-color:var(--navy-mid); background:rgba(var(--navy-rgb),0.06); font-weight:500; }
+        .option.correct { border-color:var(--forest); background:rgba(var(--forest-rgb),0.10); color:var(--forest); font-weight:600; }
+        .option.wrong   { border-color:var(--crimson); background:rgba(var(--crimson-rgb),0.07); color:var(--crimson); text-decoration:line-through; }
+        .opt-letter { flex-shrink:0; width:26px; height:26px; border-radius:50%; background:var(--navy-mid); color:var(--gold); font-family:'JetBrains Mono',monospace; font-size:0.7rem; font-weight:700; display:flex; align-items:center; justify-content:center; margin-top:1px; }
+        /* Respuesta múltiple: la insignia pasa de redonda a cuadrada, como
+           una casilla de verificación, para que se vea de un vistazo que
+           se puede marcar más de una. */
+        .option.multi .opt-letter { border-radius:5px; }
+        .multi-aviso {
+            font-family:'JetBrains Mono',monospace; font-size:0.58rem; letter-spacing:0.18em;
+            text-transform:uppercase; color:var(--blue-deep); margin-top:18px;
+            display:flex; align-items:center; gap:8px;
+        }
+        .multi-aviso::before { content:'☑'; font-size:0.9rem; }
+        .multi-aviso + .options-grid { margin-top:8px; }
+        .option.correct .opt-letter { background:var(--forest); color:var(--cream); }
+        .option.wrong   .opt-letter { background:var(--crimson); color:var(--cream); }
+
+        /* FEEDBACK */
+        .feedback { display:none; margin-top:24px; border-radius:var(--radius); overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,0.08); }
+        .feedback-header { background:var(--navy-mid); padding:12px 20px; display:flex; align-items:center; gap:10px; }
+        .feedback-header span { font-family:'JetBrains Mono',monospace; font-size:0.6rem; letter-spacing:0.2em; color:var(--gold); text-transform:uppercase; }
+        .feedback-body { background:var(--parch); padding:18px 20px; font-size:0.875rem; line-height:1.7; color:var(--slate); border:1px solid rgba(var(--gold-rgb),0.15); border-top:none; }
+        .feedback-body .tip { margin-top:10px; padding:10px 14px; background:rgba(var(--forest-rgb),0.08); border-left:3px solid #2d8c5a; border-radius:0 var(--radius) var(--radius) 0; font-size:0.83rem; color:var(--forest); }
+        .feedback-body .tip::before { content:'💡 '; }
+
+        /* BARRA DE PROGRESO */
+        .progress-bar-wrap { height:4px; background:rgba(var(--gold-rgb),0.1); border-radius:2px; margin-bottom:28px; overflow:hidden; }
+        .progress-bar-fill { height:100%; background:linear-gradient(90deg, var(--gold), var(--crimson)); border-radius:2px; transition:width 0.4s; }
+
+        /* BOTONES */
+        .btn-zone { display:flex; justify-content:center; align-items:center; gap:12px; margin-top:32px; flex-wrap:wrap; }
+        .btn { font-family:'JetBrains Mono',monospace; font-size:0.72rem; letter-spacing:0.15em; text-transform:uppercase; font-weight:700; padding:14px 22px; border:1.5px solid var(--blue-deep); border-radius:var(--radius); cursor:pointer; transition:all 0.2s; background:transparent; color:var(--blue-deep); white-space:nowrap; }
+        .btn:hover { background:var(--blue-deep); color:var(--cream); transform:translateY(-2px); box-shadow:0 6px 20px rgba(47,111,147,0.3); }
+        .btn-primary { background:var(--navy-mid); color:var(--gold); border-color:var(--navy-mid); }
+        .btn-primary:hover { background:var(--navy-mid); }
+        .btn-danger { background:var(--crimson); color:var(--cream); border-color:var(--crimson); display:none; }
+        .btn-danger:hover { background:#a01515; border-color:#a01515; color:#fff; }
+        .btn-success { background:var(--forest); color:#a7f3d0; border-color:var(--forest); display:none; }
+        .btn-success:hover { background:#1f5c3a; }
+        .btn-info { background:var(--navy-mid); color:var(--gold-lt); border-color:rgba(var(--gold-rgb),0.4); display:none; }
+        .btn-info:hover { background:rgba(var(--gold-rgb),0.15); }
+        .btn-send { background:var(--blue-deep); color:var(--cream); border-color:var(--blue-deep); display:none; }
+        .btn-send:hover { background:#24576f; }
+        .btn-send:disabled { opacity:0.55; cursor:not-allowed; }
+
+        /* ════════════════════════════════════════
+           OVERLAY TIEMPO AGOTADO
+        ════════════════════════════════════════ */
+        #overlay {
+            display:none; position:fixed; inset:0;
+            background:rgba(var(--navy-rgb),0.98); z-index:9999;
+            flex-direction:column; align-items:center; justify-content:center;
+            text-align:center; padding:40px; overflow-y:auto;
+        }
+        #overlay.show { display:flex; animation:fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+
+        .overlay-content { max-width: 680px; width: 100%; position: relative; }
+
+        #overlay-close {
+            position: fixed; top: 20px; right: 24px;
+            width: 42px; height: 42px;
+            border: 1.5px solid rgba(var(--gold-rgb),0.5); border-radius: 50%;
+            background: var(--navy-mid); color: var(--gold-lt);
+            font-size: 1.4rem; line-height: 1; font-family: 'JetBrains Mono', monospace;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; z-index: 10000; transition: all 0.2s;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+        }
+        #overlay-close:hover { background: var(--crimson); border-color: var(--crimson); color: #fff; transform: rotate(90deg); }
+
+        /* ════════════════════════════════════════
+           MODAL — ELECCIÓN DE ALEATORIEDAD AL REPETIR
+        ════════════════════════════════════════ */
+        #random-modal {
+            display: none; position: fixed; inset: 0; z-index: 10500;
+            background: rgba(26,26,46,0.72);
+            align-items: center; justify-content: center; padding: 24px;
+        }
+        #random-modal.show { display: flex; animation: fadeIn 0.2s ease; }
+        .modal-box {
+            background: var(--navy-mid); border: 1.5px solid var(--gold);
+            border-radius: var(--radius); padding: 28px 30px; max-width: 440px; width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5); text-align: center;
+        }
+        .modal-box h3 { font-family:'Playfair Display',serif; color: var(--cream); font-size: 1.2rem; margin-bottom: 10px; }
+        .modal-box p { color: rgba(255,255,255,0.7); font-size: 0.85rem; margin-bottom: 20px; line-height: 1.5; }
+        .modal-box .btn { width: 100%; margin-bottom: 10px; white-space: normal; line-height: 1.4; display: inline-flex; align-items: center; justify-content: center; }
+        .modal-box .btn:last-child { margin-bottom: 0; }
+        /* Variantes propias del modal (las clases .btn-info / .btn-danger están
+           ocultas por defecto fuera de aquí, ya que se controlan por JS en la
+           botonera principal, así que no se reutilizan dentro del modal). */
+        .btn-modal-a { background: var(--navy-mid); color: var(--gold); border-color: var(--navy-mid); }
+        .btn-modal-a:hover { background: var(--navy-mid); }
+        .btn-modal-b { background: var(--crimson); color: var(--cream); border-color: var(--crimson); }
+        .btn-modal-b:hover { background: #a01515; border-color: #a01515; color: #fff; }
+
+        /* ════════════════════════════════════════
+           GREMLIN SVG ANIMADO
+        ════════════════════════════════════════ */
+        #gremlin-wrap {
+            margin: 0 auto 20px;
+            width: 220px; height: 200px;
+            position: relative;
+        }
+
+        #gremlin-svg { width: 220px; height: 200px; }
+
+        /* Oscilación cuerpo */
+        @keyframes bodyShake {
+            0%,100% { transform: rotate(-4deg) translateX(0); }
+            25%      { transform: rotate(5deg) translateX(3px); }
+            50%      { transform: rotate(-3deg) translateX(-3px); }
+            75%      { transform: rotate(4deg) translateX(2px); }
+        }
+        #gremlin-body { transform-origin: 110px 130px; animation: bodyShake 0.35s infinite; }
+
+        /* Tirón del cable */
+        @keyframes cablePull {
+            0%,100% { transform: translateX(0) scaleY(1); }
+            40%      { transform: translateX(-18px) scaleY(0.85); }
+            60%      { transform: translateX(-22px) scaleY(0.82); }
+            80%      { transform: translateX(-10px) scaleY(0.93); }
+        }
+        #cable { transform-origin: 200px 155px; animation: cablePull 0.6s infinite ease-in-out; }
+
+        /* Pantalla parpadeo */
+        @keyframes screenFlicker {
+            0%,90%,100% { opacity: 1; }
+            92%          { opacity: 0.1; }
+            95%          { opacity: 0.8; }
+            97%          { opacity: 0.05; }
+        }
+        #screen-glow { animation: screenFlicker 1.4s infinite; }
+
+        /* Ojos parpadeantes */
+        @keyframes eyeBlink {
+            0%,92%,100% { transform: scaleY(1); }
+            95%          { transform: scaleY(0.05); }
+        }
+        #eye-l, #eye-r { transform-origin: center; animation: eyeBlink 2.3s infinite; }
+
+        /* Texto overlay */
+        #overlay h1 { font-family:'Playfair Display',serif; font-size:2.4rem; color:var(--gold); margin-bottom:10px; font-weight:900; }
+        #overlay .sub { color:rgba(255,255,255,0.55); font-size:0.95rem; margin-bottom:24px; line-height:1.6; }
+
+        /* ════════════════════════════════════════
+           PANEL DE RESULTADOS (corrección completa)
+        ════════════════════════════════════════ */
+        #correction-panel {
+            display: none; text-align: left;
+            background: var(--paper); border-radius: var(--radius);
+            padding: 0; margin-top: 24px;
+            max-height: 55vh; overflow-y: auto;
+            border: 1px solid rgba(var(--gold-rgb),0.2);
+        }
+        .corr-item { padding: 20px 24px; border-bottom: 1px solid rgba(var(--gold-rgb),0.1); }
+        .corr-item:last-child { border-bottom: none; }
+        .corr-item .ci-header { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+        .ci-badge { width: 32px; height: 32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace; font-size:0.75rem; font-weight:700; flex-shrink:0; }
+        .ci-badge.ok  { background:var(--forest); color:var(--cream); }
+        .ci-badge.err { background:var(--crimson); color:var(--cream); }
+        .ci-badge.skip { background:#374151; color:#9ca3af; }
+        .ci-q { font-size:0.88rem; font-weight:600; color:var(--ink); line-height:1.4; }
+        .ci-answers { font-size:0.82rem; color:#374151; margin: 6px 0 10px 44px; }
+        .ci-answers .given { margin-bottom:3px; }
+        .ci-answers .given.wrong { color:var(--crimson); }
+        .ci-answers .correct-ans { color:var(--forest); font-weight:600; }
+        .ci-law { margin-left:44px; font-size:0.8rem; background:rgba(var(--navy-rgb),0.05); border-left:3px solid var(--gold); padding:10px 14px; border-radius:0 var(--radius) var(--radius) 0; color:var(--slate); line-height:1.6; }
+        .ci-tip { margin: 8px 0 0 44px; font-size:0.78rem; background:rgba(var(--forest-rgb),0.07); border-left:3px solid #2d8c5a; padding:8px 12px; border-radius:0 var(--radius) var(--radius) 0; color:var(--forest); }
+        .ci-tip::before { content:'💡 '; }
+
+        /* Score banner dentro del overlay */
+        .score-banner { background:var(--navy-mid); border:1px solid var(--gold); border-radius:var(--radius); padding:20px 28px; margin:16px 0; text-align:center; }
+        .score-big { font-family:'Playfair Display',serif; font-size:3.5rem; font-weight:900; color:var(--gold); line-height:1; }
+        .score-lbl { font-family:'JetBrains Mono',monospace; font-size:0.6rem; letter-spacing:0.2em; color:rgba(255,255,255,0.4); margin-top:4px; }
+        .score-verdict { font-size:1rem; margin-top:10px; font-weight:600; }
+        .score-verdict.apto    { color:#6fcf97; }
+        .score-verdict.no-apto { color:#fc8181; }
+
+        /* ════════════════════════════════════════
+           PRINT / PDF
+        ════════════════════════════════════════ */
+        @media print {
+            body { background: white !important; color: black !important; }
+            #nav-header, #timer, #overlay, #random-modal, .btn-zone, body::before { display:none !important; }
+            .container { max-width:100%; padding:20px; }
+            .statement { box-shadow:none; border:1px solid #ccc; }
+            .question-card { display:block !important; box-shadow:none; border:1px solid #ccc; page-break-inside:avoid; margin-bottom:16px; }
+            .block-header { display:flex !important; box-shadow:none; border:1px solid #ccc; page-break-after:avoid; }
+            .stmt-panel { display:block !important; page-break-after:avoid; }
+            .stmt-foco { display:none !important; }
+            .block-header h3 { color:#000 !important; }
+            .score-bloques .sb-fila { background:#f3f4f6 !important; }
+            .score-bloques .sb-nombre, .score-bloques .sb-detalle, .score-bloques .sb-puntos { color:#111827 !important; }
+            .question-card::before { display:none; }
+            .feedback { display:block !important; }
+            .inst-header { background:#f0f0f0 !important; color:black !important; }
+            .inst-header h1, .inst-header .organismo { color:black !important; }
+            .inst-header::before { display:none; }
+            .progress-bar-wrap { display:none; }
+            .fact-block { border-left-color:#999; }
+            .timeline { display:none; }
+            .option { border-color:#ccc; color:black !important; background:white !important; }
+            .option.correct { background:#e6f4ea !important; border-color:#2d8c5a !important; color:#1a4731 !important; }
+            .option.wrong   { background:#fde8e8 !important; border-color:#8b1a1a !important; color:#8b1a1a !important; }
+            .option.selected:not(.correct):not(.wrong) { background:#f0f4ff !important; border-color:#3b5bdb !important; }
+            .feedback-body { background:#fafafa !important; }
+            .feedback-body .tip { background:#e9f5ee !important; color:#1a4731 !important; }
+            .q-num { color:#ddd !important; }
+            #print-title { display:block !important; }
+        }
+        #print-title { display:none; }
+
+        @media (max-width: 680px) {
+            .statement { padding: 28px 24px; }
+            .question-card { padding: 24px 20px; }
+            #timer { font-size:1.4rem; padding:8px 12px; top:calc(var(--nav-h, 56px) + 12px); right:10px; min-width:90px; }
+            .statement-header { flex-direction:column; gap:12px; }
+            .timeline { grid-template-columns:1fr 1fr; }
+            #settings-panel { width: 240px; right: -8px; }
+            #overlay-close { top: 12px; right: 12px; width: 38px; height: 38px; }
+
+            /* La cabecera nunca baja de línea: los botones de casa y
+               configuración quedan siempre visibles, y las casillas de
+               pregunta pasan a desplazarse en horizontal dentro de su fila. */
+            #nav-header { flex-wrap: nowrap; }
+            #nav-boxes { gap: 6px; }
+            .nav-row-boxes { flex-wrap: nowrap; overflow-x: auto; min-width: 0; scrollbar-width: thin; -webkit-overflow-scrolling: touch; }
+            .nav-box { flex-shrink: 0; }
+            .nav-group-label { flex-basis: 68px; font-size: 0.48rem; letter-spacing: 0.08em; white-space: normal; }
+            .home-btn, .settings-wrap { flex-shrink: 0; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- NAVEGACIÓN -->
+<nav id="nav-header">
+    <div id="nav-boxes"></div>
+
+    <button id="fold-btn" class="home-btn" onclick="togglePlegado()"
+            title="Plegar: ver solo el bloque actual" aria-label="Plegar bloques"
+            style="display:none;">⌃</button>
+
+    <button id="home-btn-top" class="home-btn" onclick="goHome()"
+            title="Volver al menú principal" aria-label="Volver al menú principal">🏠</button>
+
+    <div class="settings-wrap">
+        <button id="settings-toggle" onclick="toggleSettings()" title="Configuración del temporizador" aria-label="Configuración">⚙</button>
+        <div id="settings-panel">
+            <div class="settings-title" id="settings-title">Configuración</div>
+            <div class="settings-row" id="row-tiempo">
+                <label for="time-input"><span id="lbl-tiempo">Duración del examen (mm:ss)</span></label>
+                <div class="time-edit-line">
+                    <input type="text" id="time-input" placeholder="30:00">
+                    <button class="btn-mini" onclick="applyTimer()">Aplicar</button>
+                </div>
+            </div>
+            <div class="settings-row settings-check" id="row-corregir">
+                <label>
+                    <input type="checkbox" id="instant-feedback-toggle" onchange="toggleInstantFeedback(this.checked)">
+                    <span id="lbl-corregir">Corregir pregunta a pregunta</span>
+                </label>
+            </div>
+            <!--
+                UNA CASILLA POR BLOQUE. El examen puede tener un bloque o
+                cinco, así que estas casillas las crea sola la página al
+                arrancar (ver montarOpcionesUnaEnUna): una por cada bloque
+                que salga en el intento y que no esté marcado como oculto
+                en el editor. Sin marcar = ese bloque se ve EN CADENA.
+            -->
+            <div class="settings-row" id="row-una">
+                <label><span id="lbl-una">Ver las preguntas de una en una</span></label>
+                <div id="una-por-bloque"></div>
+            </div>
+            <div class="settings-row settings-check settings-sub" id="row-foco">
+                <label>
+                    <input type="checkbox" id="foco-toggle" onchange="toggleModoFoco(this.checked)">
+                    <span id="lbl-foco">Modo foco: solo los hechos de cada pregunta</span>
+                </label>
+            </div>
+            <div class="settings-row settings-check" id="row-qtags">
+                <label>
+                    <input type="checkbox" id="hide-qtags-toggle" onchange="toggleHideQTags(this.checked)">
+                    <span id="lbl-qtags">Ocultar etiquetas de pregunta (q-tag)</span>
+                </label>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- TEMPORIZADOR -->
+<div id="timer" onclick="toggleTimerPause()" title="Clic para pausar / reanudar">
+    <span class="timer-label">TIEMPO RESTANTE</span>
+    <span id="timer-display">30:00</span>
+</div>
+
+<!-- ══════════════════════════════════════════
+     CONTENIDO PRINCIPAL
+══════════════════════════════════════════ -->
+<div class="container">
+
+    <!--
+        Título, referencia, ámbito y minutos NO se editan aquí: se rellenan
+        automáticamente en el arranque a partir de EXAM_CONFIG (al principio
+        de la ZONA EDITABLE del bloque de JavaScript, al final de la
+        página). El nº de preguntas se calcula solo, contando
+        QUESTIONS_BANK. Así solo hay un sitio donde tocar
+        estos datos y nunca queda desactualizado un lugar y otro no.
+    -->
+
+    <!-- Título para impresión -->
+    <div id="print-title" style="text-align:center; margin-bottom:24px; font-family:'Playfair Display',serif;">
+        <h1 id="print-title-h1" style="font-size:1.4rem; color:#3d2a20;"></h1>
+        <p id="print-title-sub" style="font-size:0.85rem; color:#555; margin-top:4px;"></p>
+        <p id="print-fecha" style="font-size:0.8rem; color:#777; margin-top:4px;"></p>
+    </div>
+
+    <!-- CABECERA INSTITUCIONAL -->
+    <header class="inst-header">
+        <img id="inst-logo" class="logo-img" src="" alt="">
+        <div class="organismo" id="inst-organismo"></div>
+        <h1 id="inst-title"></h1>
+        <div class="meta-strip">
+            <span class="meta-pill" id="meta-preguntas"></span>
+            <span class="meta-pill" id="meta-minutos"></span>
+            <span class="meta-pill" id="meta-legislacion"></span>
+            <span class="meta-pill" id="meta-referencia"></span>
+        </div>
+    </header>
+
+    <!--
+        ENUNCIADOS
+        ──────────
+        Ya no hay un panel fijo de enunciado encima de la página: cada
+        enunciado se pinta DENTRO del hilo de preguntas (#quiz-container),
+        justo delante del grupo de preguntas al que pertenece y debajo de
+        la cabecera de su bloque. Así el documento se lee en su orden
+        natural: cabecera del bloque → enunciado 1 → sus preguntas →
+        enunciado 2 → sus preguntas…
+
+        Cada pregunta de QUESTIONS_BANK indica a qué enunciado pertenece
+        mediante "statementId"; una pregunta con statementId null/ausente es
+        una "pregunta suelta" y no muestra ningún bloque de hechos.
+
+        Estructura disponible dentro de cada enunciado (ver STATEMENTS_BANK):
+        - factBlocks[]  → bloques de hechos (borde dorado; "red:true" = borde rojo/crítico)
+                          cada uno con su "id" (H1, H2…) para poder vincularle preguntas
+        - timeline[]    → hitos de la línea de tiempo ("red:true" = hito crítico)
+        - "hidden:true" en cualquier factBlock/hito lo omite del renderizado
+          (útil para preparar variantes de un mismo supuesto sin borrar datos).
+
+        Cada pregunta puede además vincularse a uno o varios bloques de
+        hechos concretos con "factIds": en el MODO FOCO (⚙, dentro de «ver
+        las preguntas de una en una») el enunciado se recorta a esos hechos.
+    -->
+
+    <!-- BARRA DE PROGRESO -->
+    <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+
+    <!-- PREGUNTAS -->
+    <div id="quiz-container"></div>
+
+    <!-- BOTONERA -->
+    <div class="btn-zone">
+        <button id="prev-btn" class="btn btn-primary" onclick="move(-1)">← Anterior</button>
+        <button id="next-btn" class="btn btn-primary" onclick="move(1)">Siguiente →</button>
+        <button id="check-btn"   class="btn btn-danger"   onclick="evaluateExam()">✓ Corregir Expediente</button>
+        <button id="print-btn"   class="btn btn-success"  onclick="printResults()">🖨 Imprimir / PDF</button>
+        <button id="restart-btn" class="btn btn-info"     onclick="openRandomModal()">🔀 Nuevo Intento (Aleatorio)</button>
+        <button id="send-btn"    class="btn btn-send"     onclick="enviarResultados()">📤 Enviar Resultados</button>
+        <button id="home-btn-bottom" class="btn btn-info" style="display:none;" onclick="goHome()">🏠 Volver al Menú Principal</button>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     OVERLAY — TIEMPO AGOTADO + CORRECCIÓN
+══════════════════════════════════════════ -->
+<div id="overlay">
+    <button id="overlay-close" onclick="closeOverlay()" title="Cerrar" aria-label="Cerrar">✕</button>
+    <div class="overlay-content">
+
+        <!-- GREMLIN SVG -->
+        <div id="gremlin-wrap">
+          <svg id="gremlin-svg" viewBox="0 0 220 200" xmlns="http://www.w3.org/2000/svg">
+            <!-- Monitor -->
+            <rect x="50" y="100" width="110" height="70" rx="6" fill="#1e293b" stroke="#475569" stroke-width="2"/>
+            <rect x="58" y="108" width="94" height="52" rx="3" id="screen-glow" fill="#0ea5e9" opacity="0.85"/>
+            <!-- Pantalla rota -->
+            <path d="M85 120 L105 108 L115 125 L130 112 L120 135 L100 128 Z" fill="#fff" opacity="0.15"/>
+            <text x="80" y="140" font-size="10" fill="white" font-family="monospace" font-weight="bold">ERROR!</text>
+            <!-- Base monitor -->
+            <rect x="96" y="170" width="28" height="8" rx="2" fill="#334155"/>
+            <rect x="88" y="177" width="44" height="5" rx="2" fill="#475569"/>
+            <!-- Cable -->
+            <g id="cable">
+                <path d="M200 155 Q175 160 155 155 Q135 150 110 158" stroke="#94a3b8" stroke-width="3" fill="none" stroke-linecap="round"/>
+                <!-- Enchufe -->
+                <rect x="196" y="149" width="14" height="12" rx="2" fill="#64748b" stroke="#94a3b8" stroke-width="1"/>
+                <rect x="200" y="145" width="3" height="6" rx="1" fill="#94a3b8"/>
+                <rect x="205" y="145" width="3" height="6" rx="1" fill="#94a3b8"/>
+            </g>
+
+            <!-- GREMLIN cuerpo -->
+            <g id="gremlin-body">
+                <!-- Cuerpo -->
+                <ellipse cx="112" cy="80" rx="28" ry="32" fill="#4ade80"/>
+                <!-- Panza -->
+                <ellipse cx="112" cy="85" rx="18" ry="20" fill="#86efac"/>
+                <!-- Cabeza -->
+                <ellipse cx="112" cy="48" rx="26" ry="24" fill="#4ade80"/>
+                <!-- Orejas -->
+                <ellipse cx="88" cy="45" rx="10" ry="16" fill="#4ade80" transform="rotate(-20, 88, 45)"/>
+                <ellipse cx="136" cy="45" rx="10" ry="16" fill="#4ade80" transform="rotate(20, 136, 45)"/>
+                <ellipse cx="88" cy="45" rx="5" ry="10" fill="#f9a8d4" transform="rotate(-20, 88, 45)"/>
+                <ellipse cx="136" cy="45" rx="5" ry="10" fill="#f9a8d4" transform="rotate(20, 136, 45)"/>
+                <!-- Ojos -->
+                <g id="eye-l">
+                    <ellipse cx="103" cy="46" rx="7" ry="8" fill="white"/>
+                    <ellipse cx="103" cy="48" rx="4" ry="4" fill="#dc2626"/>
+                    <ellipse cx="104" cy="47" rx="1.5" ry="1.5" fill="white"/>
+                </g>
+                <g id="eye-r">
+                    <ellipse cx="121" cy="46" rx="7" ry="8" fill="white"/>
+                    <ellipse cx="121" cy="48" rx="4" ry="4" fill="#dc2626"/>
+                    <ellipse cx="122" cy="47" rx="1.5" ry="1.5" fill="white"/>
+                </g>
+                <!-- Cejas maléficas -->
+                <path d="M96 38 Q100 34 108 36" stroke="#166534" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+                <path d="M128 36 Q120 34 116 38" stroke="#166534" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+                <!-- Nariz -->
+                <ellipse cx="112" cy="54" rx="4" ry="3" fill="#16a34a"/>
+                <circle cx="110" cy="54" r="1" fill="#15803d"/>
+                <circle cx="114" cy="54" r="1" fill="#15803d"/>
+                <!-- Boca maliciosa -->
+                <path d="M100 61 Q112 70 124 61" stroke="#166534" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+                <!-- Dientes -->
+                <rect x="106" y="61" width="4" height="5" rx="1" fill="white"/>
+                <rect x="112" y="61" width="4" height="5" rx="1" fill="white"/>
+                <!-- Brazos -->
+                <path d="M84 75 Q70 60 60 70" stroke="#4ade80" stroke-width="8" stroke-linecap="round" fill="none"/>
+                <path d="M140 75 Q160 60 170 80" stroke="#4ade80" stroke-width="8" stroke-linecap="round" fill="none"/>
+                <!-- Mano izquierda (agarrando cable) -->
+                <circle cx="60" cy="70" r="8" fill="#4ade80"/>
+                <!-- Garras -->
+                <path d="M54 65 L50 58" stroke="#4ade80" stroke-width="5" stroke-linecap="round"/>
+                <path d="M56 63 L53 55" stroke="#4ade80" stroke-width="5" stroke-linecap="round"/>
+                <path d="M60 62 L58 54" stroke="#4ade80" stroke-width="5" stroke-linecap="round"/>
+                <!-- Piernas -->
+                <path d="M100 110 Q95 130 92 140" stroke="#4ade80" stroke-width="10" stroke-linecap="round" fill="none"/>
+                <path d="M124 110 Q129 130 132 140" stroke="#4ade80" stroke-width="10" stroke-linecap="round" fill="none"/>
+                <!-- Pies -->
+                <ellipse cx="92" cy="143" rx="10" ry="6" fill="#16a34a"/>
+                <ellipse cx="132" cy="143" rx="10" ry="6" fill="#16a34a"/>
+                <!-- Cola -->
+                <path d="M138 100 Q155 90 158 105 Q161 115 148 112" stroke="#4ade80" stroke-width="6" stroke-linecap="round" fill="none"/>
+            </g>
+          </svg>
+        </div>
+
+        <h1 id="overlay-title">¡TIEMPO AGOTADO!</h1>
+        <p class="sub" id="overlay-msg">El tiempo del examen ha concluido. El gremlin ha tirado del cable.<br>A continuación se muestra la corrección completa con motivación legal.</p>
+
+        <!-- Botones en overlay -->
+        <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-bottom:20px;">
+            <button class="btn btn-danger" id="ov-corr-btn" style="display:inline-flex;" onclick="showCorrectionPanel()">✓ Ver Corrección Completa</button>
+            <button class="btn btn-success" id="ov-print-btn" style="display:inline-flex;" onclick="printResults()">🖨 Imprimir / PDF</button>
+            <button class="btn btn-info" id="ov-restart-btn" style="display:inline-flex;" onclick="openRandomModal()">🔀 Repetir (Aleatorio)</button>
+            <button class="btn btn-send" id="ov-send-btn" style="display:inline-flex;" onclick="enviarResultados()">📤 Enviar Resultados</button>
+            <button class="btn btn-info" id="ov-home-btn" style="display:inline-flex;" onclick="goHome()">🏠 Menú Principal</button>
+        </div>
+
+        <!-- Score banner -->
+        <div class="score-banner" id="score-banner" style="display:none;"></div>
+
+        <!-- Panel corrección completa -->
+        <div id="correction-panel"></div>
+
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     MODAL — ELECCIÓN DE ALEATORIEDAD AL REPETIR
+══════════════════════════════════════════ -->
+<div id="random-modal" onclick="if (event.target === this) closeRandomModal();">
+    <div class="modal-box">
+        <h3 id="rnd-titulo">🔀 Nuevo intento aleatorio</h3>
+        <p id="rnd-sub">¿Cómo quieres repetir el expediente?</p>
+        <button class="btn btn-modal-a" id="rnd-answers" onclick="confirmRestart('answers')">🔁 Mismas preguntas y mismo orden<br><small style="font-weight:400;opacity:0.8;">solo cambia el orden de las respuestas</small></button>
+        <button class="btn btn-modal-b" id="rnd-order" onclick="confirmRestart('order')">🎲 Mismas preguntas en otro orden<br><small style="font-weight:400;opacity:0.8;">salen todas, barajadas dentro de su bloque y su enunciado</small></button>
+        <button class="btn" onclick="closeRandomModal()">Cancelar</button>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════ --><!-- ══════════════════════════════════════════
+     DATOS DEL SUPUESTO  (ZONA EDITABLE)
+     ──────────────────────────────────────────
+     Este bloque JSON es lo ÚNICO que hay que cambiar para crear un
+     supuesto nuevo, y lo edita automáticamente el programa Python
+     "editor_supuestos.py" (interfaz gráfica). No hace falta tocarlo
+     a mano; si se toca, respetar el formato JSON:
+       · los textos van entre comillas dobles "así"
+       · las comillas dobles DENTRO de un texto se escriben \"
+       · true / false / null se escriben en minúscula y sin comillas
+     Estructura:
+       config     → título, referencia, ámbito, minutos, % para APTO y el
+                    encabezado (logo y organismo)
+       tema       → colores de toda la página (fondos, textos, acentos)
+       interfaz   → qué botones se ven y cómo se llaman
+       envio      → dirección del formulario y casilla de cada dato
+       envioDetalle → (opcional) segundo formulario, el del detalle
+                    pregunta a pregunta que sale solo al corregir. Si no
+                    aparece, se usa el del proyecto, que ya viene puesto
+       bloques    → secciones del examen, en el orden en que salen:
+                    tipo "supuesto" (con enunciados) o tipo "test" (teoría),
+                    con su color, su forma de verse y su baremo
+                    ("cabeceraSobreEnunciado": la barra del bloque va
+                     encima del enunciado; con false baja hasta justo
+                     delante de la primera pregunta)
+       enunciados → bloques de hechos comunes a un grupo de preguntas;
+                    cada bloque de hechos lleva su "id" (H1, H2…)
+       preguntas  → cada pregunta, con el bloque al que pertenece y, si
+                    procede, los "factIds" de los hechos concretos de los
+                    que depende (modo foco del panel ⚙)
+══════════════════════════════════════════ -->
+<script type="application/json" id="datos-supuesto">
+{
+  "config": {
+    "titulo": "PRUEBA. Los otros Alcántara. ",
+    "referencia": "S001",
+    "ambito": "Legislación a 5 de septiembre de 2026· Variados",
+    "minutos": 30,
+    "aptoPorcentaje": 50.0,
+    "respuestas": 4,
+    "logo": "https://academia.ecap.es/pluginfile.php?file=%2F1%2Fcore_admin%2Flogo%2F0x200%2F1782109950%2FACADEMIA%20VIRTUAL%20%281%29.png",
+    "logoAlt": "ECAP - Escuela Ciudadana de Administración Pública",
+    "organismo": "Comunidad ECAP ASS C1"
+  },
+  "tema": {
+    "fondo": "#3d2a20",
+    "barra": "#5c4033",
+    "acento": "#8fc4d9",
+    "acentoClaro": "#b8dceb",
+    "azulProfundo": "#2f6f93",
+    "textoClaro": "#fdf8f0",
+    "tarjeta": "#fffef9",
+    "fondoHechos": "#f7ece7",
+    "texto": "#1a1a2e",
+    "gris": "#4a5568",
+    "rojo": "#8b1a1a",
+    "verde": "#1a4731"
+  },
+  "interfaz": {
+    "botonCasa": {
+      "visible": false,
+      "texto": "🏠",
+      "titulo": "Volver al menú principal",
+      "url": "../index.html"
+    },
+    "botonConfig": {
+      "visible": true,
+      "titulo": "Configuración"
+    },
+    "botonPlegar": {
+      "visible": false,
+      "titulo": "Plegar: ver solo el bloque actual",
+      "plegado": true
+    },
+    "opcionTiempo": {
+      "visible": true,
+      "texto": "Duración del examen (mm:ss)"
+    },
+    "opcionCorregir": {
+      "visible": false,
+      "texto": "Corregir pregunta a pregunta",
+      "activa": false
+    },
+    "opcionUnaEnUna": {
+      "visible": true,
+      "texto": "Ver las preguntas de una en una"
+    },
+    "opcionRepetirRespuestas": {
+      "visible": true,
+      "texto": "🔁 Mismas preguntas y mismo orden"
+    },
+    "opcionRepetirOrden": {
+      "visible": true,
+      "texto": "🎲 Mismas preguntas en otro orden"
+    },
+    "opcionFoco": {
+      "visible": true,
+      "texto": "Modo foco: solo los hechos de cada pregunta",
+      "activa": false
+    },
+    "opcionQtags": {
+      "visible": true,
+      "texto": "Ocultar las etiquetas de pregunta",
+      "activa": false
+    },
+    "btnAnterior": {
+      "visible": true,
+      "texto": "← Anterior"
+    },
+    "btnSiguiente": {
+      "visible": true,
+      "texto": "Siguiente →"
+    },
+    "btnCorregir": {
+      "visible": true,
+      "texto": "✓ Corregir Expediente"
+    },
+    "btnVerCorreccion": {
+      "visible": true,
+      "texto": "✓ Ver Corrección Completa"
+    },
+    "btnImprimir": {
+      "visible": true,
+      "texto": "🖨 Imprimir / PDF"
+    },
+    "btnReintentar": {
+      "visible": true,
+      "texto": "🔀 Nuevo Intento (Aleatorio)"
+    },
+    "btnEnviar": {
+      "visible": true,
+      "texto": "📤 Enviar Resultados"
+    },
+    "btnMenu": {
+      "visible": true,
+      "texto": "🏠 Volver al Menú Principal"
+    }
+  },
+  "envio": {
+    "url": "https://docs.google.com/forms/d/e/1FAIpQLSd9h52UH7XzaRDRSIxSevScmqKZC28Fvtfnp39drKtC5SiwGA/formResponse",
+    "examen": "entry.241409513",
+    "usuario": "entry.1810433543",
+    "tiempoAsignado": "entry.1069013600",
+    "tiempoEmpleado": "entry.815398067"
+  },
+  "envioDetalle": {
+    "url": "https://docs.google.com/forms/d/e/1FAIpQLSfICCUGWcmcJ1zLFtphE1pictGOyfY9epNbSrHtEFfGvvK8HQ/formResponse",
+    "nombre": "entry.315726614",
+    "tiempo": "entry.1329722701",
+    "aciertos": "entry.979170555",
+    "fallos": "entry.1962238201",
+    "preguntas": [
+      "entry.712361381",
+      "entry.709874002",
+      "entry.661924675",
+      "entry.1030651222",
+      "entry.200283712",
+      "entry.134789499",
+      "entry.966701265",
+      "entry.2110630525",
+      "entry.1056110206",
+      "entry.960222499",
+      "entry.1846963224",
+      "entry.900211285",
+      "entry.1003793269",
+      "entry.263573841",
+      "entry.784118366",
+      "entry.1588074600",
+      "entry.1770731044",
+      "entry.211278072",
+      "entry.1659967631",
+      "entry.1690155252",
+      "entry.2143039054",
+      "entry.1904113686",
+      "entry.1470800200",
+      "entry.1255018865",
+      "entry.1513500",
+      "entry.1854371083",
+      "entry.1620187954",
+      "entry.729113678",
+      "entry.293340307",
+      "entry.1724050220",
+      "entry.1062380832",
+      "entry.2085402594",
+      "entry.950414350",
+      "entry.602730095",
+      "entry.614220064",
+      "entry.1856632108",
+      "entry.909455125",
+      "entry.693661547",
+      "entry.632847159",
+      "entry.335441030",
+      "entry.1456618893",
+      "entry.852090648",
+      "entry.589626122",
+      "entry.183473563",
+      "entry.1217213161",
+      "entry.1968115194",
+      "entry.531136136",
+      "entry.1209534835",
+      "entry.1577734057",
+      "entry.312691398",
+      "entry.1116760340",
+      "entry.768501311",
+      "entry.694863628",
+      "entry.673940089",
+      "entry.1533606077",
+      "entry.253021395",
+      "entry.1326657452",
+      "entry.2041886464",
+      "entry.1051043932",
+      "entry.1809273037",
+      "entry.1108878147",
+      "entry.1471749573",
+      "entry.1082014329",
+      "entry.2112539399",
+      "entry.15417682",
+      "entry.2104298979",
+      "entry.949437792",
+      "entry.2071397813",
+      "entry.2001115340",
+      "entry.1445602013",
+      "entry.911131704",
+      "entry.1517320485",
+      "entry.548517073",
+      "entry.932772700",
+      "entry.1987322673",
+      "entry.529360562",
+      "entry.2050801750",
+      "entry.82935037",
+      "entry.48912348",
+      "entry.1553896761"
+    ]
+  },
+  "bloques": [
+    {
+      "id": "B1",
+      "tipo": "supuesto",
+      "titulo": "Supuesto práctico",
+      "color": "#8fc4d9",
+      "modo": "individual",
+      "cabeceraSobreEnunciado": true,
+      "opcionUnaEnUna": true,
+      "porIntento": 0,
+      "acierto": 1.0,
+      "fallo": 0.25,
+      "blanco": 0.0,
+      "envio": {
+        "preguntas": "entry.771114786",
+        "aciertos": "entry.1903892811",
+        "fallos": "entry.1155230396",
+        "blancos": "entry.943386498",
+        "puntos": ""
+      }
+    }
+  ],
+  "enunciados": [
+    {
+      "id": "E1",
+      "number": "1",
+      "title": "Enunciado 1. El despido colectivo de Miguel",
+      "ref": "S001",
+      "ambito": "Temas 2 al 11",
+      "factBlocks": [
+        {
+          "id": "H1",
+          "title": "Introducción",
+          "paragraphs": [
+            "Los Alcántara han sido una familia que nos ha acompañado durante décadas contándonos la historia de España, hasta convertirse ellos mismos en historia de España. Sin embargo, hay otra parte de la familia Alcántara a la que no se le ha dado el cariño y el análisis de Seguridad Social que se merece."
+          ],
+          "red": false,
+          "hidden": false
+        },
+        {
+          "id": "E2H1",
+          "title": "Hecho desencadenante único",
+          "paragraphs": [
+            "Miguel Alcántara Barbadillo, trabajador incansable desde la juventud, ha desarrollado su vida laboral trabajando en el sector automovilístico (en la «Citroën»). Por causas técnicas, organizativas y de producción de los tiempos modernos, se produce un despido colectivo que afecta a don Miguel.",
+            "La empresa intenta pagar una indemnización del mínimo establecido en el ET para el despido objetivo: 20 días por año trabajado, con un límite de 12 mensualidades. El convenio colectivo establece una indemnización por despido colectivo de 30 días por año trabajado, con un límite de 12 mensualidades. El comité de empresa y las presiones sindicales llevan a que finalmente le paguen 40 días por año trabajado, con un límite de 24 mensualidades."
+          ],
+          "red": false,
+          "hidden": false
+        }
+      ],
+      "timeline": []
+    },
+    {
+      "id": "E2",
+      "number": "2",
+      "title": "Enunciado 2. Nueva familia y parto múltiple",
+      "ref": "S001",
+      "ambito": "Temas 2 al 11",
+      "factBlocks": [
+        {
+          "id": "E3H1",
+          "title": "Hecho desencadenante único",
+          "paragraphs": [
+            "Miguel, tras ser despedido, deja a su mujer, se va a una barriada de Madrid y allí se casa con la sobrina de la mujer de su hermano. Primero tienen a Diana y, unos años después, en plenas fiestas del partido de Miguel, en una autocaravana, nacen Victoria y Dolores."
+          ],
+          "red": false,
+          "hidden": false
+        }
+      ],
+      "timeline": []
+    },
+    {
+      "id": "E3",
+      "number": "3",
+      "title": "Enunciado 3. El Bistrot París-Nalón",
+      "ref": "S001",
+      "ambito": "Temas 2 al 11",
+      "factBlocks": [
+        {
+          "id": "E4H1",
+          "title": "Hecho desencadenante 1",
+          "paragraphs": [
+            "El matrimonio de doña Paquita y don Miguel consigue la propiedad de un local, un bar restaurante: el Bistrot París-Nalón (barrio de San Genaro, Villa de Madrid, Comunidad de Madrid). Miguel es empresario titular autónomo; Paquita, familiar colaboradora.",
+            "Por necesidades del negocio, Diana (la hija de Miguel y Paquita) entra a trabajar como camarera y queda encuadrada en el Régimen Especial de Trabajadores por Cuenta Propia o Autónomos como familiar colaboradora. Diana cuenta con 30 años (para que cuadre el supuesto) y vive con sus padres."
+          ],
+          "red": false,
+          "hidden": false
+        },
+        {
+          "id": "E4H2",
+          "title": "Hecho desencadenante 2",
+          "paragraphs": [
+            "Las otras hijas del matrimonio, Victoria y Dolores, ambas de 23 años, comienzan a trabajar en el negocio familiar. Victoria vive con sus padres; Dolores lleva independizada 3 años."
+          ],
+          "red": false,
+          "hidden": false
+        },
+        {
+          "id": "E4H3",
+          "title": "Hecho desencadenante 3",
+          "paragraphs": [
+            "Debido a varias causas, el matrimonio se rompe y acaba en divorcio. El negocio, el restaurante Bistrot París-Nalón, se constituye como una sociedad limitada, en la que Paquita y Miguel son los administradores y gerentes de la sociedad. Las participaciones quedan así: Miguel, 20 %; Paquita, 20 %; Diana, 35 %, y Victoria, 25 %. Dolores no tiene participaciones. Tras el divorcio, Miguel vive con Diana y Paquita vive con Victoria."
+          ],
+          "red": false,
+          "hidden": false
+        }
+      ],
+      "timeline": []
+    },
+    {
+      "id": "E4",
+      "number": "4",
+      "title": "Enunciado 4. Pepe, el camarero",
+      "ref": "S001",
+      "ambito": "Temas 2 al 11",
+      "factBlocks": [
+        {
+          "id": "E5H1",
+          "title": "Hecho desencadenante 1",
+          "paragraphs": [
+            "Como este reparto del capital es un lío, finalmente las hijas salen del negocio familiar y las participaciones quedan a partes iguales entre Paquita y Miguel. Paquita (exmujer de Miguel) está en una relación seria y convive con su empleado Pepe desde 2026. Pepe es camarero en el bar familiar."
+          ],
+          "red": false,
+          "hidden": false
+        },
+        {
+          "id": "E5H2",
+          "title": "Hecho desencadenante 2",
+          "paragraphs": [
+            "Paquita no tiene dado de alta a Pepe, el cual sufre una apendicitis que tiene que ser tratada con urgencia."
+          ],
+          "red": false,
+          "hidden": false
+        }
+      ],
+      "timeline": []
+    },
+    {
+      "id": "E5",
+      "number": "5",
+      "title": "Enunciado 5. Reconciliación, muerte y herencia",
+      "ref": "S001",
+      "ambito": "Temas 2 al 11",
+      "factBlocks": [
+        {
+          "id": "E6H1",
+          "title": "Hecho desencadenante 1",
+          "paragraphs": [
+            "Finalmente, Paquita y Miguel se reconcilian y, tras un periodo de convivencia de un par de meses, vuelven a casarse. Un mes después, en abril de 2027, Miguel sufre un infarto de corazón que le provoca la muerte. Miguel tenía una cardiopatía diagnosticada desde hacía más de un año. La muerte se produce por contingencias comunes."
+          ],
+          "red": false,
+          "hidden": false
+        },
+        {
+          "id": "E6H2",
+          "title": "Hecho desencadenante 2",
+          "paragraphs": [
+            "En el momento de la muerte de su padre, Diana cuenta con 31 años de edad. Dolores y Victoria cuentan con 24 años de edad; nacieron en junio, durante las fiestas del PCE. Dolores trabaja a media jornada por el SMI. Victoria está en primer curso de Ciencias Políticas en la Carlos III, aunque no sabe si seguirá en el siguiente curso, que comienza en septiembre."
+          ],
+          "red": false,
+          "hidden": false
+        },
+        {
+          "id": "E6H3",
+          "title": "Hecho desencadenante 3",
+          "paragraphs": [
+            "Las hijas de Miguel reciben la herencia de su padre. Entre otras cosas, reciben una deuda con la Seguridad Social. Toni (su primo, que estudió Derecho) les recomienda que acepten la herencia a beneficio de inventario, lo cual hacen."
+          ],
+          "red": false,
+          "hidden": false
+        }
+      ],
+      "timeline": []
+    },
+    {
+      "id": "E6",
+      "number": "6",
+      "title": "Enunciado 6. Françoise, personal de vuelo",
+      "ref": "S001",
+      "ambito": "Temas 2 al 11",
+      "factBlocks": [
+        {
+          "id": "E7H1",
+          "title": "Hecho desencadenante único",
+          "paragraphs": [
+            "La hija mayor de Miguel con su primera mujer (Marie Chantal), Françoise Alcántara Chantal, es azafata de vuelo. Hace las rutas Madrid-París y Madrid-Barcelona."
+          ],
+          "red": false,
+          "hidden": false
+        }
+      ],
+      "timeline": []
+    },
+    {
+      "id": "E7",
+      "number": "7",
+      "title": "Enunciado 7. Lorenzo, el campo y Andrés",
+      "ref": "S001",
+      "ambito": "Temas 2 al 11",
+      "factBlocks": [
+        {
+          "id": "E8H1",
+          "title": "Hecho desencadenante 1",
+          "paragraphs": [
+            "Por otro lado, la familia Alcántara tiene a Lorenzo, primo de Miguel, que vive en el pueblo de Sagrillas, provincia de Albacete. Obtiene todos sus ingresos del campo, pero sus tierras son pobres y lleva unos años de malas cosechas. Debido a esta situación económica, trabaja simultáneamente para don Mauro (terrateniente local). Todas las actividades que realiza en ambos trabajos son actividades agrarias. Este año y el pasado obtiene el 20 % de sus ingresos de sus propias tierras y el resto, del trabajo para don Mauro."
+          ],
+          "red": false,
+          "hidden": false
+        },
+        {
+          "id": "E8H2",
+          "title": "Hecho desencadenante 2",
+          "paragraphs": [
+            "Lorenzo ya cuenta con una edad en la que el campo se hace duro. El 1 de julio de 2026 vende sus tierras y deja el trabajo con don Mauro. Como no quiere perder importe de su jubilación y aún no tiene edad de jubilarse, suscribe un convenio especial con la Tesorería General de la Seguridad Social. El 28 de septiembre presenta dicho convenio ante la oficina correspondiente."
+          ],
+          "red": false,
+          "hidden": false
+        },
+        {
+          "id": "E8H3",
+          "title": "Hecho desencadenante 3",
+          "paragraphs": [
+            "El hijo de Lorenzo, Andrés, es guardia civil; entró en el cuerpo en 2015. En 2027 muere a causa de un atentado terrorista."
+          ],
+          "red": false,
+          "hidden": false
+        }
+      ],
+      "timeline": []
+    }
+  ],
+  "preguntas": [
+    {
+      "bloqueId": "B1",
+      "statementId": "E1",
+      "factIds": [],
+      "tag": "Cotización · Indemnización por despido colectivo",
+      "q": "Con la legislación española a septiembre de 2026, ¿qué parte de la indemnización se computará en la base de cotización?",
+      "a": [
+        "La parte de la indemnización percibida que supere el límite del despido improcedente (art. 56 ET), de 33 días por año trabajado con un límite de 24 mensualidades.",
+        "La parte de la indemnización percibida que supere el límite del despido objetivo (art. 53 ET), de 20 días por año trabajado, con un límite de 12 mensualidades.",
+        "La parte de la indemnización percibida que supere el límite del convenio colectivo, de 30 días por año trabajado, con un límite de 12 mensualidades.",
+        "La parte de la indemnización percibida que supere el límite legal establecido en la Ley del IRPF (art. 7.e), no tributando las cantidades superiores a 180.000 € en ningún caso."
+      ],
+      "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "La base de cotización en los despidos colectivos viene regulada en el art. 147.2.c).5.º de la LGSS y, complementariamente, en el art. 23.2.B) del Reglamento General de Cotización (Real Decreto 2064/1995). Establecen que, en el despido colectivo del art. 51 ET por las causas tasadas económicas, técnicas, organizativas o de producción, el límite exento de cotización será el del despido improcedente (33 días por año trabajado, con un máximo de 24 mensualidades). Esto no quiere decir que los convenios colectivos no puedan establecer otras cuantías de indemnización, pero, en términos de cotización, lo establecido en los convenios no se aplica (art. 147.2.c).1.º LGSS). La Ley del IRPF, aunque funciona de forma similar (aplicando al despido colectivo los límites del despido improcedente), no es la norma aplicable: la legislación social no remite en este punto a la regulación del IRPF, pues tiene su propia regulación en la LGSS. Además, el límite de 180.000 € es un límite mínimo, no máximo.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E2",
+      "factIds": [
+        "E3H1"
+      ],
+      "tag": "Prestaciones familiares · Parto múltiple",
+      "q": "Si en el momento del nacimiento de sus mellizas ninguno de los dos cuenta con ingresos ni con trabajo, ¿qué cantidad recibirán de la Seguridad Social?",
+      "a": [
+        "Un pago único de 1.000 euros y 4 SMI.",
+        "4 SMI.",
+        "Un pago único de 2.000 euros y 4 SMI.",
+        "Un pago único de 1.000 euros."
+      ],
+      "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "Reciben un pago único de 1.000 euros por familia numerosa (arts. 357 y 358 LGSS) y 4 SMI por parto múltiple (arts. 359 y 360 LGSS).",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E3",
+      "factIds": [
+        "E4H1"
+      ],
+      "tag": "Cotización · Autónomo colaborador (RETA)",
+      "q": "¿Qué base mínima de cotización tendrá Diana como autónoma colaboradora en el RETA, si comenzó a trabajar en 2026?",
+      "a": [
+        "La base mínima del grupo 7 del Régimen General: 1.424,40 €.",
+        "La base mínima para los familiares trabajadores autónomos: 1.000 €.",
+        "La base mínima del tramo 1 de la tabla reducida de rendimientos netos: 653,59 €.",
+        "La base mínima del tramo 1 de la tabla general de rendimientos netos: 950,98 €."
+      ],
+      "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "En el año 2026 ya no se aplica la DT 7.ª del RDL 13/2022, que establecía para el año 2023 (y se mantuvo en 2024 y 2025) la base mínima de cotización de los autónomos colaboradores del art. 305.2.k) LGSS. Por ello, en 2026 se aplica lo establecido en el art. 308.1.a).4.ª LGSS que, de acuerdo con la orden de cotización del presente ejercicio, fija la base mínima de este colectivo en la base mínima del grupo 7 del Régimen General. Los autónomos colaboradores que tenían la base mínima de 1.000 € con anterioridad a este ejercicio pueden mantenerla este año (art. 18.2.4 de la Orden PJC/297/2026).",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E3",
+      "factIds": [
+        "E4H2"
+      ],
+      "tag": "Encuadramiento · Familiares del empresario",
+      "q": "¿En qué régimen encuadrarías a Victoria y a Dolores en el momento en que comienzan a trabajar (antes del reparto de participaciones)?",
+      "a": [
+        "Victoria podrá optar por el RETA o por el Régimen General, sin desempleo. Dolores, Régimen General.",
+        "Victoria podrá optar por el RETA o por el Régimen General, con desempleo. Dolores, Régimen General.",
+        "Dolores podrá optar por el RETA o por el Régimen General, sin desempleo. Victoria, RETA.",
+        "Ambas, RETA."
+      ],
+      "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 4,
+      "law": "A Victoria, al convivir con su padre, se le aplicaría el art. 12.2 LGSS, pudiendo optar entre el Régimen General sin desempleo o el RETA. Dolores, al no convivir con el empresario, no queda afectada por esa exclusión y se encuadra como trabajadora por cuenta ajena en el Régimen General.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E3",
+      "factIds": [
+        "E4H3"
+      ],
+      "tag": "Encuadramiento ·  Sociedad Limitada",
+      "q": "¿En qué régimen encuadrarías a la familia después del reparto de participaciones?",
+      "a": [
+        "Miguel y Diana, en el Régimen Especial de Trabajadores Autónomos. Victoria y Dolores, trabajadoras por cuenta ajena en el Régimen General. Paquita, como asimilada a trabajadora por cuenta ajena en el Régimen General, sin desempleo ni FOGASA.",
+        "Miguel, Paquita y Diana, en el Régimen Especial de Trabajadores Autónomos. Victoria y Dolores, trabajadoras por cuenta ajena en el Régimen General.",
+        "Miguel y Paquita, en el Régimen Especial de Trabajadores Autónomos. Victoria y Dolores, trabajadoras por cuenta ajena en el Régimen General. Diana, como asimilada a trabajadora por cuenta ajena en el Régimen General, sin desempleo ni FOGASA.",
+        "Miguel y Diana, en el Régimen Especial de Trabajadores Autónomos. Victoria podrá optar por el RETA o por el Régimen General, sin desempleo. Dolores, trabajadora por cuenta ajena en el Régimen General. Paquita, como asimilada a trabajadora por cuenta ajena en el Régimen General, sin desempleo ni FOGASA."
+      ],
+      "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "En esta pregunta hay que tener muy claro qué es el control efectivo de una sociedad. El art. 305.2.b) LGSS lo recoge así: «Quienes ejerzan las funciones de dirección y gerencia que conlleva el desempeño del cargo de consejero o administrador, o presten otros servicios para una sociedad de capital, a título lucrativo y de forma habitual, personal y directa, siempre que posean el control efectivo, directo o indirecto, de aquella. Se entenderá, en todo caso, que se produce tal circunstancia cuando las acciones o participaciones del trabajador supongan, al menos, la mitad del capital social. Se presumirá, salvo prueba en contrario, que el trabajador posee el control efectivo de la sociedad cuando concurra alguna de las siguientes circunstancias: 1.º Que, al menos, la mitad del capital de la sociedad para la que preste sus servicios esté distribuido entre socios con los que conviva y a quienes se encuentre unido por vínculo conyugal o de parentesco por consanguinidad, afinidad o adopción, hasta el segundo grado. 2.º Que su participación en el capital social sea igual o superior a la tercera parte del mismo. 3.º Que su participación en el capital social sea igual o superior a la cuarta parte del mismo, si tiene atribuidas funciones de dirección y gerencia de la sociedad».\n\nCon esta definición, y con las del art. 12 LGSS junto al art. 136 LGSS, ya podemos comenzar el análisis. Miguel es administrador de la sociedad, pero solo tiene el 20 % de las participaciones; ahora bien, convive con Diana, que tiene el 35 %. En total, en la casa de Miguel hay un 55 % de las participaciones, lo que le hace tener el control de la sociedad y, por tanto, queda encuadrado en el RETA. Diana, por convivir con su padre y sumar entre ambos más del 50 %, va al RETA; aunque no conviviera, al tener más de un tercio del capital también iría al RETA por sí misma. Victoria tiene el 25 % de las participaciones: por sí misma, y sin funciones de dirección y gerencia, sería una empleada del Régimen General; la convivencia con su madre suma el 45 % de las participaciones, por lo que no alcanza la mayoría de control de la sociedad, que está en manos de Diana y Miguel. Dolores sigue como trabajadora por cuenta ajena en el Régimen General. Paquita tiene el 20 % de las participaciones y funciones de dirección y gerencia, por lo que, de acuerdo con el art. 136.2.e) LGSS, sería una trabajadora asimilada a la de cuenta ajena, sin desempleo ni FOGASA.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E4",
+      "factIds": [
+        "E5H1"
+      ],
+      "tag": "Encuadramiento · Pareja de hecho y familiar colaborador",
+      "q": "¿En qué régimen o sistema debería afiliarse Pepe a la Seguridad Social?",
+      "a": [
+        "Trabajador por cuenta ajena, Régimen General.",
+        "Familiar colaborador por afinidad, Régimen Especial de Trabajadores por Cuenta Propia o Autónomos.",
+        "Sistema Especial de los Servicios Extraordinarios de Hostelería, sistema especial dentro del Régimen General.",
+        "Trabajador por cuenta ajena, Régimen Especial de los Trabajadores del Mar, porque es gallego."
+      ],
+      "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "Pregunta sencilla: Pepe será un trabajador por cuenta ajena por su relación laboral. La definición de familiar autónomo, como tal, no está bien recogida en nuestra legislación ni en sus límites; pero, teniendo en cuenta el art. 12 LGSS, aunque Pepe esté en una relación con Paquita, no cabe aplicar la relación de afinidad del mencionado artículo, porque una relación sin ser pareja de hecho ni matrimonio no genera una relación jurídica. Por último, el Sistema Especial de los Servicios Extraordinarios de la Hostelería (pensado para Madrid y Barcelona, y aplicado solo en la primera) estuvo vigente entre 1973 y 1993, de modo que no se cumplen ni los requisitos de inclusión ni la vigencia necesaria para encuadrar en él al pobre Pepe.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E4",
+      "factIds": [
+        "E5H2"
+      ],
+      "tag": "Derechos · Afiliacion",
+      "q": "¿Qué derechos le otorga en materia de Seguridad Social a Pepe la falta de alta?",
+      "a": [
+        "Atención médica.",
+        "Atención médica y un anticipo de las prestaciones de IT de 2,5 veces el IPREM.",
+        "Atención médica y un anticipo de las prestaciones de IT de 2,5 veces el SMI.",
+        "No le corresponde derecho alguno, teniendo que ser declarado responsable el empresario."
+      ],
+      "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "El art. 166.4 LGSS establece el alta de pleno derecho a efectos de la asistencia sanitaria por contingencias comunes, sin que proceda la IT por dichas contingencias. Por tanto, no se anticiparán las prestaciones (con subrogación frente al empresario infractor) del anticipo de 2,5 veces el IPREM.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E5",
+      "factIds": [
+        "E6H1"
+      ],
+      "tag": "Viudedad · Requisitos",
+      "q": "¿Tendrá derecho Paquita a la pensión de viudedad?",
+      "a": [
+        "Sí, por la existencia de hijos comunes.",
+        "No, por no ser el periodo del matrimonio superior a un año.",
+        "No; cobrará una prestación temporal de viudedad.",
+        "Sí, al haber convivido con el causante más de dos años."
+      ],
+      "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 4,
+      "law": "El art. 219 LGSS supedita la pensión de viudedad, cuando la muerte se produce por contingencias comunes no sobrevenidas al matrimonio, a una antigüedad del matrimonio de un año, a la existencia de hijos comunes o a una duración de la convivencia superior a dos años. La opción D es incorrecta porque la referida convivencia de 2 años (atendiendo a la remisión del art. 221.2 LGSS) tiene que ser ininterrumpida.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E5",
+      "factIds": [
+        "E6H2"
+      ],
+      "tag": "Orfandad",
+      "q": "Identifica la opción Incorrecta sobre la orfandad:",
+      "a": [
+        "Si la pensión de orfandad se extingue por el fallecimiento del propio huérfano antes de haber cobrado doce mensualidades, se abonará de una sola vez a sus herederos el importe necesario para completar dicho año de prestación",
+        "La pensión de orfandad se extinguirá si el huérfano contrae matrimonio, a menos que esté afectado por una incapacidad permanente absoluta o una gran invalidez.",
+        "Cuando la pensión se extingue porque el beneficiario alcanza la edad límite aplicable a su caso, se le abonará en un único pago la cantidad que le falte para completar doce mensualidades si no las hubiera devengado previamente.",
+        "En un supuesto de orfandad pluripersonal donde las pensiones se incrementaron con el porcentaje de la de viudedad, la extinción de la pensión de uno de los huérfanos beneficia a los demás al redistribuirse ese porcentaje de viudedad."
+      ],
+      "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 4,
+      "law": "¿Por qué es incorrecta? Afirma que si el huérfano fallece antes de percibir doce mensualidades, se abonará de una sola vez a sus herederos la cantidad restante.\nSin embargo, las fuentes especifican que la regla de entregar el importe necesario para completar las doce mensualidades en un pago único se aplica exclusivamente cuando la pensión se extingue por las causas de los párrafos a), b), c) y d)  del Art 21 del Orden 13 de Febrero de 1967 (cumplimiento de la edad, cese de la incapacidad, adopción o matrimonio). El fallecimiento del beneficiario, regulado en el párrafo e), queda explícitamente excluido de este beneficio de compensación.\n\t•\tLa opción 1 es correcta porque el matrimonio extingue la pensión \t\tsalvo si el beneficiario tiene una incapacidad permanente absoluta o gran invalidez.\n\t•\tLa opción 3 es correcta porque el cumplimiento de la edad límite (párrafo a) sí da derecho a completar las doce mensualidades en un pago único si no se hubieran devengado antes.\n\t•\tLa opción 4 es correcta porque la norma establece que, si la pensión se incrementó con el porcentaje de la de viudedad, la extinción de uno de los huérfanos redistribuye su parte para incrementar la de los beneficiarios restantes.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E5",
+      "factIds": [
+        "E6H3"
+      ],
+      "tag": "Recaudación · Responsabilidad mortis causa",
+      "q": "¿Qué responsabilidad y qué alcance tienen las hijas de Miguel ante las deudas de su padre con la Seguridad Social?",
+      "a": [
+        "La deuda comprenderá el principal de la deuda y los recargos, intereses y costas. Responderán solidariamente con los bienes de la herencia adjudicados.",
+        "La deuda comprenderá el principal de la deuda y los recargos, intereses y costas. Responderán solidariamente con los bienes de la herencia y con su propio patrimonio.",
+        "La deuda comprenderá el principal de la deuda, excluidos los recargos, intereses y costas. Responderán subsidiariamente con los bienes de la herencia adjudicados.",
+        "La deuda comprenderá el principal de la deuda, excluidos los recargos, intereses y costas. Responderán solidariamente con los bienes de la herencia y con su propio patrimonio."
+      ],
+      "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "En algunas de las opciones se produce una mezcla de los arts. 14 y 15 del RD 1415/2004. La responsabilidad mortis causa es solidaria y comprende el principal de la deuda junto con los recargos, intereses y costas. Al haberse aceptado la herencia a beneficio de inventario, solo se responde de la deuda con los bienes de la propia herencia adjudicados, no con el patrimonio propio de las herederas.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E6",
+      "factIds": [
+        "E7H1"
+      ],
+      "tag": "Cotización · Dietas",
+      "q": "¿Qué importes no computan en la base de cotización?",
+      "a": [
+        "Gastos de manutención de 36,06 euros diarios si corresponden a desplazamiento dentro del territorio español, o de 66,11 euros diarios si corresponden a desplazamiento a territorio extranjero.",
+        "Gastos de manutención de 53,34 euros diarios si corresponden a desplazamiento dentro del territorio español, o de 91,35 euros diarios si corresponden a desplazamiento a territorio extranjero.",
+        "Gastos de estancia que no excedan de 15 euros diarios si se producen por desplazamiento dentro del territorio español, o de 25 euros diarios si se producen por desplazamiento a territorio extranjero.",
+        "Gastos de manutención de 39,35 euros diarios si corresponden a desplazamiento dentro del territorio español, o de 53,34 euros diarios si corresponden a desplazamiento a territorio extranjero."
+      ],
+      "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "De acuerdo con el art. 23 del Real Decreto 2064/1995, que a su vez remite al art. 9 del Reglamento del IRPF, se establece para el personal de vuelo: gastos de manutención de 36,06 euros diarios si corresponden a desplazamiento dentro del territorio español, o de 66,11 euros diarios si corresponden a desplazamiento a territorio extranjero.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E7",
+      "factIds": [
+        "E8H1"
+      ],
+      "tag": "Encuadramiento",
+      "q": "Otro encuadramiento: indica cómo encuadrarías a Lorenzo.",
+      "a": [
+        "Pluriactividad. Sistema Especial para Trabajadores por Cuenta Ajena Agrarios, dentro del Régimen General, y Régimen Especial de Trabajadores por Cuenta Propia o Autónomos.",
+        "Pluriactividad. Sistema Especial para Trabajadores por Cuenta Ajena Agrarios, dentro del Régimen General, y Sistema Especial para Trabajadores por Cuenta Propia Agrarios, dentro del Régimen Especial de Trabajadores por Cuenta Propia o Autónomos.",
+        "Pluriempleo. Sistema Especial para Trabajadores por Cuenta Ajena Agrarios, dentro del Régimen General, y Sistema Especial para Trabajadores por Cuenta Propia Agrarios, dentro del Régimen Especial de Trabajadores por Cuenta Propia o Autónomos.",
+        "Pluriempleo. Sistema Especial para Trabajadores por Cuenta Ajena Agrarios, dentro del Régimen General, y Régimen Especial de Trabajadores por Cuenta Propia o Autónomos."
+      ],
+      "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "La respuesta correcta puede parecer que debe situarse en los dos sistemas agrarios (RETA y Régimen General), en pluriactividad. Pero el art. 324 LGSS exige, entre otros requisitos de inclusión, ser titular de una explotación agraria y obtener al menos el 50 por ciento de la renta total de la realización de actividades agrarias u otras complementarias, siempre que la parte de renta procedente directamente de la actividad agraria realizada en su explotación no sea inferior al 25 por ciento de su renta total, y que el tiempo de trabajo dedicado a actividades agrarias o complementarias de las mismas sea superior a la mitad de su tiempo de trabajo total.\n\nPor tanto, Lorenzo, aunque desconocemos el dato del tiempo dedicado a sus tierras, sí sabemos que no llega al 20 % de su renta total procedente de sus propias tierras, aunque el 100 % de sus ingresos venga de actividades agrarias. Por ello, si consideramos que ese 20 % es suficiente para las condiciones de habitualidad y de significación, deberá darse de alta en el RETA, al no cumplir las condiciones de su sistema especial. Además, al tratarse de un trabajo por cuenta propia y otro por cuenta ajena, estamos ante pluriactividad y no ante pluriempleo.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E7",
+      "factIds": [
+        "E8H2"
+      ],
+      "tag": "Convenio especial · Efectos",
+      "q": "El convenio especial de Lorenzo surtirá efecto desde:",
+      "a": [
+        "El día siguiente a aquel en que tuvo efectos la baja, o la fecha de presentación de la solicitud.",
+        "La fecha de presentación de la solicitud.",
+        "La fecha de efectos de la baja.",
+        "El día siguiente a aquel en que tuvo efectos la baja."
+      ],
+      "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "El día de presentación de la solicitud es el día 88 tras el cese de la actividad (si no he hecho mal las cuentas), por lo que es inferior a los 90 días de plazo de solicitud y el suscriptor del convenio puede optar por el día siguiente al de efectos de la baja o por el momento de la presentación de la solicitud (art. 5 de la Orden TAS/2865/2003).",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E7",
+      "factIds": [
+        "E8H3"
+      ],
+      "tag": "Cotización · Coeficientes reductores de la edad de jubilación",
+      "q": "¿Qué porcentaje adicional por el coeficiente reductor de la edad de jubilación se le aplica a Andrés por su trabajo de guardia civil?",
+      "a": [
+        "Ninguno.",
+        "Un tipo de cotización adicional sobre la base de cotización por contingencias comunes del 10,60 por ciento, del que el 8,84 por ciento será a cargo de la empresa y el 1,76 por ciento, a cargo de la persona trabajadora.",
+        "Un tipo de cotización adicional sobre la base de cotización por contingencias comunes del 28,30 por ciento, del que el 23,60 por ciento será a cargo de la empresa y el 4,70 por ciento, a cargo de la persona trabajadora.",
+        "Un tipo de cotización adicional sobre la base de cotización por contingencias comunes del 0,90 por ciento, del que el 0,75 por ciento será a cargo de la empresa y el 0,15 por ciento, a cargo de la persona trabajadora."
+      ],
+      "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "El art. 32 de la orden de cotización establece los colectivos que cotizan por el porcentaje adicional del 10,6 % por el coeficiente reductor de la edad de jubilación: bomberos, policías locales, Ertzaintza, Policía Foral de Navarra y Mossos d'Esquadra. Por el momento no se aplica a guardias civiles ni a policías nacionales.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E7",
+      "factIds": [
+        "E8H3"
+      ],
+      "tag": "Pensiones extraordinarias por actos de terrorismo · Art. 61 LGSS",
+      "q": "De conformidad con lo dispuesto en el artículo 61 LGSS sobre las pensiones extraordinarias originadas por actos de terrorismo, señale la opción CORRECTA:",
+      "a": [
+        "A efectos de la aplicación del mínimo mensual equivalente al triple del IPREM vigente en cada momento, las pensiones de muerte y supervivencia derivadas de un mismo hecho terrorista se computarán de manera conjunta.",
+        "Estas pensiones están excluidas del límite de reconocimiento inicial, pero deben someterse necesariamente a los límites de revalorización anual previstos en la ley.",
+        "La diferencia entre la cuantía de la pensión que teóricamente hubiese correspondido y la que finalmente se abone será financiada exclusivamente con cargo a los recursos de la Seguridad Social.",
+        "El importe mínimo garantizado se calcula de forma estática, tomando como referencia el triple del indicador público de renta de efectos múltiples (IPREM) del año en que se reconoció la pensión por primera vez."
+      ],
+      "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "«Artículo 61 LGSS. Pensiones extraordinarias originadas por actos de terrorismo. 1. Las pensiones extraordinarias que se reconozcan por la Seguridad Social, originadas por actos de terrorismo, no estarán sujetas a los límites de reconocimiento inicial y de revalorización de pensiones previstos en esta ley. 2. El importe mínimo mensual de las pensiones extraordinarias por actos de terrorismo que se reconozcan y abonen por la Seguridad Social será el equivalente al triple del indicador público de renta de efectos múltiples vigente en cada momento. Las diferencias existentes entre las cuantías de las pensiones que hubieran correspondido y las que realmente se abonen serán financiadas con cargo a los Presupuestos del Estado. A los efectos previstos en este apartado, las pensiones por muerte y supervivencia causadas por un mismo hecho se computarán conjuntamente».",
+      "tip": ""
+    }
+  ]
+}
+</script>
+
+<!-- ══════════════════════════════════════════
+     JAVASCRIPT (MOTOR) — no hace falta tocar nada de aquí abajo
+══════════════════════════════════════════ -->
+<script>
+/* ═══════════════════════════════════════════
+   CARGA DE LOS DATOS DEL SUPUESTO
+   ───────────────────────────────────────────
+   Lee el bloque JSON de arriba y lo convierte en las variables que
+   usa el motor de la plantilla. Si el JSON tuviera un error de
+   escritura, se avisa en pantalla en lugar de dejar la página en
+   blanco.
+═══════════════════════════════════════════ */
+let DATOS_SUPUESTO;
+try {
+    DATOS_SUPUESTO = JSON.parse(document.getElementById('datos-supuesto').textContent);
+} catch (err) {
+    document.addEventListener('DOMContentLoaded', () => {
+        document.body.innerHTML =
+            '\u003cdiv style="max-width:760px;margin:60px auto;padding:24px;background:#fff;' +
+            'border-left:6px solid #8b1a1a;font-family:Georgia,serif;color:#1a1a2e;">' +
+            '\u003ch1 style="font-size:1.2rem;color:#8b1a1a;">Error en los datos del supuesto\u003c/h1>' +
+            '\u003cp>El bloque JSON &lt;script id="datos-supuesto"&gt; tiene un error de formato ' +
+            'y no se ha podido leer. Vuelve a guardar el archivo desde el editor de Python.\u003c/p>' +
+            '\u003cpre style="white-space:pre-wrap;font-size:0.8rem;color:#4a5568;">' + err + '\u003c/pre>\u003c/div>';
+    });
+    throw err;
+}
+
+// Hasta siete opciones por pregunta (A…G)
+const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+const MAX_OPCIONES = LETTERS.length;
+
+/* ═══════════════════════════════════════════
+   NORMALIZACIÓN DE LOS BLOQUES
+   ───────────────────────────────────────────
+   Rellena los valores que falten y reparte las preguntas en su
+   bloque. Los archivos antiguos (sin "bloques") siguen funcionando:
+   todas sus preguntas se meten en un único bloque de supuesto.
+═══════════════════════════════════════════ */
+function numeroSeguro(valor, porDefecto) {
+    const n = parseFloat(String(valor === undefined || valor === null ? '' : valor).replace(',', '.'));
+    return isNaN(n) ? porDefecto : n;
+}
+
+function normalizarBloques(datos) {
+    const colorPorTipo = { supuesto: '#8fc4d9', test: '#e0ac4a' };
+    let brutos = Array.isArray(datos.bloques) && datos.bloques.length ? datos.bloques : null;
+    if (!brutos) brutos = [{ id: 'B1', tipo: 'supuesto', titulo: 'Supuesto práctico' }];
+
+    const bloques = brutos.map((b, i) => {
+        const tipo = (b.tipo === 'test') ? 'test' : 'supuesto';
+        const id   = String(b.id || '').replace(/[^A-Za-z0-9_-]/g, '') || ('B' + (i + 1));
+        return {
+            id:         id,
+            tipo:       tipo,
+            titulo:     b.titulo || (tipo === 'test' ? 'Teoría' : 'Supuesto práctico'),
+            color:      b.color  || colorPorTipo[tipo],
+            modo:       (b.modo === 'cadena' || b.modo === 'individual')
+                            ? b.modo
+                            : (tipo === 'test' ? 'cadena' : 'individual'),
+            // La cabecera de sección se pinta ENCIMA del enunciado (lo
+            // natural en un supuesto). Poniéndolo a false baja hasta justo
+            // delante de la primera pregunta, como en versiones anteriores.
+            cabeceraSobreEnunciado: b.cabeceraSobreEnunciado !== false,
+            // ¿Sale la casilla de este bloque en la opción «de una en una»
+            // del panel ⚙? A false, el alumno no puede cambiar cómo se ven
+            // las preguntas de este bloque: se quedan como diga "modo".
+            opcionUnaEnUna: b.opcionUnaEnUna !== false,
+            porIntento: Math.max(0, parseInt(b.porIntento, 10) || 0),
+            envio:      b.envio || {},
+            acierto:    numeroSeguro(b.acierto, 1),
+            fallo:      Math.abs(numeroSeguro(b.fallo, 0)),
+            blanco:     Math.abs(numeroSeguro(b.blanco, 0)),
+            preguntas:  []
+        };
+    });
+
+    const porId = new Map(bloques.map(b => [b.id, b]));
+    (datos.preguntas || []).forEach((q, idx) => {
+        // Nº de orden ORIGINAL de la pregunta dentro del supuesto, el del
+        // editor y anterior a cualquier barajado. Se conserva pase lo que
+        // pase para que el envío automático del detalle mande siempre cada
+        // pregunta a su casilla fija del formulario (Pregunta 1 … 80),
+        // aunque el intento salga aleatorizado o solo con parte de ellas.
+        q.__ord = idx;
+        const b = porId.get(String(q.bloqueId || '')) || bloques[0];
+        q.bloqueId = b.id;
+        // Bloques de hechos concretos de los que depende la pregunta
+        // (hecho desencadenante). Solo se usan en el modo foco.
+        q.factIds = Array.isArray(q.factIds)
+                        ? q.factIds.map(x => String(x)).filter(Boolean)
+                        : [];
+        normalizarRespuestas(q);
+        if (b.tipo === 'test') {          // la teoría no lleva enunciado
+            q.statementId = null;
+            q.factIds = [];
+        }
+        b.preguntas.push(q);
+    });
+    return bloques;
+}
+
+/* ═══════════════════════════════════════════
+   NORMALIZACIÓN DE LAS RESPUESTAS DE UNA PREGUNTA
+   ───────────────────────────────────────────
+   Una pregunta puede tener de 2 a 7 opciones escritas y una o varias
+   correctas. Los archivos antiguos traen exactamente cuatro opciones y
+   la correcta en "c" (un número): se siguen leyendo igual.
+     a[]         → las opciones escritas (se descartan las vacías)
+     c           → la correcta, cuando solo hay una
+     correctas[] → las correctas, cuando hay varias (respuesta múltiple)
+     multiple    → true si hay que marcar todas las que procedan
+     respuestas  → cuántas opciones salen en el examen para ESTA pregunta
+                   (0 = lo que diga config.respuestas; y este, 0 = todas)
+═══════════════════════════════════════════ */
+function normalizarRespuestas(q) {
+    q.a = (Array.isArray(q.a) ? q.a : [])
+              .map(x => String(x === undefined || x === null ? '' : x))
+              .filter(x => x.trim() !== '')
+              .slice(0, MAX_OPCIONES);
+
+    const dentro = i => Number.isInteger(i) && i >= 0 && i < q.a.length;
+
+    let correctas = Array.isArray(q.correctas) ? q.correctas.map(x => parseInt(x, 10)) : [];
+    correctas = correctas.filter(dentro);
+    if (!correctas.length) {
+        const c = parseInt(q.c, 10);
+        correctas = dentro(c) ? [c] : (q.a.length ? [0] : []);
+    }
+    // Sin duplicados y en orden
+    q.correctas = [...new Set(correctas)].sort((x, y) => x - y);
+    q.c         = q.correctas.length ? q.correctas[0] : 0;
+    q.multiple  = q.multiple === true && q.correctas.length > 0;
+    q.respuestas = Math.max(0, Math.min(MAX_OPCIONES, parseInt(q.respuestas, 10) || 0));
+    return q;
+}
+
+/* Qué opciones salen de esta pregunta en este intento.
+   Si la pregunta tiene más opciones escritas de las que deben salir, se
+   quedan siempre las correctas y se sortean los distractores que faltan:
+   así se pueden escribir siete opciones y que cada intento enseñe cuatro
+   distintas. Nunca se recorta por debajo de las correctas más un
+   distractor. */
+function opcionesDePregunta(q) {
+    const correctas    = q.correctas;
+    const distractores = q.a.map((_, i) => i).filter(i => !correctas.includes(i));
+
+    let cuantas = q.respuestas || Math.round(numeroSeguro(EXAM_CONFIG.respuestas, 0)) || q.a.length;
+    cuantas = Math.max(cuantas, correctas.length + (distractores.length ? 1 : 0));
+    cuantas = Math.min(cuantas, q.a.length);
+
+    const elegidos = correctas.concat(
+        shuffle(distractores).slice(0, Math.max(0, cuantas - correctas.length)));
+    return shuffle(elegidos).map(idx => ({ txt: q.a[idx], idx }));
+}
+
+/* ═══════════════════════════════════════════
+   NORMALIZACIÓN DE LOS ENUNCIADOS
+   ───────────────────────────────────────────
+   Cada bloque de hechos recibe un identificador estable (H1, H2…) con el
+   que las preguntas pueden vincularse a una parte concreta del enunciado
+   (su hecho desencadenante) para el modo foco. Los archivos antiguos, que
+   no lo traen, lo reciben aquí sin perder nada.
+═══════════════════════════════════════════ */
+function normalizarEnunciados(lista) {
+    (lista || []).forEach(stmt => {
+        const usados = new Set();
+        (stmt.factBlocks || []).forEach((fb, i) => {
+            let id = String(fb.id || '').replace(/[^A-Za-z0-9_-]/g, '');
+            if (!id) id = 'H' + (i + 1);
+            while (usados.has(id)) id += 'x';
+            usados.add(id);
+            fb.id = id;
+        });
+    });
+    return lista || [];
+}
+
+const EXAM_CONFIG     = DATOS_SUPUESTO.config     || { titulo: '', referencia: '', ambito: '', minutos: 30 };
+const STATEMENTS_BANK = normalizarEnunciados(DATOS_SUPUESTO.enunciados || []);
+const BLOCKS_BANK     = normalizarBloques(DATOS_SUPUESTO);
+const BLOCKS_BY_ID    = new Map(BLOCKS_BANK.map(b => [b.id, b]));
+// Orden por defecto del examen: los bloques en su orden y, dentro de
+// cada uno, sus preguntas en el orden en que están en el editor.
+const QUESTIONS_BANK  = BLOCKS_BANK.reduce((acc, b) => acc.concat(b.preguntas), []);
+// Porcentaje de puntuación a partir del cual el resultado es APTO
+const APTO_PCT        = numeroSeguro(EXAM_CONFIG.aptoPorcentaje, 50);
+// Qué botones se ven y cómo se llaman, y a dónde se envían los resultados
+const INTERFAZ        = DATOS_SUPUESTO.interfaz || {};
+const ENVIO           = DATOS_SUPUESTO.envio    || {};
+
+/* ═══════════════════════════════════════════
+   SEGUNDO FORMULARIO — DETALLE PREGUNTA A PREGUNTA
+   ───────────────────────────────────────────
+   COMPLEMENTO, no sustituto: el envío de arriba (botón 📤) se queda
+   como está. Este otro sale solo, sin preguntar nada y sin salir de la
+   página, en cuanto el alumno pulsa «Corregir» (o se le agota el
+   tiempo), y manda:
+       · el nombre del supuesto
+       · la fecha y hora del envío
+       · los aciertos y los fallos en bruto (sin baremo)
+       · una casilla por pregunta, «Pregunta 1» … «Pregunta 80»
+   Cada pregunta viaja SIEMPRE a la casilla de su número de orden
+   ORIGINAL en el supuesto (el del editor), sin importar en qué bloque
+   esté ni en qué orden haya salido en el intento.
+   Las casillas son fijas; si algún día cambiara el formulario, se
+   pueden sobrescribir desde el JSON con un apartado "envioDetalle".
+═══════════════════════════════════════════ */
+const ENVIO_DETALLE_DEFECTO = {
+    url:      'https://docs.google.com/forms/d/e/1FAIpQLSfICCUGWcmcJ1zLFtphE1pictGOyfY9epNbSrHtEFfGvvK8HQ/formResponse',
+    nombre:   'entry.315726614',   // Nombre supuesto
+    tiempo:   'entry.1329722701',   // Tiempo (fecha y hora del envío)
+    aciertos: 'entry.979170555',    // Nº de aciertos en bruto
+    fallos:   'entry.1962238201',    // Nº de fallos en bruto
+    preguntas: [
+        'entry.712361381', 'entry.709874002', 'entry.661924675', 'entry.1030651222', 'entry.200283712', //  1- 5
+        'entry.134789499', 'entry.966701265', 'entry.2110630525', 'entry.1056110206', 'entry.960222499', //  6-10
+        'entry.1846963224', 'entry.900211285', 'entry.1003793269', 'entry.263573841', 'entry.784118366', // 11-15
+        'entry.1588074600', 'entry.1770731044', 'entry.211278072', 'entry.1659967631', 'entry.1690155252', // 16-20
+        'entry.2143039054', 'entry.1904113686', 'entry.1470800200', 'entry.1255018865', 'entry.1513500', // 21-25
+        'entry.1854371083', 'entry.1620187954', 'entry.729113678', 'entry.293340307', 'entry.1724050220', // 26-30
+        'entry.1062380832', 'entry.2085402594', 'entry.950414350', 'entry.602730095', 'entry.614220064', // 31-35
+        'entry.1856632108', 'entry.909455125', 'entry.693661547', 'entry.632847159', 'entry.335441030', // 36-40
+        'entry.1456618893', 'entry.852090648', 'entry.589626122', 'entry.183473563', 'entry.1217213161', // 41-45
+        'entry.1968115194', 'entry.531136136', 'entry.1209534835', 'entry.1577734057', 'entry.312691398', // 46-50
+        'entry.1116760340', 'entry.768501311', 'entry.694863628', 'entry.673940089', 'entry.1533606077', // 51-55
+        'entry.253021395', 'entry.1326657452', 'entry.2041886464', 'entry.1051043932', 'entry.1809273037', // 56-60
+        'entry.1108878147', 'entry.1471749573', 'entry.1082014329', 'entry.2112539399', 'entry.15417682', // 61-65
+        'entry.2104298979', 'entry.949437792', 'entry.2071397813', 'entry.2001115340', 'entry.1445602013', // 66-70
+        'entry.911131704', 'entry.1517320485', 'entry.548517073', 'entry.932772700', 'entry.1987322673', // 71-75
+        'entry.529360562', 'entry.2050801750', 'entry.82935037', 'entry.48912348', 'entry.1553896761' // 76-80
+    ]
+};
+
+const ENVIO_DETALLE = (() => {
+    const dado = DATOS_SUPUESTO.envioDetalle || {};
+    const cfg  = Object.assign({}, ENVIO_DETALLE_DEFECTO, dado);
+    // La lista de casillas de pregunta solo se sustituye si viene con
+    // contenido; si no, se mantiene la del formulario del proyecto.
+    cfg.preguntas = (Array.isArray(dado.preguntas) && dado.preguntas.length)
+                        ? dado.preguntas.map(x => String(x || '').trim())
+                        : ENVIO_DETALLE_DEFECTO.preguntas.slice();
+    return cfg;
+})();
+/* ═══════════ FIN DE LA ZONA EDITABLE ═══════════ */
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   ██████  MOTOR DE LA PLANTILLA — no hace falta tocar nada de aquí  ██████
+   ───────────────────────────────────────────────────────────────────
+   A partir de aquí solo hay código que hace funcionar el examen
+   (temporizador, barajado, corrección, impresión...). Para crear o
+   editar un supuesto no hace falta leer ni modificar esta parte.
+═══════════════════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════
+   ESTADO DEL EXAMEN
+═══════════════════════════════════════════ */
+
+let questions          = [];
+let examDurationSeconds = EXAM_CONFIG.minutos * 60; // ver EXAM_CONFIG, arriba
+let timeLeft            = examDurationSeconds;
+let current              = 0;
+let userAns              = {};
+let evaluated            = false;
+let detalleEnviado       = false;    // El detalle pregunta a pregunta ya salió en este intento
+let timerInt             = null;
+let timerPaused          = false;
+let audioCtx             = null;
+let alerted10            = false;
+let alerted5             = false;
+let alerted5b            = false;
+let alerted1             = false;
+let instantFeedback      = false;    // Modo "corregir pregunta a pregunta"
+// ⚙ "Ver las preguntas de una en una": una casilla por bloque.
+//    { B1: true, B2: false } → B1 de una en una, B2 en cadena.
+let unaEnUnaPorBloque    = {};
+let modoFoco             = false;    // ⚙ "Modo foco" (dentro de la anterior)
+let navPlegada           = false;    // cabecera plegada (solo el bloque actual)
+let dedoEnMovimiento     = false;    // el dedo se ha desplazado: no es un toque
+let ultimoScroll         = 0;        // instante del último desplazamiento
+
+/* ═══════════════════════════════════════════
+   BLOQUES — utilidades
+   ───────────────────────────────────────────
+   Un bloque es una sección del examen (un supuesto práctico o una
+   tanda de teoría tipo test). Cada bloque tiene su propio color, su
+   forma de mostrarse (todas las preguntas seguidas o de una en una)
+   y su propio baremo de puntuación.
+═══════════════════════════════════════════ */
+function getBlock(id) {
+    return BLOCKS_BY_ID.get(id) || BLOCKS_BANK[0];
+}
+
+// "#8fc4d9" → "143,196,217" (para poder construir rgba() con transparencia)
+function hexARgb(hex) {
+    const limpio = String(hex || '').replace('#', '').trim();
+    const largo  = limpio.length === 3 ? limpio.split('').map(c => c + c).join('') : limpio;
+    const n      = parseInt(largo, 16);
+    if (largo.length !== 6 || isNaN(n)) return '143,196,217';
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255].join(',');
+}
+
+// Números con coma decimal y sin decimales inútiles: 1 → "1", 0.33 → "0,33"
+function nUm(x) {
+    const r = Math.round(x * 100) / 100;
+    return String(r).replace('.', ',');
+}
+
+// Hoja de estilos que colorea cada bloque (casillas de navegación,
+// cabecera de sección, marcador y corrección) con su propio color.
+function inyectarEstilosBloques() {
+    let hoja = document.getElementById('estilos-bloques');
+    if (!hoja) {
+        hoja = document.createElement('style');
+        hoja.id = 'estilos-bloques';
+        document.head.appendChild(hoja);
+    }
+    hoja.textContent = BLOCKS_BANK.map(b => {
+        const rgb = hexARgb(b.color);
+        return `
+        .nav-box.blq-${b.id}:not(.answered):not(.nav-wrong) {
+            border-color: rgba(${rgb},0.45); color: rgba(${rgb},0.95); background: rgba(${rgb},0.10);
+        }
+        .nav-box.blq-${b.id}:not(.answered):not(.nav-wrong):hover {
+            border-color: ${b.color}; background: rgba(${rgb},0.22); color: #ffffff;
+        }
+        .nav-box.blq-${b.id}.active {
+            background: ${b.color} !important; color: var(--navy) !important;
+            border-color: ${b.color} !important; box-shadow: 0 0 12px rgba(${rgb},0.5);
+        }
+        .question-card.blq-${b.id}::before { background: linear-gradient(180deg, ${b.color}, var(--crimson)); }
+        .question-card.blq-${b.id}.encadenada.active { box-shadow: 0 8px 32px var(--shadow), 0 0 0 2px ${b.color}; }
+        .block-header.blq-${b.id} { border-left-color: ${b.color}; }
+        .block-header.blq-${b.id} .bh-tipo { color: ${b.color}; border-color: rgba(${rgb},0.55); background: rgba(${rgb},0.10); }
+        .score-bloques .sb-fila.blq-${b.id} { border-left-color: ${b.color}; }
+        .score-bloques .sb-fila.blq-${b.id} .sb-nombre { color: ${b.color}; }
+        .corr-bloque.blq-${b.id} { color: ${b.color}; border-bottom-color: rgba(${rgb},0.5); }`;
+    }).join('\n');
+}
+
+/* ═══════════════════════════════════════════
+   PALETA DE COLORES DE LA PÁGINA
+   ───────────────────────────────────────────
+   Los colores del apartado "tema" del bloque de datos sustituyen a
+   las variables CSS de :root. Como todas las transparencias de la
+   hoja de estilos se construyen con rgba(var(--x-rgb), …), cambiar
+   un color aquí lo cambia en toda la página: fondos, bordes, textos
+   y sombras incluidos.
+═══════════════════════════════════════════ */
+const TEMA_VARS = {
+    fondo:        ['--navy',      '--navy-rgb'],
+    barra:        ['--navy-mid',  null],
+    acento:       ['--gold',      '--gold-rgb'],
+    acentoClaro:  ['--gold-lt',   null],
+    azulProfundo: ['--blue-deep', null],
+    textoClaro:   ['--cream',     null],
+    tarjeta:      ['--paper',     null],
+    fondoHechos:  ['--parch',     null],
+    texto:        ['--ink',       null],
+    gris:         ['--slate',     null],
+    rojo:         ['--crimson',   '--crimson-rgb'],
+    verde:        ['--forest',    '--forest-rgb']
+};
+
+function aplicarTema() {
+    const tema = (DATOS_SUPUESTO && DATOS_SUPUESTO.tema) || {};
+    const raiz = document.documentElement;
+    Object.keys(TEMA_VARS).forEach(clave => {
+        const valor = tema[clave];
+        if (!valor) return;
+        const [variable, variableRgb] = TEMA_VARS[clave];
+        raiz.style.setProperty(variable, valor);
+        if (variableRgb) raiz.style.setProperty(variableRgb, hexARgb(valor));
+    });
+}
+
+// La cabecera crece con el número de bloques (una fila por bloque): se
+// publica su altura real en --nav-h para que el temporizador flotante
+// quede siempre justo debajo y no la tape.
+function medirCabecera() {
+    const cab = document.getElementById('nav-header');
+    if (!cab) return;
+    document.documentElement.style.setProperty('--nav-h', cab.offsetHeight + 'px');
+}
+window.addEventListener('resize', medirCabecera);
+
+/* Plegar la cabecera: deja a la vista solo la fila del bloque actual.
+   Al cambiar de bloque (con Anterior/Siguiente o pulsando una casilla)
+   la fila visible cambia sola. */
+function togglePlegado() {
+    navPlegada = !navPlegada;
+    document.body.classList.toggle('nav-plegada', navPlegada);
+    const btn = document.getElementById('fold-btn');
+    if (btn) {
+        btn.textContent = navPlegada ? '⌄' : '⌃';
+        btn.title = navPlegada
+            ? 'Desplegar: ver las casillas de todos los bloques'
+            : 'Plegar: ver solo el bloque actual';
+    }
+    medirCabecera();
+}
+
+// El botón de plegar solo tiene sentido con más de un bloque en pantalla.
+// Además, cada intento arranca en el estado (plegada o desplegada) que se
+// haya elegido en el editor.
+function actualizarBotonPlegar() {
+    const filas = document.querySelectorAll('.nav-row').length;
+    const btn = document.getElementById('fold-btn');
+    if (!btn) return;
+    const procede = filas > 1 && interfazVisible('botonPlegar');
+    btn.style.display = procede ? 'flex' : 'none';
+    const deseada = procede && ajusteInterfaz('botonPlegar').plegado === true;
+    if (navPlegada !== deseada) togglePlegado();
+}
+
+/* ¿Este bloque se ve con todas sus preguntas seguidas?
+   Lo manda su casilla del panel ⚙: sin marcar, EN CADENA; marcada, de una
+   en una. El "modo" que se elige en el editor es solo el estado con el que
+   arranca esa casilla. */
+function enCadena(bloque) {
+    return !unaEnUnaPorBloque[bloque.id];
+}
+
+// Estado de arranque de las casillas: cada bloque empieza como diga SU
+// modo en el editor («en cadena» → sin marcar; «de una en una» → marcada).
+// No hay ningún interruptor general que lo pise: si un bloque está puesto
+// en cadena, arranca en cadena.
+function estrenarUnaEnUna() {
+    unaEnUnaPorBloque = {};
+    BLOCKS_BANK.forEach(b => {
+        unaEnUnaPorBloque[b.id] = b.modo === 'individual';
+    });
+}
+
+/* Monta en el panel ⚙ una casilla por cada bloque que salga en el intento
+   (los bloques a los que el editor les haya quitado la casilla no salen).
+   Con un solo bloque queda una sola casilla, como antes. */
+function montarOpcionesUnaEnUna() {
+    const caja = document.getElementById('una-por-bloque');
+    if (!caja) return;
+    caja.innerHTML = '';
+
+    const presentes = new Set(questions.map(q => q.bloqueId));
+    let alguna = false;
+    BLOCKS_BANK.forEach(b => {
+        if (!presentes.has(b.id) || b.opcionUnaEnUna === false) return;
+        alguna = true;
+        const fila = document.createElement('label');
+        fila.innerHTML = `
+            <input type="checkbox" id="una-${b.id}" ${unaEnUnaPorBloque[b.id] ? 'checked' : ''}>
+            <span class="punto-bloque" style="background:${b.color}"></span>
+            <span>${b.titulo}</span>`;
+        fila.querySelector('input').onchange = (e) => toggleUnaEnUna(b.id, e.target.checked);
+        caja.appendChild(fila);
+    });
+
+    // Si no queda ninguna casilla a la vista, sobra el rótulo del grupo.
+    ponerVisible('row-una', alguna && interfazVisible('opcionUnaEnUna'), 'block');
+    actualizarFilaFoco();
+}
+
+// Cabecera de sección que se pinta encima de las preguntas del bloque
+function cabeceraBloque(bloque, cuantas) {
+    const el = document.createElement('div');
+    el.className = `block-header blq-${bloque.id}`;
+    el.id = `bhdr-${bloque.id}`;
+    el.dataset.bloque = bloque.id;
+    const baremo = [
+        `+${nUm(bloque.acierto)} por acierto`,
+        bloque.fallo ? `−${nUm(bloque.fallo)} por fallo` : 'sin penalización por fallo',
+        bloque.blanco ? `−${nUm(bloque.blanco)} en blanco` : ''
+    ].filter(Boolean).join(' · ');
+    el.innerHTML = `
+        <span class="bh-tipo">${bloque.tipo === 'test' ? 'Teoría · test' : 'Supuesto práctico'}</span>
+        <h3>${bloque.titulo}</h3>
+        <div class="bh-datos">${cuantas} ${cuantas === 1 ? 'pregunta' : 'preguntas'}<br>${baremo}</div>`;
+    return el;
+}
+
+/* ═══════════════════════════════════════════
+   APLICAR EXAM_CONFIG AL DOM
+   ───────────────────────────────────────────
+   Rellena el título de la pestaña, la hoja de impresión y la
+   cabecera institucional a partir de EXAM_CONFIG (ver ZONA
+   EDITABLE). El nº de preguntas se recalcula cada vez que se
+   (re)inicia el examen, para reflejar siempre las que hay
+   realmente cargadas en pantalla.
+═══════════════════════════════════════════ */
+function applyExamConfig() {
+    aplicarTema();
+    estrenarUnaEnUna();
+    aplicarInterfaz();
+
+    // Encabezado: imagen y línea del organismo. Si se deja vacío el logo
+    // (o el organismo), simplemente no se pinta.
+    const logo = document.getElementById('inst-logo');
+    if (logo) {
+        if (EXAM_CONFIG.logo) {
+            logo.src = EXAM_CONFIG.logo;
+            logo.alt = EXAM_CONFIG.logoAlt || '';
+            logo.style.display = '';
+        } else {
+            logo.removeAttribute('src');
+            logo.style.display = 'none';
+        }
+    }
+    const organismo = document.getElementById('inst-organismo');
+    if (organismo) {
+        organismo.textContent = EXAM_CONFIG.organismo || '';
+        organismo.style.display = EXAM_CONFIG.organismo ? '' : 'none';
+    }
+
+    document.title = EXAM_CONFIG.titulo;
+    document.getElementById('print-title-h1').textContent  = EXAM_CONFIG.titulo;
+    document.getElementById('print-title-sub').textContent = `${EXAM_CONFIG.ambito} · Corrección con motivación legal completa`;
+    document.getElementById('inst-title').textContent      = EXAM_CONFIG.titulo;
+    document.getElementById('meta-minutos').textContent     = `${EXAM_CONFIG.minutos} MINUTOS`;
+    document.getElementById('meta-legislacion').textContent = EXAM_CONFIG.ambito;
+    document.getElementById('meta-referencia').textContent  = EXAM_CONFIG.referencia;
+}
+
+function updateQuestionCountPill() {
+    document.getElementById('meta-preguntas').textContent = `${questions.length} PREGUNTAS`;
+}
+
+/* ═══════════════════════════════════════════
+   BOTONES Y RÓTULOS CONFIGURABLES
+   ───────────────────────────────────────────
+   El apartado "interfaz" del bloque de datos decide qué botones se ven
+   y con qué texto. Cada clave de configuración gobierna uno o varios
+   elementos de la página (por ejemplo "btnImprimir" manda sobre el
+   botón de la botonera y sobre su gemelo de la ventana de corrección).
+═══════════════════════════════════════════ */
+const BOTONES_INTERFAZ = {
+    btnAnterior:      ['prev-btn'],
+    btnSiguiente:     ['next-btn'],
+    btnCorregir:      ['check-btn'],
+    btnVerCorreccion: ['ov-corr-btn'],
+    btnImprimir:      ['print-btn', 'ov-print-btn'],
+    btnReintentar:    ['restart-btn', 'ov-restart-btn'],
+    btnEnviar:        ['send-btn', 'ov-send-btn'],
+    btnMenu:          ['home-btn-bottom', 'ov-home-btn']
+};
+
+// id de un elemento → clave de configuración que lo gobierna
+const CLAVE_POR_BOTON = {};
+Object.keys(BOTONES_INTERFAZ).forEach(clave => {
+    BOTONES_INTERFAZ[clave].forEach(id => { CLAVE_POR_BOTON[id] = clave; });
+});
+
+function ajusteInterfaz(clave) {
+    return (INTERFAZ && INTERFAZ[clave]) || {};
+}
+
+function interfazVisible(clave) {
+    const ajuste = ajusteInterfaz(clave);
+    if (ajuste.visible === false) return false;
+    // Sin dirección de envío no tiene sentido ofrecer el botón de enviar
+    if (clave === 'btnEnviar' && !(ENVIO && ENVIO.url)) return false;
+    return true;
+}
+
+// ¿Puede verse este botón, según la configuración del supuesto?
+function botonPermitido(id) {
+    const clave = CLAVE_POR_BOTON[id];
+    if (clave === 'btnReintentar' && !modosAleatoriosDisponibles().length) return false;
+    return !clave || interfazVisible(clave);
+}
+
+// Muestra/oculta de golpe un grupo de botones por su id, respetando
+// siempre lo que el supuesto haya configurado como oculto.
+function setButtonsVisible(ids, visible) {
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.style.display = (visible && botonPermitido(id)) ? 'inline-flex' : 'none';
+    });
+}
+
+// Escribe un texto en un elemento, si se ha configurado uno
+function ponerTexto(id, texto) {
+    const el = document.getElementById(id);
+    if (el && texto) el.textContent = texto;
+}
+
+// Muestra u oculta un elemento según la configuración
+function ponerVisible(id, visible, display) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = visible ? (display || 'block') : 'none';
+}
+
+/* Aplica todo el apartado "interfaz": qué se ve y cómo se llama. */
+function aplicarInterfaz() {
+    // Cabecera
+    const casa = ajusteInterfaz('botonCasa');
+    ponerVisible('home-btn-top', casa.visible !== false, 'flex');
+    const btnCasa = document.getElementById('home-btn-top');
+    if (btnCasa && casa.titulo) {
+        btnCasa.title = casa.titulo;
+        btnCasa.setAttribute('aria-label', casa.titulo);
+    }
+    if (btnCasa && casa.texto) btnCasa.textContent = casa.texto;
+
+    const config = ajusteInterfaz('botonConfig');
+    ponerVisible('settings-toggle', config.visible !== false, 'flex');
+    ponerTexto('settings-title', config.titulo);
+
+    const plegar = ajusteInterfaz('botonPlegar');
+    const btnPlegar = document.getElementById('fold-btn');
+    if (btnPlegar && plegar.titulo) btnPlegar.title = plegar.titulo;
+
+    // Opciones del panel ⚙
+    [['opcionTiempo',   'row-tiempo',   'lbl-tiempo',    'block'],
+     ['opcionCorregir', 'row-corregir', 'lbl-corregir',  'flex'],
+     ['opcionUnaEnUna', 'row-una',      'lbl-una',       'block'],
+     ['opcionFoco',     'row-foco',     'lbl-foco',      'flex'],
+     ['opcionQtags',    'row-qtags',    'lbl-qtags',     'flex']].forEach(([clave, fila, rotulo, caja]) => {
+        const ajuste = ajusteInterfaz(clave);
+        ponerVisible(fila, ajuste.visible !== false, caja);
+        ponerTexto(rotulo, ajuste.texto);
+    });
+
+    // Estado de partida de las opciones que se marcan y desmarcan
+    [['opcionCorregir', 'instant-feedback-toggle',
+      (v) => { instantFeedback = v; }],
+     ['opcionFoco', 'foco-toggle',
+      (v) => { modoFoco = v; }],
+     ['opcionQtags', 'hide-qtags-toggle',
+      (v) => { document.body.classList.toggle('hide-qtags', v); }]
+    ].forEach(([clave, casilla, aplicar]) => {
+        const activa = ajusteInterfaz(clave).activa === true;
+        const el = document.getElementById(casilla);
+        if (el) el.checked = activa;
+        aplicar(activa);
+    });
+
+    // Las dos formas de repetir el intento (ventana del botón 🔀)
+    [['opcionRepetirRespuestas', 'rnd-answers'],
+     ['opcionRepetirOrden',      'rnd-order']].forEach(([clave, id]) => {
+        const ajuste = ajusteInterfaz(clave);
+        const boton  = document.getElementById(id);
+        if (!boton) return;
+        if (ajuste.texto) {
+            const detalle = boton.querySelector('small');
+            boton.innerHTML = ajuste.texto + (detalle ? '<br>' + detalle.outerHTML : '');
+        }
+        boton.style.display = interfazVisible(clave) ? '' : 'none';
+    });
+
+    // Botones: primero el texto, después la visibilidad
+    Object.keys(BOTONES_INTERFAZ).forEach(clave => {
+        const ajuste = ajusteInterfaz(clave);
+        BOTONES_INTERFAZ[clave].forEach(id => {
+            ponerTexto(id, ajuste.texto);
+            if (!interfazVisible(clave)) ponerVisible(id, false);
+        });
+    });
+    // Anterior/Siguiente están siempre a la vista salvo que se oculten
+    ['btnAnterior', 'btnSiguiente'].forEach(clave => {
+        BOTONES_INTERFAZ[clave].forEach(id => {
+            ponerVisible(id, interfazVisible(clave), 'inline-flex');
+        });
+    });
+
+    actualizarFilaFoco();
+}
+
+/* ═══════════════════════════════════════════
+   SHUFFLE (Fisher-Yates)
+═══════════════════════════════════════════ */
+function shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+}
+
+/* ═══════════════════════════════════════════
+   ENUNCIADOS — render, panel incrustado y modo foco
+═══════════════════════════════════════════ */
+function getStatement(id) {
+    return STATEMENTS_BANK.find(s => s.id === id) || null;
+}
+
+/* Pinta un enunciado entero o, en MODO FOCO, solo los bloques de hechos
+   vinculados a la pregunta actual (opciones.factIds): así el alumno lee
+   únicamente el hecho desencadenante del que depende esa pregunta. El
+   botón «Ver enunciado completo» deshace el recorte. */
+function renderStatementHTML(stmt, opciones) {
+    if (!stmt) return '';
+    const op     = opciones || {};
+    const filtro = (op.factIds && op.factIds.length) ? new Set(op.factIds) : null;
+
+    let visibles  = (stmt.factBlocks || []).filter(fb => !fb.hidden);
+    let recortado = false;
+    if (filtro) {
+        const vinculados = visibles.filter(fb => filtro.has(fb.id));
+        // Si el vínculo apunta a hechos que ya no existen (u ocultos), se
+        // enseña el enunciado entero antes que dejar a la pregunta sin hechos.
+        if (vinculados.length) { visibles = vinculados; recortado = true; }
+    }
+
+    const factsHtml = visibles.map(fb => {
+        const cls   = fb.red ? 'fact-block red' : 'fact-block';
+        const icon  = fb.red ? '⚠️' : '📋';
+        const paras = (fb.paragraphs || []).map(p => `<p>${p}</p>`).join('');
+        return `<div class="${cls}"><div class="fact-title">${icon} ${fb.title}</div>${paras}</div>`;
+    }).join('');
+
+    // En modo foco la cronología se calla: es contexto de todo el expediente.
+    const tlItems = recortado ? [] : (stmt.timeline || []).filter(t => !t.hidden);
+    const timelineHtml = tlItems.length
+        ? `<div class="timeline">${tlItems.map(t =>
+            `<div class="tl-item${t.red ? ' red-event' : ''}"><span class="tl-date">${t.date}</span>${t.text}</div>`
+          ).join('')}</div>`
+        : '';
+
+    const avisoFoco = recortado
+        ? `<div class="stmt-foco">🔎 MODO FOCO · solo se muestran los hechos de los que depende esta pregunta
+             <button type="button" class="btn-foco" onclick="verEnunciadoCompleto(this)">Ver enunciado completo</button>
+           </div>`
+        : '';
+
+    return `
+        <section class="statement" id="stmt-${stmt.id}">
+            <div class="statement-header">
+                <div class="exp-number">${stmt.number || 'E'}</div>
+                <div class="statement-title-block">
+                    <h2>${stmt.title}</h2>
+                    <span class="ref">REF: ${stmt.ref} · ÁMBITO: ${stmt.ambito}</span>
+                </div>
+            </div>
+            ${avisoFoco}
+            ${factsHtml}
+            ${timelineHtml}
+        </section>`;
+}
+
+/* Panel de enunciado incrustado en el hilo del examen. Se crea uno por
+   cada grupo de preguntas que comparte enunciado, justo delante de la
+   primera pregunta del grupo. */
+function panelEnunciado(statementId, bloque, indicePrimera) {
+    const el = document.createElement('div');
+    el.className       = 'stmt-panel';
+    el.id              = `stmtp-${indicePrimera}`;
+    el.dataset.stmt    = statementId;
+    el.dataset.bloque  = bloque.id;
+    el.dataset.render  = 'full';
+    el.innerHTML       = renderStatementHTML(getStatement(statementId));
+    return el;
+}
+
+// Deja el enunciado entero a la vista pese al modo foco (botón del aviso).
+function verEnunciadoCompleto(boton) {
+    const panel = boton.closest('.stmt-panel');
+    if (!panel) return;
+    panel.dataset.render = 'full';
+    panel.innerHTML = renderStatementHTML(getStatement(panel.dataset.stmt));
+}
+
+// Recorta (o restituye) el enunciado de la pregunta actual según el modo
+// foco. Solo se repinta si hace falta, para no perder el desplazamiento.
+function pintarPanelEnunciado(idPanel, pregunta, bloque) {
+    const panel = document.getElementById(idPanel);
+    if (!panel) return;
+    const vinculos = pregunta.factIds || [];
+    const foco  = modoFoco && bloque.tipo !== 'test' && vinculos.length > 0;
+    const clave = foco ? ('foco:' + vinculos.join(',')) : 'full';
+    if (panel.dataset.render === clave) return;
+    panel.dataset.render = clave;
+    panel.innerHTML = renderStatementHTML(getStatement(panel.dataset.stmt),
+                                          foco ? { factIds: vinculos } : null);
+}
+
+// Agrupa un banco de preguntas por statementId, conservando el orden de
+// aparición de cada grupo y el orden interno de sus preguntas. Las
+// preguntas sin enunciado forman cada una su propio grupo de tamaño 1.
+function groupByStatement(bank) {
+    const groups = [];
+    const indexByKey = new Map();
+    bank.forEach((q, idx) => {
+        const key = q.statementId ? q.statementId : `__solo_${idx}`;
+        if (!indexByKey.has(key)) {
+            indexByKey.set(key, groups.length);
+            groups.push({ key, statementId: q.statementId || null, items: [] });
+        }
+        groups[indexByKey.get(key)].items.push(q);
+    });
+    return groups;
+}
+
+// Construye el listado final de preguntas para un intento según el modo:
+//   'default' → orden proporcionado tal cual (bloques en su orden y, dentro
+//               de cada bloque, sus preguntas en el orden del editor).
+//   'answers' → reutiliza exactamente el mismo conjunto/orden que el
+//               intento anterior (sourceBank); solo cambian las opciones.
+//   'order'   → SALEN TODAS LAS PREGUNTAS, en otro orden. No se descarta
+//               ninguna: la única diferencia con 'answers' es el orden.
+//               El orden de los bloques NUNCA cambia: lo decide el editor,
+//               así que si el supuesto va primero y la teoría después, así
+//               se queda en todos los intentos.
+//                 · bloque de teoría   → se barajan sus preguntas.
+//                 · bloque de supuesto → se barajan los enunciados y, dentro
+//                   de cada uno, sus preguntas (una pregunta nunca se
+//                   separa de su enunciado, para no repetir los hechos).
+//               Solo si el bloque tiene "porIntento" > 0 —que es una
+//               decisión expresa del editor— se recorta a ese número.
+function buildQuestionOrder(mode, sourceBank) {
+    if (mode === 'answers') return [...sourceBank];
+
+    const result = [];
+    BLOCKS_BANK.forEach(b => {
+        const banco = b.preguntas;
+        if (!banco.length) return;
+
+        if (mode !== 'order') {
+            result.push(...banco);
+            return;
+        }
+
+        let elegidas;
+        if (b.tipo === 'test') {
+            elegidas = shuffle(banco);
+        } else {
+            elegidas = [];
+            shuffle(groupByStatement(banco)).forEach(g => {
+                elegidas.push(...shuffle(g.items));
+            });
+        }
+        if (b.porIntento > 0) elegidas = elegidas.slice(0, b.porIntento);
+        result.push(...elegidas);
+    });
+    return result;
+}
+
+/* ═══════════════════════════════════════════
+   PANEL DE CONFIGURACIÓN (⚙ temporizador + modo corrección)
+═══════════════════════════════════════════ */
+function toggleSettings() {
+    document.getElementById('settings-panel').classList.toggle('open');
+    document.getElementById('settings-toggle').classList.toggle('open');
+}
+
+function closeSettings() {
+    document.getElementById('settings-panel').classList.remove('open');
+    document.getElementById('settings-toggle').classList.remove('open');
+}
+
+// Cerrar el panel si se hace clic fuera de él
+document.addEventListener('click', (e) => {
+    const wrap = document.querySelector('.settings-wrap');
+    if (wrap && !wrap.contains(e.target)) closeSettings();
+});
+
+function formatTime(totalSeconds) {
+    const m = Math.floor(totalSeconds / 60);
+    const s = totalSeconds % 60;
+    return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function parseTimeInput(str) {
+    if (!str) return null;
+    str = str.trim();
+    if (str.includes(':')) {
+        const [mm, ss] = str.split(':');
+        const m = parseInt(mm, 10);
+        const s = parseInt(ss, 10);
+        if (isNaN(m) || isNaN(s)) return null;
+        return m * 60 + s;
+    }
+    const m = parseFloat(str.replace(',', '.'));
+    if (isNaN(m)) return null;
+    return Math.round(m * 60);
+}
+
+function applyTimer() {
+    const input = document.getElementById('time-input');
+    const secs  = parseTimeInput(input.value);
+    if (secs === null || secs <= 0) {
+        alert('Introduce un tiempo válido, por ejemplo 30:00 (mm:ss) o 30 (minutos).');
+        return;
+    }
+    examDurationSeconds = secs;
+    timeLeft = secs;
+
+    // Refrescar visualización del temporizador inmediatamente
+    document.getElementById('timer-display').textContent = formatTime(timeLeft);
+    const el = document.getElementById('timer');
+    el.className = '';
+    if (timeLeft <= 60)      { el.classList.add('warn1'); }
+    else if (timeLeft <= 300) { el.classList.add('warn5'); }
+    else if (timeLeft <= 600) { el.classList.add('warn10'); }
+
+    // Evitar que se disparen avisos sonoros ya superados con el nuevo tiempo
+    alerted10 = timeLeft <= 600;
+    alerted5  = timeLeft <= 300;
+    alerted5b = timeLeft <= 300;
+    alerted1  = timeLeft <= 60;
+
+    input.value = '';
+    closeSettings();
+}
+
+function toggleInstantFeedback(checked) {
+    instantFeedback = checked;
+}
+
+// Cambia cómo se ve UN bloque: marcado, sus preguntas salen de una en
+// una; sin marcar, todas seguidas (en cadena). Cada bloque va por su
+// cuenta, así que se puede tener el supuesto de una en una y la teoría
+// encadenada, o al revés.
+function toggleUnaEnUna(bloqueId, checked) {
+    unaEnUnaPorBloque[bloqueId] = checked;
+    actualizarFilaFoco();
+    if (questions.length) jump(current);
+}
+
+/* MODO FOCO — cuelga de la opción anterior y solo actúa sobre los bloques
+   que se estén viendo DE UNA EN UNA: cuando una pregunta está vinculada a
+   hechos concretos del enunciado (factIds), se muestra únicamente esa
+   parte. Las preguntas sin vínculo siguen viendo el enunciado entero, y un
+   bloque en cadena no se recorta nunca. */
+function toggleModoFoco(checked) {
+    modoFoco = checked;
+    if (questions.length) jump(current);
+}
+
+// La fila del modo foco se apaga (sin desaparecer) mientras no haya ningún
+// bloque de supuesto viéndose de una en una: en cadena no puede aplicarse.
+function actualizarFilaFoco() {
+    const fila    = document.getElementById('row-foco');
+    const casilla = document.getElementById('foco-toggle');
+    if (!fila || !casilla) return;
+    const presentes = new Set(questions.map(q => q.bloqueId));
+    const aplicable = STATEMENTS_BANK.length > 0 && BLOCKS_BANK.some(
+        b => b.tipo !== 'test' && presentes.has(b.id) && unaEnUnaPorBloque[b.id]);
+    fila.classList.toggle('apagada', !aplicable);
+    casilla.disabled = !aplicable;
+}
+
+function toggleHideQTags(checked) {
+    document.body.classList.toggle('hide-qtags', checked);
+}
+
+function closeOverlay() {
+    document.getElementById('overlay').classList.remove('show');
+
+    // Si el overlay se cerró tras corregirse (p.ej. por tiempo agotado),
+    // sincronizamos la página principal para que refleje el resultado
+    // en lugar de quedarse "congelada" en el estado anterior.
+    if (evaluated) {
+        setButtonsVisible(['check-btn'], false);
+        setButtonsVisible(['print-btn', 'restart-btn', 'send-btn', 'home-btn-bottom'], true);
+        if (!document.getElementById('inline-score-banner')) {
+            buildInlineScore();
+        }
+        jump(current);
+    }
+}
+
+/* ═══════════════════════════════════════════
+   AUDIO — Web Audio API
+═══════════════════════════════════════════ */
+function getAudioCtx() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    return audioCtx;
+}
+
+function playBeep(frequency = 880, duration = 0.3, type = 'sine', volume = 0.4) {
+    try {
+        const ctx = getAudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = type;
+        osc.frequency.setValueAtTime(frequency, ctx.currentTime);
+        gain.gain.setValueAtTime(volume, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + duration);
+    } catch(e) {}
+}
+
+function playAlert10() {
+    // Un pitido grave y sostenido: aviso 10 min
+    playBeep(440, 0.5, 'sine', 0.5);
+    setTimeout(() => playBeep(550, 0.5, 'sine', 0.5), 600);
+    speakText('Atención. Quedan diez minutos para finalizar el examen.');
+}
+
+function playAlert5() {
+    // Doble pitido más urgente: aviso 5 min
+    for (let i = 0; i < 2; i++) {
+        setTimeout(() => { playBeep(660, 0.25, 'square', 0.5); }, i * 350);
+        setTimeout(() => { playBeep(880, 0.25, 'square', 0.5); }, i * 350 + 150);
+    }
+    speakText('Atención. Quedan cinco minutos. Acelere el ritmo.');
+}
+
+function playAlert5b() {
+    // Segundo doble pitido a los 5 min (refuerzo)
+    setTimeout(() => { playBeep(880, 0.2, 'square', 0.6); }, 1500);
+    setTimeout(() => { playBeep(660, 0.2, 'square', 0.6); }, 1800);
+}
+
+function playAlert1() {
+    // Serie de pitidos breves y agudos
+    for (let i = 0; i < 5; i++) {
+        setTimeout(() => playBeep(1200, 0.15, 'square', 0.7), i * 200);
+    }
+}
+
+function speakText(text) {
+    try {
+        if (!window.speechSynthesis) return;
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = 'es-ES';
+        u.rate = 0.92;
+        u.pitch = 1.0;
+        u.volume = 1.0;
+        window.speechSynthesis.speak(u);
+    } catch(e) {}
+}
+
+/* ═══════════════════════════════════════════
+   INICIALIZACIÓN
+═══════════════════════════════════════════ */
+function init(mode = 'default', sourceBank = null) {
+    // Resetear estado
+    questions  = buildQuestionOrder(mode, sourceBank || questions);
+    if (!Object.keys(unaEnUnaPorBloque).length) estrenarUnaEnUna();
+    timeLeft   = examDurationSeconds;
+    current    = 0;
+    userAns    = {};
+    evaluated  = false;
+    detalleEnviado = false;
+    alerted10  = false;
+    alerted5   = false;
+    alerted5b  = false;
+    alerted1   = false;
+    timerPaused = false;
+
+    // Limpiar DOM (solo las preguntas; el ⚙ de configuración se conserva)
+    document.getElementById('nav-boxes').innerHTML  = '';
+    document.getElementById('quiz-container').innerHTML = '';
+    document.getElementById('overlay').classList.remove('show');
+    document.getElementById('timer-display').textContent = formatTime(examDurationSeconds);
+    document.getElementById('timer').className = 'timer-base';
+    document.getElementById('timer').removeAttribute('class');
+
+    // El botón de corregir está siempre visible: se puede terminar el test desde la pregunta 1
+    setButtonsVisible(['check-btn'], true);
+    setButtonsVisible(['print-btn', 'restart-btn', 'send-btn', 'home-btn-bottom'], false);
+    document.getElementById('send-btn').disabled = false;
+    document.getElementById('send-btn').textContent = '📤 Enviar Resultados';
+    document.getElementById('correction-panel').innerHTML = '';
+    document.getElementById('score-banner').style.display = 'none';
+    closeSettings();
+
+    // Eliminar banner de puntuación si existe
+    const old = document.getElementById('inline-score-banner');
+    if (old) old.remove();
+
+    updateQuestionCountPill();
+
+    const nav     = document.getElementById('nav-boxes');
+    const cont    = document.getElementById('quiz-container');
+
+    inyectarEstilosBloques();
+
+    // Cuántas preguntas de cada bloque han salido en este intento
+    const cuantasPorBloque = {};
+    questions.forEach(q => {
+        cuantasPorBloque[q.bloqueId] = (cuantasPorBloque[q.bloqueId] || 0) + 1;
+    });
+
+    let bloqueAnterior    = null;
+    let filaCasillas      = null;
+    let stmtAnterior      = undefined;  // enunciado del grupo que se va montando
+    let panelActual       = '';         // id del panel de ese grupo
+    let cabeceraPendiente = null;       // cabecera que va DEBAJO del enunciado
+
+    questions.forEach((q, i) => {
+        const bloque = getBlock(q.bloqueId);
+
+        // Cada bloque estrena su propia FILA en la cabecera: a la izquierda
+        // su nombre (en su color) y a la derecha sus casillas numeradas.
+        // Además se crea su cabecera de sección sobre las preguntas.
+        if (bloque !== bloqueAnterior) {
+            bloqueAnterior = bloque;
+            stmtAnterior   = undefined;
+            const primera = i;
+
+            const fila = document.createElement('div');
+            fila.className = 'nav-row';
+            fila.dataset.bloque = bloque.id;
+
+            const rotulo = document.createElement('span');
+            rotulo.className = 'nav-group-label';
+            rotulo.style.color = bloque.color;
+            rotulo.textContent = bloque.titulo;
+            rotulo.title = 'Ir al principio de: ' + bloque.titulo;
+            rotulo.onclick = () => jump(primera);
+
+            filaCasillas = document.createElement('div');
+            filaCasillas.className = 'nav-row-boxes';
+
+            fila.appendChild(rotulo);
+            fila.appendChild(filaCasillas);
+            nav.appendChild(fila);
+
+            // La cabecera de sección va ENCIMA del enunciado (lo natural en
+            // un supuesto: primero de qué sección se trata, luego los
+            // hechos). Si el bloque lleva esa opción desactivada, espera y
+            // se cuela justo delante de la primera pregunta.
+            const cabecera = cabeceraBloque(bloque, cuantasPorBloque[bloque.id]);
+            if (bloque.cabeceraSobreEnunciado) cont.appendChild(cabecera);
+            else cabeceraPendiente = cabecera;
+        }
+
+        // Enunciado del grupo: se pinta UNA sola vez, delante de la primera
+        // pregunta que lo comparte. Así, con las preguntas en cadena, el
+        // documento sale como se lee un supuesto: enunciado 1 (completo) →
+        // sus preguntas → enunciado 2 → sus preguntas…
+        const sid = q.statementId || null;
+        if (sid !== stmtAnterior) {
+            stmtAnterior = sid;
+            panelActual  = '';
+            if (sid && getStatement(sid)) {
+                const panel = panelEnunciado(sid, bloque, i);
+                cont.appendChild(panel);
+                panelActual = panel.id;
+            }
+        }
+        if (cabeceraPendiente) {
+            cont.appendChild(cabeceraPendiente);
+            cabeceraPendiente = null;
+        }
+
+        // Botón nav, dentro de la fila de su bloque
+        const box    = document.createElement('div');
+        box.className = `nav-box blq-${bloque.id}`;
+        box.id       = `nav-${i}`;
+        box.innerText = i + 1;
+        box.title     = bloque.titulo;
+        box.onclick  = () => jump(i);
+        filaCasillas.appendChild(box);
+
+        // Opciones: se eligen (si la pregunta tiene más de las que deben
+        // salir) y se barajan en cada carga de la página, sea cual sea el
+        // modo de intento, que solo decide qué preguntas salen y en qué orden.
+        const opciones = opcionesDePregunta(q);
+
+        // Dónde han quedado las correctas después de barajar
+        const correctasNuevas = [];
+        opciones.forEach((o, ni) => { if (q.correctas.includes(o.idx)) correctasNuevas.push(ni); });
+        const multiple = q.multiple === true;
+
+        let optHtml = '';
+        opciones.forEach(({ txt }, ni) => {
+            optHtml += `
+                <div class="option${multiple ? ' multi' : ''}" id="opt-${i}-${ni}" onclick="selectAnswer(${i}, ${ni})">
+                    <span class="opt-letter">${LETTERS[ni]}</span>
+                    <span>${txt.replace(/^[A-G]\)\s*/, '')}</span>
+                </div>`;
+        });
+
+        const card    = document.createElement('div');
+        card.className = `question-card blq-${bloque.id}`;
+        card.id       = `qcard-${i}`;
+        card.dataset.correct  = correctasNuevas.join(',');
+        // Traducción "opción tal y como se ve" → "opción tal y como está
+        // escrita en el supuesto". Hace falta para poder mandar al
+        // formulario el texto exacto que marcó el alumno.
+        card.dataset.opciones = opciones.map(o => o.idx).join(',');
+        card.dataset.multiple = multiple ? '1' : '';
+        card.dataset.bloque   = bloque.id;
+        card.dataset.panel    = panelActual;   // enunciado al que pertenece
+        card.innerHTML = `
+            <div class="q-header">
+                <div class="q-num">${String(i+1).padStart(2,'0')}</div>
+                <div class="q-body">
+                    ${q.tag ? `<span class="q-tag">${q.tag}</span>` : ''}
+                    <div class="q-text">${q.q}</div>
+                </div>
+            </div>
+            ${multiple ? '<div class="multi-aviso">Marca todas las respuestas que procedan</div>' : ''}
+            <div class="options-grid">${optHtml}</div>
+            <div class="feedback" id="feed-${i}">
+                <div class="feedback-header"><span>⚖️ MOTIVACIÓN LEGAL Y NORMATIVA APLICABLE</span></div>
+                <div class="feedback-body">
+                    <p>${q.law}</p>
+                    ${q.tip ? `<div class="tip">${q.tip}</div>` : ''}
+                </div>
+            </div>`;
+        cont.appendChild(card);
+    });
+
+    // Casillas «de una en una» del panel ⚙: una por cada bloque del intento
+    montarOpcionesUnaEnUna();
+
+    // Con la cabecera ya montada: botón de plegado y altura para el reloj
+    actualizarBotonPlegar();
+    medirCabecera();
+
+    // Colocarse en la primera pregunta: jump() se encarga del enunciado,
+    // de la cabecera de sección y de qué tarjetas se ven. Sin desplazar la
+    // página: el examen empieza por su cabecera institucional.
+    if (questions.length) jump(0, true);
+
+    // Actualizar progress
+    updateProgress();
+
+    // Iniciar temporizador
+    if (timerInt) clearInterval(timerInt);
+    startTimer();
+
+    // Fecha en print
+    document.getElementById('print-fecha').textContent =
+        'Fecha de realización: ' + new Date().toLocaleDateString('es-ES', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+}
+
+/* ═══════════════════════════════════════════
+   RESPUESTAS — consulta del estado
+   ───────────────────────────────────────────
+   Una pregunta puede tener una sola respuesta correcta o varias, así que
+   tanto lo correcto como lo contestado se guardan SIEMPRE como lista de
+   posiciones (ya barajadas). Sin responder = no hay entrada en userAns.
+═══════════════════════════════════════════ */
+function correctasDe(qIdx) {
+    const card = document.getElementById(`qcard-${qIdx}`);
+    const dato = card ? card.dataset.correct : '';
+    return dato ? dato.split(',').map(Number) : [];
+}
+
+function contestadasDe(qIdx) {
+    return userAns[qIdx] || [];
+}
+
+function sinResponder(qIdx) {
+    return contestadasDe(qIdx).length === 0;
+}
+
+// Acierto = exactamente las correctas, ni una de más ni una de menos.
+function esAcierto(qIdx) {
+    const dadas     = contestadasDe(qIdx);
+    const correctas = correctasDe(qIdx);
+    return dadas.length === correctas.length && correctas.every(c => dadas.includes(c));
+}
+
+/* ═══════════════════════════════════════════
+   SELECCIÓN DE RESPUESTA (permite desmarcar y modo corrección instantánea)
+═══════════════════════════════════════════ */
+function selectAnswer(qIdx, optIdx) {
+    if (evaluated) return;
+
+    // En pantallas táctiles, un "clic" que en realidad es un desplazamiento
+    // (o que llega mientras la página aún se está moviendo) no debe cambiar
+    // la respuesta: es el toque fantasma típico al bajar con el dedo.
+    if (esTactil) {
+        if (dedoEnMovimiento) { dedoEnMovimiento = false; return; }
+        if (Date.now() - ultimoScroll < 300) return;
+    }
+
+    const card     = document.getElementById(`qcard-${qIdx}`);
+    const multiple = card && card.dataset.multiple === '1';
+    let dadas      = [...contestadasDe(qIdx)];
+
+    if (dadas.includes(optIdx)) {
+        // Volver a pulsar una opción ya marcada la desmarca
+        dadas = dadas.filter(x => x !== optIdx);
+    } else if (multiple) {
+        dadas.push(optIdx);            // se pueden marcar varias
+    } else {
+        dadas = [optIdx];              // una sola: sustituye a la anterior
+    }
+    dadas.sort((x, y) => x - y);
+
+    if (dadas.length) userAns[qIdx] = dadas;
+    else delete userAns[qIdx];
+
+    pintarRespuesta(qIdx);
+    updateProgress();
+}
+
+// Marca en verde las correctas y en rojo las falladas de una pregunta.
+function marcarSolucion(qIdx) {
+    const dadas     = contestadasDe(qIdx);
+    const correctas = correctasDe(qIdx);
+    document.querySelectorAll(`#qcard-${qIdx} .option`).forEach((o, ni) => {
+        o.classList.remove('correct', 'wrong');
+        if (correctas.includes(ni))   o.classList.add('correct');
+        else if (dadas.includes(ni))  o.classList.add('wrong');
+    });
+}
+
+/* Repinta una pregunta según lo que lleve marcado. Con corrección
+   pregunta a pregunta la solución no se enseña hasta que se han marcado
+   tantas opciones como correctas tiene: si no, en una pregunta de
+   respuesta múltiple se cantaría la solución con el primer clic. */
+function pintarRespuesta(qIdx) {
+    const dadas     = contestadasDe(qIdx);
+    const correctas = correctasDe(qIdx);
+    const navBox    = document.getElementById(`nav-${qIdx}`);
+    const feed      = document.getElementById(`feed-${qIdx}`);
+
+    document.querySelectorAll(`#qcard-${qIdx} .option`).forEach((o, ni) => {
+        o.classList.remove('selected', 'correct', 'wrong');
+        if (dadas.includes(ni)) o.classList.add('selected');
+    });
+    navBox.classList.remove('nav-wrong', 'nav-correct');
+    navBox.classList.toggle('answered', dadas.length > 0);
+
+    if (!instantFeedback || dadas.length < correctas.length) {
+        if (feed) feed.style.display = 'none';
+        return;
+    }
+    marcarSolucion(qIdx);
+    if (!esAcierto(qIdx)) navBox.classList.add('nav-wrong');
+    if (feed) feed.style.display = 'block';
+}
+
+/* ═══════════════════════════════════════════
+   TOQUES EN PANTALLAS TÁCTILES
+   ───────────────────────────────────────────
+   Al pasar de una pregunta a otra la página sube al principio; si el
+   usuario baja con el dedo, el navegador puede convertir ese gesto en
+   un "clic" sobre la opción que quede debajo y marcarla sin querer.
+   Aquí se distingue un toque de un desplazamiento: si el dedo se mueve
+   más de 10 píxeles, o la página se ha movido hace menos de 0,3 s, el
+   toque no cuenta como respuesta.
+═══════════════════════════════════════════ */
+const esTactil = (typeof window !== 'undefined') &&
+                 ('ontouchstart' in window || (navigator.maxTouchPoints || 0) > 0);
+let inicioToqueX = 0, inicioToqueY = 0;
+
+document.addEventListener('touchstart', (e) => {
+    dedoEnMovimiento = false;
+    const t = e.touches && e.touches[0];
+    if (t) { inicioToqueX = t.clientX; inicioToqueY = t.clientY; }
+}, { passive: true });
+
+document.addEventListener('touchmove', (e) => {
+    const t = e.touches && e.touches[0];
+    if (!t) return;
+    if (Math.abs(t.clientX - inicioToqueX) > 10 || Math.abs(t.clientY - inicioToqueY) > 10) {
+        dedoEnMovimiento = true;
+    }
+}, { passive: true });
+
+window.addEventListener('scroll', () => { ultimoScroll = Date.now(); }, { passive: true });
+
+/* ═══════════════════════════════════════════
+   NAVEGACIÓN
+═══════════════════════════════════════════ */
+/* Lleva el examen a la pregunta i. Con "sinDesplazar" se actualiza lo que
+   se ve pero la página no se mueve (al arrancar y al corregir, para no
+   saltarse la cabecera ni el marcador). */
+function jump(i, sinDesplazar) {
+    current = i;
+    const pregunta = questions[i];
+    const bloque   = getBlock(pregunta.bloqueId);
+    const cadena   = enCadena(bloque);
+
+    // Cabecera de sección: solo la del bloque en el que estamos
+    document.querySelectorAll('.block-header').forEach(h => {
+        h.classList.toggle('visible', h.dataset.bloque === bloque.id);
+    });
+
+    // Fila de casillas del bloque actual (la única visible si está plegada)
+    document.querySelectorAll('.nav-row').forEach(f => {
+        f.classList.toggle('fila-actual', f.dataset.bloque === bloque.id);
+    });
+    if (navPlegada) medirCabecera();
+
+    // Tarjetas: en cadena se ven todas las del bloque; si no, solo la actual.
+    document.querySelectorAll('.question-card').forEach((c, idx) => {
+        const suya = cadena ? (questions[idx].bloqueId === bloque.id) : (idx === i);
+        c.classList.toggle('visible', suya);
+        c.classList.toggle('encadenada', cadena && suya);
+        c.classList.toggle('active', idx === i);
+    });
+
+    // Enunciados: en cadena se ven todos los del bloque (cada uno delante de
+    // sus preguntas); de una en una, solo el de la pregunta actual.
+    const tarjeta = document.getElementById(`qcard-${i}`);
+    const idPanel = (tarjeta && tarjeta.dataset.panel) || '';
+    document.querySelectorAll('.stmt-panel').forEach(p => {
+        const suyo = cadena ? (p.dataset.bloque === bloque.id) : (p.id === idPanel);
+        p.classList.toggle('visible', suyo);
+        // Con las preguntas encadenadas el enunciado va siempre entero: no
+        // hay una única pregunta a la que recortarlo.
+        if (suyo && cadena && p.dataset.render !== 'full') {
+            p.dataset.render = 'full';
+            p.innerHTML = renderStatementHTML(getStatement(p.dataset.stmt));
+        }
+    });
+    if (!cadena && idPanel) pintarPanelEnunciado(idPanel, pregunta, bloque);
+
+    document.querySelectorAll('.nav-box').forEach(b => b.classList.remove('active'));
+    const navBox = document.getElementById(`nav-${i}`);
+    navBox.classList.add('active');
+
+    if (sinDesplazar) return;
+
+    // En móvil la fila de preguntas se desplaza en horizontal: al cambiar
+    // de pregunta la casilla activa siempre vuelve a quedar visible.
+    navBox.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+
+    if (cadena) {
+        // Con las preguntas apiladas no se sube al principio: se lleva la
+        // pregunta elegida justo debajo de la cabecera fija. Y si es la
+        // PRIMERA pregunta de un enunciado, se sube hasta el enunciado: al
+        // llegar a un caso práctico lo primero que hay que leer son los
+        // hechos, no la pregunta.
+        const panelGrupo = (idPanel === `stmtp-${i}`) ? document.getElementById(idPanel) : null;
+        const destino    = panelGrupo || document.getElementById(`qcard-${i}`);
+        const y          = destino.getBoundingClientRect().top + window.scrollY - 90;
+        window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+    } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+}
+function move(d) { const n = current + d; if (n >= 0 && n < questions.length) jump(n); }
+
+/* ═══════════════════════════════════════════
+   TEMPORIZADOR
+═══════════════════════════════════════════ */
+function startTimer() {
+    timerInt = setInterval(() => {
+        if (timerPaused) return;
+
+        timeLeft--;
+        const m = Math.floor(timeLeft / 60);
+        const s = timeLeft % 60;
+        document.getElementById('timer-display').textContent =
+            `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+
+        const el = document.getElementById('timer');
+        el.className = '';
+
+        if (timeLeft <= 60 && !alerted1) {
+            alerted1 = true;
+            el.classList.add('warn1');
+            playAlert1();
+            speakText('Queda menos de un minuto. El tiempo se acaba.');
+        } else if (timeLeft <= 300 && !alerted5b && timeLeft > 240 && alerted5) {
+            alerted5b = true;
+            el.classList.add('warn5');
+            playAlert5b();
+        } else if (timeLeft <= 300 && !alerted5) {
+            alerted5 = true;
+            el.classList.add('warn5');
+            playAlert5();
+        } else if (timeLeft <= 600 && !alerted10) {
+            alerted10 = true;
+            el.classList.add('warn10');
+            playAlert10();
+        }
+
+        if (timeLeft <= 0) {
+            clearInterval(timerInt);
+            triggerTimeUp();
+        }
+    }, 1000);
+}
+
+function toggleTimerPause() {
+    if (evaluated) return; // no tiene sentido pausar tras corregir o con el tiempo agotado
+    timerPaused = !timerPaused;
+    document.getElementById('timer').classList.toggle('paused', timerPaused);
+}
+
+function triggerTimeUp() {
+    // Calcular resultado aunque no haya corregido
+    evaluated = true;
+    const overlay = document.getElementById('overlay');
+    overlay.classList.add('show');
+    // Mostrar score banner con lo respondido
+    buildScoreBanner();
+    // Mostrar panel corrección
+    showCorrectionPanel();
+    // Mostrar botón de envío de resultados
+    document.getElementById('send-btn').style.display = 'inline-flex';
+
+    // Envío automático del detalle pregunta a pregunta (segundo formulario)
+    enviarDetalleCorreccion();
+}
+
+/* ═══════════════════════════════════════════
+   BARRA DE PROGRESO
+═══════════════════════════════════════════ */
+function updateProgress() {
+    const pct = (Object.keys(userAns).length / questions.length) * 100;
+    document.getElementById('progress-fill').style.width = pct + '%';
+}
+
+/* ═══════════════════════════════════════════
+   COLOR DE LAS CASILLAS DE NAVEGACIÓN TRAS CORREGIR
+   ───────────────────────────────────────────
+   Acierto → verde ("answered"). Fallo → rojo ("nav-wrong").
+   Sin responder → sin clase, aspecto neutro ("en blanco").
+═══════════════════════════════════════════ */
+function updateNavResultColors() {
+    questions.forEach((q, i) => {
+        const navBox = document.getElementById(`nav-${i}`);
+        navBox.classList.remove('answered', 'nav-wrong');
+        if (sinResponder(i)) return;
+        navBox.classList.add(esAcierto(i) ? 'answered' : 'nav-wrong');
+    });
+}
+
+/* ═══════════════════════════════════════════
+   CORRECCIÓN DEL EXAMEN (desde botón principal)
+   Puede lanzarse en cualquier momento, incluso desde la
+   pregunta 1 y sin haber respondido todas las preguntas.
+═══════════════════════════════════════════ */
+function evaluateExam() {
+    if (evaluated) return;
+
+    const answeredCount = Object.keys(userAns).length;
+    if (answeredCount < questions.length) {
+        const proceed = confirm(
+            `Has respondido ${answeredCount} de ${questions.length} preguntas.\n¿Deseas corregir el examen igualmente? Las preguntas sin responder contarán como no acertadas.`
+        );
+        if (!proceed) return;
+    }
+
+    evaluated = true;
+    clearInterval(timerInt);
+
+    // Marcar opciones correctas / erróneas en las tarjetas visibles
+    questions.forEach((q, i) => {
+        document.getElementById(`feed-${i}`).style.display = 'block';
+        marcarSolucion(i);
+    });
+    updateNavResultColors();
+
+    // Ocultar botón corregir, mostrar imprimir, repetir, enviar y menú
+    setButtonsVisible(['check-btn'], false);
+    setButtonsVisible(['print-btn', 'restart-btn', 'send-btn', 'home-btn-bottom'], true);
+
+    // Banner de resultado inline
+    buildInlineScore();
+
+    // Envío automático del detalle pregunta a pregunta (segundo formulario)
+    enviarDetalleCorreccion();
+
+    // Se vuelve a la primera pregunta y se sube al principio, para que lo
+    // primero que se vea sea el marcador.
+    jump(0, true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ═══════════════════════════════════════════
+   SCORE — cálculo
+═══════════════════════════════════════════ */
+function calcScore() {
+    let score = 0;
+    questions.forEach((q, i) => { if (esAcierto(i)) score++; });
+    return score;
+}
+
+/* Recuento completo, tratando cada bloque como una entidad separada:
+   cada uno suma y descuenta según su propio baremo (acierto / fallo /
+   en blanco) y se totaliza al final. */
+function calcResultados() {
+    const mapa  = new Map();
+    const orden = [];
+
+    questions.forEach((q, i) => {
+        const b = getBlock(q.bloqueId);
+        if (!mapa.has(b.id)) {
+            mapa.set(b.id, { bloque: b, total: 0, aciertos: 0, fallos: 0,
+                             blancos: 0, puntos: 0, max: 0 });
+            orden.push(b.id);
+        }
+        const r = mapa.get(b.id);
+
+        r.total++;
+        r.max += b.acierto;
+        if (sinResponder(i))   { r.blancos++;  r.puntos -= b.blanco; }
+        else if (esAcierto(i)) { r.aciertos++; r.puntos += b.acierto; }
+        else                   { r.fallos++;   r.puntos -= b.fallo;  }
+    });
+
+    const bloques = orden.map(id => mapa.get(id));
+    const tot = { total: 0, aciertos: 0, fallos: 0, blancos: 0, puntos: 0, max: 0 };
+    bloques.forEach(r => {
+        ['total', 'aciertos', 'fallos', 'blancos', 'puntos', 'max'].forEach(k => { tot[k] += r[k]; });
+    });
+    tot.bloques = bloques;
+    tot.pct = tot.max > 0 ? Math.max(0, (tot.puntos / tot.max) * 100) : 0;
+    tot.apto = tot.pct >= APTO_PCT;
+    return tot;
+}
+
+// Desglose por bloques (solo tiene sentido si hay más de uno en el intento)
+function desgloseBloquesHTML(res) {
+    if (res.bloques.length < 2) return '';
+    return `<div class="score-bloques">${res.bloques.map(r => `
+        <div class="sb-fila blq-${r.bloque.id}">
+            <span class="sb-nombre">${r.bloque.titulo}</span>
+            <span class="sb-detalle">${r.aciertos} ✓ · ${r.fallos} ✗ · ${r.blancos} —</span>
+            <span class="sb-puntos">${nUm(r.puntos)} / ${nUm(r.max)}</span>
+        </div>`).join('')}</div>`;
+}
+
+function lineaRecuento(res) {
+    return `${nUm(res.pct)}% · ${res.aciertos} ACIERTOS · ${res.fallos} FALLOS · ${res.blancos} EN BLANCO`;
+}
+
+function buildScoreBanner() {
+    const res     = calcResultados();
+    const emoji   = res.aciertos === res.total ? '🏆' : res.apto ? '✅' : '📚';
+    const verdict = res.aciertos === res.total ? '¡Expediente magistralmente resuelto!'
+                  : res.apto ? 'APTO — Buen dominio normativo'
+                             : 'NO APTO — Revise cada motivación legal';
+
+    const banner  = document.getElementById('score-banner');
+    banner.style.display = 'block';
+    banner.innerHTML = `
+        <div style="font-size:2rem; margin-bottom:6px;">${emoji}</div>
+        <div class="score-big">${nUm(res.puntos)} / ${nUm(res.max)}</div>
+        <div class="score-lbl">${lineaRecuento(res)}</div>
+        <div class="score-verdict ${res.apto ? 'apto':'no-apto'}" style="margin-top:10px;">${verdict}</div>
+        ${desgloseBloquesHTML(res)}`;
+}
+
+function buildInlineScore() {
+    const res   = calcResultados();
+    const emoji = res.aciertos === res.total ? '🏆' : res.apto ? '✅' : '📚';
+
+    const banner  = document.createElement('div');
+    banner.id     = 'inline-score-banner';
+    banner.style.cssText = 'background:var(--navy-mid);border:1px solid var(--gold);border-radius:4px;padding:20px 28px;margin-bottom:28px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.3);position:relative;z-index:1;';
+    banner.innerHTML = `
+        <div style="font-size:2.2rem;margin-bottom:6px;">${emoji}</div>
+        <div style="font-family:'Playfair Display',serif;font-size:3rem;color:var(--gold);font-weight:900;line-height:1;">${nUm(res.puntos)} / ${nUm(res.max)}</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.6rem;letter-spacing:0.2em;color:rgba(255,255,255,0.4);margin:4px 0 10px;">${lineaRecuento(res)}</div>
+        <div style="font-size:1rem;color:${res.apto?'#6fcf97':'#fc8181'};font-weight:600;">${res.apto?'APTO — Buen dominio normativo':'NO APTO — Revise la motivación de cada respuesta'}</div>
+        ${desgloseBloquesHTML(res)}`;
+
+    // Los enunciados viven dentro del hilo de preguntas, así que el
+    // marcador se coloca antes de la barra de progreso: encabeza todo el
+    // examen y no se cuela entre un enunciado y sus preguntas.
+    const container = document.querySelector('.container');
+    const progress  = container.querySelector('.progress-bar-wrap');
+    container.insertBefore(banner, progress || document.getElementById('quiz-container')
+                                            || container.firstChild);
+}
+
+/* ═══════════════════════════════════════════
+   PANEL CORRECCIÓN COMPLETA (overlay)
+═══════════════════════════════════════════ */
+function showCorrectionPanel() {
+    buildScoreBanner();
+    updateNavResultColors();
+
+    const panel  = document.getElementById('correction-panel');
+    const resumenBloques = new Map(calcResultados().bloques.map(r => [r.bloque.id, r]));
+    let html = '';
+    let bloqueAnterior = null;
+
+    questions.forEach((q, i) => {
+        // Separador cada vez que empieza un bloque distinto
+        if (q.bloqueId !== bloqueAnterior) {
+            bloqueAnterior = q.bloqueId;
+            const b = getBlock(q.bloqueId);
+            const r = resumenBloques.get(b.id);
+            html += `<div class="corr-bloque blq-${b.id}">${b.titulo} — ${r.aciertos} ✓ · ${r.fallos} ✗ · ${r.blancos} — · ${nUm(r.puntos)} / ${nUm(r.max)} puntos</div>`;
+        }
+        const correctas = correctasDe(i);
+        const dadas     = contestadasDe(i);
+        const isCorrect = esAcierto(i);
+        const isSkipped = sinResponder(i);
+
+        // Marcar visualmente en las tarjetas
+        marcarSolucion(i);
+        document.getElementById(`feed-${i}`).style.display = 'block';
+
+        // Textos de las opciones tal y como han salido en esta tarjeta
+        const optEls   = document.querySelectorAll(`#qcard-${i} .option span:last-child`);
+        const optTexts = [...optEls].map(el => el.textContent.trim());
+        const listar   = idx => idx.map(n => `${LETTERS[n]}) ${optTexts[n]}`).join('<br>');
+        const varias   = correctas.length > 1;
+
+        const badgeClass = isSkipped ? 'skip' : isCorrect ? 'ok' : 'err';
+        const badgeText  = isSkipped ? '—'   : isCorrect ? '✓'  : '✗';
+
+        html += `
+        <div class="corr-item">
+            <div class="ci-header">
+                <div class="ci-badge ${badgeClass}">${badgeText}</div>
+                <div class="ci-q"><strong>Pregunta ${i+1}.</strong> ${q.q}</div>
+            </div>
+            <div class="ci-answers">
+                ${!isSkipped ? `<div class="given ${isCorrect?'':'wrong'}">
+                    <strong>${varias ? 'Respuestas elegidas:' : 'Respuesta elegida:'}</strong><br>${listar(dadas)}
+                </div>` : `<div class="given wrong"><em>Pregunta no respondida</em></div>`}
+                ${!isCorrect ? `<div class="correct-ans">
+                    <strong>${varias ? 'Respuestas correctas:' : 'Respuesta correcta:'}</strong><br>${listar(correctas)}
+                </div>` : ''}
+            </div>
+            <div class="ci-law"><strong>⚖️ Normativa aplicable:</strong><br>${q.law}</div>
+            ${q.tip ? `<div class="ci-tip">${q.tip}</div>` : ''}
+        </div>`;
+    });
+
+    panel.innerHTML = html;
+    panel.style.display = 'block';
+
+    // Mostrar botones en overlay
+    setButtonsVisible(['print-btn', 'restart-btn', 'home-btn-bottom'], true);
+}
+
+/* ═══════════════════════════════════════════
+   IMPRESIÓN / PDF
+═══════════════════════════════════════════ */
+function printResults() {
+    // Asegurarse de que todo esté corregido y visible
+    if (!evaluated) evaluateExam();
+
+    // El documento ya está montado en el orden de lectura (cabecera de
+    // sección → enunciado → sus preguntas → siguiente enunciado…), así que
+    // para imprimir basta con enseñarlo entero: no hay que recolocar nada.
+    document.querySelectorAll('.question-card').forEach(c => {
+        c.style.display = 'block';
+    });
+    document.querySelectorAll('.feedback').forEach(f => {
+        f.style.display = 'block';
+    });
+    document.querySelectorAll('.block-header').forEach(h => {
+        h.classList.add('visible');
+    });
+    // En papel los enunciados salen completos, aunque en pantalla
+    // estuvieran recortados por el modo foco.
+    document.querySelectorAll('.stmt-panel').forEach(p => {
+        if (p.dataset.render !== 'full') {
+            p.dataset.render = 'full';
+            p.innerHTML = renderStatementHTML(getStatement(p.dataset.stmt));
+        }
+        p.classList.add('visible');
+    });
+
+    // Ocultar el overlay temporalmente (sin tocar el display inline,
+    // para no romper el cierre posterior con classList en closeOverlay)
+    const overlayWasShown = document.getElementById('overlay').classList.contains('show');
+    document.getElementById('overlay').classList.remove('show');
+
+    window.print();
+
+    // Restaurar tras impresión: jump() vuelve a dejar a la vista solo lo
+    // que corresponde al modo en que se estaba trabajando.
+    setTimeout(() => {
+        document.querySelectorAll('.question-card').forEach(c => { c.style.display = ''; });
+        if (questions.length) {
+            jump(current, true);
+        } else {
+            document.querySelectorAll('.block-header, .stmt-panel')
+                    .forEach(el => el.classList.remove('visible'));
+        }
+        if (evaluated && overlayWasShown) {
+            document.getElementById('overlay').classList.add('show');
+        }
+    }, 1000);
+}
+
+/* ═══════════════════════════════════════════
+   ENVÍO A GOOGLE FORMS — UTILIDAD COMÚN
+   ───────────────────────────────────────────
+   Manda un juego de casillas a un formulario de Google mediante un
+   formulario oculto dirigido a un iframe oculto: así no se navega
+   fuera de la página ni hay problemas de CORS.
+═══════════════════════════════════════════ */
+function postAFormulario(url, campos, nombreMarco) {
+    const marco = nombreMarco || 'hidden-send-frame';
+
+    let iframe = document.getElementById(marco);
+    if (!iframe) {
+        iframe = document.createElement('iframe');
+        iframe.id = marco;
+        iframe.name = marco;
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+    }
+
+    const form = document.createElement('form');
+    form.action = url;
+    form.method = 'POST';
+    form.target = marco;
+    form.style.display = 'none';
+
+    Object.keys(campos).forEach(entryName => {
+        const input = document.createElement('input');
+        input.type  = 'hidden';
+        input.name  = entryName;
+        input.value = campos[entryName];
+        form.appendChild(input);
+    });
+
+    document.body.appendChild(form);
+    form.submit();
+    form.remove();
+}
+
+/* ═══════════════════════════════════════════
+   ENVÍO AUTOMÁTICO DEL DETALLE PREGUNTA A PREGUNTA
+   ───────────────────────────────────────────
+   Se dispara solo al corregir (botón «Corregir» o tiempo agotado). No
+   pide nada al alumno, no muestra avisos y no sustituye al envío
+   manual del botón 📤: son dos formularios distintos y complementarios.
+
+   Qué manda:
+     · Nombre supuesto  → el título del supuesto
+     · Tiempo           → fecha y hora del envío (dd/mm/aaaa hh:mm)
+     · Nº de aciertos   → recuento en bruto, sin baremo
+     · Nº de fallos     → recuento en bruto, sin baremo
+     · Pregunta 1 … 80  → "Correcta: <lo que marcó>" si acertó,
+                          "Incorrecta: <lo que marcó>" si falló,
+                          "En blanco" si no la contestó.
+   En las preguntas de respuesta múltiple se mandan todas las opciones
+   que marcó, separadas por " | ", y cuentan como acierto solo si marcó
+   exactamente las correctas (el mismo criterio que la corrección).
+
+   Cada pregunta va a la casilla de su número ORIGINAL en el supuesto
+   (q.__ord + 1), tal y como se planteó en el editor, aunque el intento
+   la haya barajado o cambiado de sitio. Las preguntas que no hayan
+   salido en el intento no ocupan casilla: se quedan vacías.
+═══════════════════════════════════════════ */
+
+// Texto de una opción sin la letra "A) " que a veces se escribe delante,
+// igual que se presenta en pantalla.
+function textoOpcionLimpio(txt) {
+    return String(txt === undefined || txt === null ? '' : txt)
+                .replace(/^[A-G]\)\s*/, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+}
+
+// Fecha y hora del envío en formato dd/mm/aaaa hh:mm
+function fechaHoraEnvio() {
+    const d  = new Date();
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mi = String(d.getMinutes()).padStart(2, '0');
+    return `${dd}/${mm}/${d.getFullYear()} ${hh}:${mi}`;
+}
+
+// Qué contestó el alumno en una pregunta, con el texto tal y como está
+// escrito en el supuesto (no la letra, que cambia en cada intento).
+function loQueContesto(qIdx, q) {
+    const card = document.getElementById(`qcard-${qIdx}`);
+    // Posición en pantalla → posición en la lista de opciones del editor
+    const barajado = String(card ? card.dataset.opciones || '' : '')
+                        .split(',').filter(s => s !== '').map(Number);
+    return contestadasDe(qIdx)
+                .map(pos => barajado.length ? barajado[pos] : pos)
+                // En el orden en que están escritas en el supuesto, no en el
+                // barajado de este intento: así las mismas respuestas se
+                // mandan siempre igual y se pueden comparar entre alumnos.
+                .sort((x, y) => x - y)
+                .map(idx => textoOpcionLimpio((q.a || [])[idx]))
+                .filter(t => t !== '')
+                .join(' | ');
+}
+
+function enviarDetalleCorreccion() {
+    if (detalleEnviado) return;                 // una sola vez por intento
+    if (!ENVIO_DETALLE || !ENVIO_DETALLE.url) return;
+
+    const campos = {};
+    const anota = (casilla, valor) => {
+        const nombre = String(casilla || '').trim();
+        if (nombre) campos[nombre] = valor;
+    };
+
+    const res = calcResultados();
+
+    anota(ENVIO_DETALLE.nombre,   (EXAM_CONFIG.titulo || document.title || '').trim());
+    anota(ENVIO_DETALLE.tiempo,   fechaHoraEnvio());
+    anota(ENVIO_DETALLE.aciertos, res.aciertos);
+    anota(ENVIO_DETALLE.fallos,   res.fallos);
+
+    const casillasPregunta = ENVIO_DETALLE.preguntas || [];
+
+    questions.forEach((q, i) => {
+        // Casilla fija según el orden original del supuesto
+        const orden   = (typeof q.__ord === 'number') ? q.__ord : i;
+        const casilla = casillasPregunta[orden];
+        if (!casilla) return;                   // fuera de las 80 casillas
+
+        let valor;
+        if (sinResponder(i)) {
+            valor = 'En blanco';
+        } else {
+            valor = (esAcierto(i) ? 'Correcta: ' : 'Incorrecta: ') + loQueContesto(i, q);
+        }
+        anota(casilla, valor);
+    });
+
+    detalleEnviado = true;
+    try {
+        postAFormulario(ENVIO_DETALLE.url, campos, 'hidden-detalle-frame');
+    } catch (err) {
+        detalleEnviado = false;                 // que pueda reintentarlo al repetir
+    }
+}
+
+/* ═══════════════════════════════════════════
+   ENVÍO DE RESULTADOS A GOOGLE FORMS
+═══════════════════════════════════════════ */
+function enviarResultados() {
+    if (!evaluated) return;
+
+    if (!ENVIO.url) {
+        alert('Este supuesto no tiene configurada la dirección de envío de resultados.');
+        return;
+    }
+
+    const sendBtn = document.getElementById('send-btn');
+
+    // Identificador del examen: título de la página
+    const examId = document.title.trim();
+
+    // Nombre del usuario
+    let userName = prompt('Introduce tu nombre para el envío de resultados:', '');
+    if (userName === null) userName = '';
+    userName = userName.trim();
+    if (!userName) userName = 'Anónimo';
+
+    // Estadísticas (globales y por bloque)
+    const res      = calcResultados();
+    const total    = res.total;
+    const correct  = res.aciertos;
+    const wrong    = res.fallos;
+    const blank    = res.blancos;
+
+    // Tiempos (formato mm:ss)
+    const tiempoAsignado = formatTime(examDurationSeconds);
+    const elapsedSeconds = Math.max(0, Math.min(examDurationSeconds, examDurationSeconds - timeLeft));
+    const tiempoEmpleado = formatTime(elapsedSeconds);
+
+    const FORM_ACTION_URL = ENVIO.url;
+
+    // Cada dato va a la casilla que se le haya asignado en el editor.
+    // Las casillas que se dejen vacías simplemente no se envían.
+    const fieldMap = {};
+    const anota = (casilla, valor) => {
+        const nombre = String(casilla || '').trim();
+        if (nombre) fieldMap[nombre] = valor;
+    };
+
+    anota(ENVIO.examen,         examId);
+    anota(ENVIO.usuario,        userName);
+    anota(ENVIO.tiempoAsignado, tiempoAsignado);
+    anota(ENVIO.tiempoEmpleado, tiempoEmpleado);
+
+    // Un juego de casillas por cada bloque que haya salido en el intento
+    res.bloques.forEach(r => {
+        const casillas = r.bloque.envio || {};
+        anota(casillas.preguntas, r.total);
+        anota(casillas.aciertos,  r.aciertos);
+        anota(casillas.fallos,    r.fallos);
+        anota(casillas.blancos,   r.blancos);
+        anota(casillas.puntos,    nUm(r.puntos));
+    });
+
+    if (sendBtn) {
+        sendBtn.disabled = true;
+        sendBtn.textContent = '✔ Resultados enviados';
+    }
+
+    // Formulario oculto dirigido a un iframe oculto: no se navega fuera de
+    // la página y se evitan los problemas de CORS.
+    postAFormulario(FORM_ACTION_URL, fieldMap, 'hidden-send-frame');
+
+    const desglose = res.bloques.length < 2 ? '' :
+        '\n\nPor bloques:' + res.bloques.map(r =>
+            '\n · ' + r.bloque.titulo + ': ' + r.aciertos + ' ✓ · ' + r.fallos +
+            ' ✗ · ' + r.blancos + ' — · ' + nUm(r.puntos) + ' / ' + nUm(r.max) + ' puntos').join('');
+
+    alert('✅ Resultados enviados correctamente.\n\nExamen: ' + examId +
+          '\nUsuario: ' + userName +
+          '\nAciertos: ' + correct + ' / ' + total +
+          '\nFallos: ' + wrong +
+          '\nEn blanco: ' + blank +
+          '\nPuntuación: ' + nUm(res.puntos) + ' / ' + nUm(res.max) +
+          '\nTiempo empleado: ' + tiempoEmpleado + ' de ' + tiempoAsignado +
+          desglose);
+}
+
+/* ═══════════════════════════════════════════
+   REINICIAR (elección de aleatoriedad)
+═══════════════════════════════════════════ */
+/* Cada una de las dos formas de repetir se puede quitar por separado
+   desde el editor. Si solo queda una, no tiene sentido preguntar: se
+   arranca directamente con ella. Si no queda ninguna, el botón 🔀 ni
+   siquiera se muestra (ver botonPermitido). */
+function modosAleatoriosDisponibles() {
+    return [['answers', 'opcionRepetirRespuestas'],
+            ['order',   'opcionRepetirOrden']]
+           .filter(([, clave]) => interfazVisible(clave))
+           .map(([modo]) => modo);
+}
+
+function openRandomModal() {
+    const modos = modosAleatoriosDisponibles();
+    if (modos.length === 1) { confirmRestart(modos[0]); return; }
+    if (!modos.length) return;
+    document.getElementById('random-modal').classList.add('show');
+}
+
+function closeRandomModal() {
+    document.getElementById('random-modal').classList.remove('show');
+}
+
+// mode: 'answers' → mismas preguntas y mismo orden, solo cambian las
+//                    opciones de respuesta.
+//       'order'   → las mismas preguntas, todas, en otro orden (respetando
+//                    siempre el vínculo pregunta-enunciado y renumerando
+//                    1..N de forma correlativa y visible).
+function confirmRestart(mode) {
+    closeRandomModal();
+    if (timerInt) clearInterval(timerInt);
+    // Limpiar banner inline
+    const old = document.getElementById('inline-score-banner');
+    if (old) old.remove();
+    // Ocultar overlay
+    document.getElementById('overlay').classList.remove('show');
+    // Reinicializar el intento. Para 'answers' se reutiliza el conjunto de
+    // preguntas ya cargado (questions); para 'order' se recalcula desde cero
+    // a partir de QUESTIONS_BANK dentro de buildQuestionOrder().
+    init(mode, questions);
+}
+
+/* ═══════════════════════════════════════════
+   VOLVER AL MENÚ PRINCIPAL
+═══════════════════════════════════════════ */
+function goHome() {
+    if (!evaluated) {
+        const leave = confirm(
+            'Vas a salir del expediente dejando el test a medias: se perderá el progreso del intento actual.\n\n¿Seguro que quieres volver al menú principal?'
+        );
+        if (!leave) return;
+    }
+    window.location.href = (ajusteInterfaz('botonCasa').url || '../index.html');
+}
+
+/* ═══════════════════════════════════════════
+   ARRANQUE INICIAL
+═══════════════════════════════════════════ */
+// Inicializar contexto de audio al primer clic del usuario
+document.addEventListener('click', () => {
+    try { getAudioCtx(); } catch(e) {}
+}, { once: true });
+
+applyExamConfig();
+init('default');
+</script>
+
+</body>
+</html>
