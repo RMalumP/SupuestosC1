@@ -311,6 +311,23 @@ ENTRADAS_PREGUNTA_DETALLE = [
     "entry.1429046308", "entry.1510972535", "entry.281414865", "entry.673373891", "entry.2071377334" # 96-100
 ]
 
+def normalizar_casillas_detalle(casillas):
+    """Deja la lista de casillas del detalle con TANTAS como tenga el
+    formulario (ver ENTRADAS_PREGUNTA_DETALLE).
+
+    Antes se cortaba en 80 a secas: un examen con más preguntas perdía de
+    la 81 en adelante, y encima el recorte se volvía a aplicar cada vez
+    que se guardaba, así que un archivo corto se quedaba corto para
+    siempre. Ahora lo que sobra se corta y lo que falta se completa con
+    las casillas del proyecto, respetando las que ya viniesen puestas.
+    """
+    limpias = [str(c or "").strip() for c in (casillas or [])]
+    limpias = limpias[:len(ENTRADAS_PREGUNTA_DETALLE)]
+    if len(limpias) < len(ENTRADAS_PREGUNTA_DETALLE):
+        limpias += ENTRADAS_PREGUNTA_DETALLE[len(limpias):]
+    return limpias
+
+
 ENVIO_DETALLE_DEFECTO = {
     "url": ("https://docs.google.com/forms/d/e/"
             "1FAIpQLSfICCUGWcmcJ1zLFtphE1pictGOyfY9epNbSrHtEFfGvvK8HQ/formResponse"),
@@ -528,7 +545,7 @@ def normalizar(datos):
                for clave in ("url", "nombre", "tiempo", "aciertos", "fallos")}
     casillas = detalle_bruto.get("preguntas")
     if isinstance(casillas, list) and casillas:
-        detalle["preguntas"] = [str(c or "").strip() for c in casillas][:80]
+        detalle["preguntas"] = normalizar_casillas_detalle(casillas)
     else:
         detalle["preguntas"] = list(ENTRADAS_PREGUNTA_DETALLE)
 
@@ -3320,7 +3337,7 @@ class EditorApp(tk.Tk):
             ttk.Label(rejilla, text="envioDetalle.%s   ·   %s" % (clave, que),
                       style="Tec.TLabel").grid(row=fila, column=2, sticky="w")
 
-        ttk.Label(caja, text="Casillas de las 80 preguntas", style="Campo.TLabel"
+        ttk.Label(caja, text="Casillas de las %d preguntas" % len(ENTRADAS_PREGUNTA_DETALLE), style="Campo.TLabel"
                   ).pack(anchor="w", padx=10, pady=(14, 0))
         ttk.Label(caja, style="Tec.TLabel",
                   text="envioDetalle.preguntas   ·   una casilla por línea, en orden: "
@@ -3493,7 +3510,8 @@ class EditorApp(tk.Tk):
         casillas = [l.strip() for l in
                     self.txt_detalle_preguntas.get("1.0", "end").splitlines()]
         casillas = [c for c in casillas if c]
-        detalle["preguntas"] = casillas[:80] or list(ENTRADAS_PREGUNTA_DETALLE)
+        detalle["preguntas"] = (normalizar_casillas_detalle(casillas) if casillas
+                                else list(ENTRADAS_PREGUNTA_DETALLE))
         self.datos["envioDetalle"] = detalle
 
     # ---------- casillas del segundo formulario ----------
