@@ -9,7 +9,7 @@
         con la suya y, si el archivo se quedó atrás, ofrece ponerlo al día
         al guardar. Subir este número al cambiar el motor.
     -->
-    <meta name="motor-plantilla" content="4">
+    <meta name="motor-plantilla" content="2">
     <title>[TÍTULO DE LA EVALUACIÓN]</title>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,600;1,8..60,300&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 
@@ -923,12 +923,12 @@
 <script type="application/json" id="datos-supuesto">
 {
   "config": {
-    "titulo": "SUPUESTO 0. HAY QUE ESPABILAR QUE EL VERANO SE OS VA A COMER",
-    "referencia": "REF: S000 · TEMAS 1 AL 13",
-    "ambito": "LEGISLACIÓN VIGENTE A 28 DE AGOSTO DE 2026",
+    "titulo": " Los otros Alcántara. ",
+    "referencia": "S001",
+    "ambito": "Legislación a 5 de septiembre de 2026· Variados",
     "minutos": 30,
-    "aptoPorcentaje": 60.0,
-    "respuestas": 0,
+    "aptoPorcentaje": 50.0,
+    "respuestas": 4,
     "logo": "https://academia.ecap.es/pluginfile.php?file=%2F1%2Fcore_admin%2Flogo%2F0x200%2F1782109950%2FACADEMIA%20VIRTUAL%20%281%29.png",
     "logoAlt": "ECAP - Escuela Ciudadana de Administración Pública",
     "organismo": "Comunidad ECAP ASS C1"
@@ -961,14 +961,14 @@
     "botonPlegar": {
       "visible": false,
       "titulo": "Plegar: ver solo el bloque actual",
-      "plegado": false
+      "plegado": true
     },
     "opcionTiempo": {
       "visible": true,
       "texto": "Duración del examen (mm:ss)"
     },
     "opcionCorregir": {
-      "visible": true,
+      "visible": false,
       "texto": "Corregir pregunta a pregunta",
       "activa": false
     },
@@ -981,7 +981,7 @@
       "texto": "🔁 Mismas preguntas y mismo orden"
     },
     "opcionRepetirOrden": {
-      "visible": true,
+      "visible": false,
       "texto": "🎲 Mismas preguntas en otro orden"
     },
     "opcionFoco": {
@@ -1120,27 +1120,7 @@
       "entry.2050801750",
       "entry.82935037",
       "entry.48912348",
-      "entry.1553896761",
-      "entry.1016698177",
-      "entry.1584638604",
-      "entry.1327257853",
-      "entry.1726180779",
-      "entry.574614711",
-      "entry.2070952397",
-      "entry.1752221665",
-      "entry.203467465",
-      "entry.470537063",
-      "entry.1753285763",
-      "entry.1200176677",
-      "entry.1600805991",
-      "entry.1986998899",
-      "entry.1552574829",
-      "entry.290117084",
-      "entry.1429046308",
-      "entry.1510972535",
-      "entry.281414865",
-      "entry.673373891",
-      "entry.2071377334"
+      "entry.1553896761"
     ]
   },
   "bloques": [
@@ -1169,15 +1149,25 @@
     {
       "id": "E1",
       "number": "1",
-      "title": "Enunciado 1",
-      "ref": "S000",
-      "ambito": "Temas 1 al 13",
+      "title": "Enunciado 1. El despido colectivo de Miguel",
+      "ref": "S001",
+      "ambito": "Temas 2 al 11",
       "factBlocks": [
         {
           "id": "H1",
-          "title": "Hecho desencadenante",
+          "title": "Introducción",
           "paragraphs": [
-            "Pepe es un agricultor que ha estado trabajando junto a su familia en las tierras que heredaron de su padre desde que cumplió los 18 años. Ahora que se le acerca la deseada y bendita jubilación, se pregunta qué será de su pensión y de su futuro. Pepe sabe que su pensión, que se ha ganado cotizando, la tiene asegurada por derecho constitucional. Pero se plantea algunas dudas sobre su futuro y el de su familia."
+            "Los Alcántara han sido una familia que nos ha acompañado durante décadas contándonos la historia de España, hasta convertirse ellos mismos en historia de España. Sin embargo, hay otra parte de la familia Alcántara a la que no se le ha dado el cariño y el análisis de Seguridad Social que se merece."
+          ],
+          "red": false,
+          "hidden": false
+        },
+        {
+          "id": "E2H1",
+          "title": "Hecho desencadenante único",
+          "paragraphs": [
+            "Miguel Alcántara Barbadillo, trabajador incansable desde la juventud, ha desarrollado su vida laboral trabajando en el sector automovilístico (en la «Citroën»). Por causas técnicas, organizativas y de producción de los tiempos modernos, se produce un despido colectivo que afecta a don Miguel.",
+            "La empresa intenta pagar una indemnización del mínimo establecido en el ET para el despido objetivo: 20 días por año trabajado, con un límite de 12 mensualidades. El convenio colectivo establece una indemnización por despido colectivo de 30 días por año trabajado, con un límite de 12 mensualidades. El comité de empresa y las presiones sindicales llevan a que finalmente le paguen 40 días por año trabajado, con un límite de 24 mensualidades."
           ],
           "red": false,
           "hidden": false
@@ -1188,15 +1178,15 @@
     {
       "id": "E2",
       "number": "2",
-      "title": "Enunciado 2",
-      "ref": "S000",
-      "ambito": "Temas 1 al 13",
+      "title": "Enunciado 2. Nueva familia y parto múltiple",
+      "ref": "S001",
+      "ambito": "Temas 2 al 11",
       "factBlocks": [
         {
-          "id": "H1",
-          "title": "Hecho desencadenante",
+          "id": "E3H1",
+          "title": "Hecho desencadenante único",
           "paragraphs": [
-            "Como eres nuevo en la Seguridad Social, tus compañeros te ponen a prueba sobre tus conocimientos teóricos."
+            "Miguel, tras ser despedido, deja a su mujer, se va a una barriada de Madrid y allí se casa con la sobrina de la mujer de su hermano. Primero tienen a Diana y, unos años después, en plenas fiestas del partido de Miguel, en una autocaravana, nacen Victoria y Dolores."
           ],
           "red": false,
           "hidden": false
@@ -1207,15 +1197,34 @@
     {
       "id": "E3",
       "number": "3",
-      "title": "Enunciado 3",
-      "ref": "S000",
-      "ambito": "Temas 1 al 13",
+      "title": "Enunciado 3. El Bistrot París-Nalón",
+      "ref": "S001",
+      "ambito": "Temas 2 al 11",
       "factBlocks": [
         {
-          "id": "H1",
-          "title": "Hecho desencadenante",
+          "id": "E4H1",
+          "title": "Hecho desencadenante 1",
           "paragraphs": [
-            "María de la Cruz de todos los Santos ha cobrado estando de baja fraudulenta por IT. Tras ser pillada infraganti, es despedida sin paro y además la Seguridad Social le solicita la devolución a través de una reclamación de deuda de los 6500 euros que percibió durante la baja. María de la Cruz solicita un aplazamiento, que es concedido por la tesorería de la Seguridad Social, a devolver cada mes el importe de 100€."
+            "El matrimonio de doña Paquita y don Miguel consigue la propiedad de un local, un bar restaurante: el Bistrot París-Nalón (barrio de San Genaro, Villa de Madrid, Comunidad de Madrid). Miguel es empresario titular autónomo; Paquita, familiar colaboradora.",
+            "Por necesidades del negocio, Diana (la hija de Miguel y Paquita) entra a trabajar como camarera y queda encuadrada en el Régimen Especial de Trabajadores por Cuenta Propia o Autónomos como familiar colaboradora. Diana cuenta con 30 años (para que cuadre el supuesto) y vive con sus padres."
+          ],
+          "red": false,
+          "hidden": false
+        },
+        {
+          "id": "E4H2",
+          "title": "Hecho desencadenante 2",
+          "paragraphs": [
+            "Las otras hijas del matrimonio, Victoria y Dolores, ambas de 23 años, comienzan a trabajar en el negocio familiar. Victoria vive con sus padres; Dolores lleva independizada 3 años."
+          ],
+          "red": false,
+          "hidden": false
+        },
+        {
+          "id": "E4H3",
+          "title": "Hecho desencadenante 3",
+          "paragraphs": [
+            "Debido a varias causas, el matrimonio se rompe y acaba en divorcio. El negocio, el restaurante Bistrot París-Nalón, se constituye como una sociedad limitada, en la que Paquita y Miguel son los administradores y gerentes de la sociedad. Las participaciones quedan así: Miguel, 20 %; Paquita, 20 %; Diana, 35 %, y Victoria, 25 %. Dolores no tiene participaciones. Tras el divorcio, Miguel vive con Diana y Paquita vive con Victoria."
           ],
           "red": false,
           "hidden": false
@@ -1226,51 +1235,24 @@
     {
       "id": "E4",
       "number": "4",
-      "title": "Enunciado 4",
-      "ref": "S000",
-      "ambito": "Temas 1 al 13",
+      "title": "Enunciado 4. Pepe, el camarero",
+      "ref": "S001",
+      "ambito": "Temas 2 al 11",
       "factBlocks": [
         {
-          "id": "H1",
+          "id": "E5H1",
           "title": "Hecho desencadenante 1",
           "paragraphs": [
-            "Horse Luis era un empresario recién jubilado. Se jubiló hace un par de meses, en el momento que cumplió la edad ordinaria de jubilación. Cobra la pensión mínima cobrando complemento a mínimos. Dejó la empresa que dirigía él en manos de su mujer. Horse Luis se entera de que han modificado la jubilación flexible recientemente. Como se aburre mucho en su casa y su pensión es muy pequeña quiere volver a trabajar, aunque le toque empaquetar cajas. El 1 de septiembre de 2026, acude un CAISS a informarse sobre sus posibilidades de trabajar, siempre compaginándola con la jubilación."
+            "Como este reparto del capital es un lío, finalmente las hijas salen del negocio familiar y las participaciones quedan a partes iguales entre Paquita y Miguel. Paquita (exmujer de Miguel) está en una relación seria y convive con su empleado Pepe desde 2026. Pepe es camarero en el bar familiar."
           ],
           "red": false,
           "hidden": false
         },
         {
-          "id": "H2",
+          "id": "E5H2",
           "title": "Hecho desencadenante 2",
           "paragraphs": [
-            "Meses después María Muffins, mujer de Horse Luis, se queda viuda. Solicita la pensión de viudedad. Tiene un hijo de su difunto marido póstumo el 1 de mayo de 2027."
-          ],
-          "red": false,
-          "hidden": false
-        },
-        {
-          "id": "H3",
-          "title": "Hecho desencadenante 3",
-          "paragraphs": [
-            "La hija mayor del matrimonio, María Antonieta de 27 años. Vive de forma independiente con su pareja, Luis Augusto. Tienen dos hijos menores de edad, de 2 y 10 años. Uno de ellos con discapacidad del 33%. No disponen de propiedades ni de ingresos actualmente. El año pasado tuvieron unos ingresos ligeramente superiores al límite del IMV. Pero tras quedarse ambos en el paro, fueron aguantando con la prestación por desempleo al superar entre los dos la cuantía del IMV. En el mes de julio se les acaban a ambos las prestaciones por desempleo. En agosto solicita la titular de la unidad familiar el IMV, sin la firma de su marido."
-          ],
-          "red": false,
-          "hidden": false
-        },
-        {
-          "id": "H4",
-          "title": "Hecho desencadenante 4",
-          "paragraphs": [
-            "El hijo menor del matrimonio, Alfonso Francisco de 25 años y su mujer María de las Mercedes de 27. Ambos trabajan por cuenta ajena a fecha de 15 de abril de 2027, el matrimonio da a luz a una pareja de gemelos, los dos con discapacidad del 33%. Ambos no cuentan con cotizaciones previas al 1 de enero de 2027."
-          ],
-          "red": false,
-          "hidden": false
-        },
-        {
-          "id": "H5",
-          "title": "Hecho desencadenante 5",
-          "paragraphs": [
-            "Eugenio, trabaja como empleado de hogar en la casa familiar de María Muffins desde 2022. Las contingencias están concertadas con el INSS. El 1 de abril de 2026, le dan la baja por problema de espalda. La baja dura mes y medio."
+            "Paquita no tiene dado de alta a Pepe, el cual sufre una apendicitis que tiene que ser tratada con urgencia."
           ],
           "red": false,
           "hidden": false
@@ -1281,15 +1263,89 @@
     {
       "id": "E5",
       "number": "5",
-      "title": "Enunciado 5",
-      "ref": "S000",
-      "ambito": "Temas 1 al 13",
+      "title": "Enunciado 5. Reconciliación, muerte y herencia",
+      "ref": "S001",
+      "ambito": "Temas 2 al 11",
       "factBlocks": [
         {
-          "id": "H1",
-          "title": "Hecho desencadenante",
+          "id": "E6H1",
+          "title": "Hecho desencadenante 1",
           "paragraphs": [
-            "Como el tema 13 es difícil hacer una pregunta planteando un supuesto, piensa que trabajas en la Seguridad Social y que esta pregunta de teoría te sale en tu vida."
+            "Finalmente, Paquita y Miguel se reconcilian y, tras un periodo de convivencia de un par de meses, vuelven a casarse. Un mes después, en abril de 2027, Miguel sufre un infarto de corazón que le provoca la muerte. Miguel tenía una cardiopatía diagnosticada desde hacía más de un año. La muerte se produce por contingencias comunes."
+          ],
+          "red": false,
+          "hidden": false
+        },
+        {
+          "id": "E6H2",
+          "title": "Hecho desencadenante 2",
+          "paragraphs": [
+            "En el momento de la muerte de su padre, Diana cuenta con 31 años de edad. Dolores y Victoria cuentan con 24 años de edad; nacieron en junio, durante las fiestas del PCE. Dolores trabaja a media jornada por el SMI. Victoria está en primer curso de Ciencias Políticas en la Carlos III, aunque no sabe si seguirá en el siguiente curso, que comienza en septiembre."
+          ],
+          "red": false,
+          "hidden": false
+        },
+        {
+          "id": "E6H3",
+          "title": "Hecho desencadenante 3",
+          "paragraphs": [
+            "Las hijas de Miguel reciben la herencia de su padre. Entre otras cosas, reciben una deuda con la Seguridad Social. Toni (su primo, que estudió Derecho) les recomienda que acepten la herencia a beneficio de inventario, lo cual hacen."
+          ],
+          "red": false,
+          "hidden": false
+        }
+      ],
+      "timeline": []
+    },
+    {
+      "id": "E6",
+      "number": "6",
+      "title": "Enunciado 6. Françoise, personal de vuelo",
+      "ref": "S001",
+      "ambito": "Temas 2 al 11",
+      "factBlocks": [
+        {
+          "id": "E7H1",
+          "title": "Hecho desencadenante único",
+          "paragraphs": [
+            "La hija mayor de Miguel con su primera mujer (Marie Chantal), Françoise Alcántara Chantal, es azafata de vuelo. Hace las rutas Madrid-París y Madrid-Barcelona."
+          ],
+          "red": false,
+          "hidden": false
+        }
+      ],
+      "timeline": []
+    },
+    {
+      "id": "E7",
+      "number": "7",
+      "title": "Enunciado 7. Lorenzo, el campo y Andrés",
+      "ref": "S001",
+      "ambito": "Temas 2 al 11",
+      "factBlocks": [
+        {
+          "id": "E8H1",
+          "title": "Hecho desencadenante 1",
+          "paragraphs": [
+            "Por otro lado, la familia Alcántara tiene a Lorenzo, primo de Miguel, que vive en el pueblo de Sagrillas, provincia de Albacete. Obtiene todos sus ingresos del campo, pero sus tierras son pobres y lleva unos años de malas cosechas. Debido a esta situación económica, trabaja simultáneamente para don Mauro (terrateniente local). Todas las actividades que realiza en ambos trabajos son actividades agrarias. Este año y el pasado obtiene el 20 % de sus ingresos de sus propias tierras y el resto, del trabajo para don Mauro."
+          ],
+          "red": false,
+          "hidden": false
+        },
+        {
+          "id": "E8H2",
+          "title": "Hecho desencadenante 2",
+          "paragraphs": [
+            "Lorenzo ya cuenta con una edad en la que el campo se hace duro. El 1 de julio de 2026 vende sus tierras y deja el trabajo con don Mauro. Como no quiere perder importe de su jubilación y aún no tiene edad de jubilarse, suscribe un convenio especial con la Tesorería General de la Seguridad Social. El 28 de septiembre presenta dicho convenio ante la oficina correspondiente."
+          ],
+          "red": false,
+          "hidden": false
+        },
+        {
+          "id": "E8H3",
+          "title": "Hecho desencadenante 3",
+          "paragraphs": [
+            "El hijo de Lorenzo, Andrés, es guardia civil; entró en el cuerpo en 2015. En 2027 muere a causa de un atentado terrorista."
           ],
           "red": false,
           "hidden": false
@@ -1303,13 +1359,13 @@
       "bloqueId": "B1",
       "statementId": "E1",
       "factIds": [],
-      "tag": "Estructura del sistema · Art. 41 CE",
-      "q": "¿Es la pensión de jubilación de PEPE un derecho constitucional del Art 41, dentro del nivel básico de Protección pública?",
+      "tag": "Cotización · Indemnización por despido colectivo",
+      "q": "Con la legislación española a septiembre de 2026, ¿qué parte de la indemnización se computará en la base de cotización?",
       "a": [
-        "No, la pensión de jubilación contributiva, no se considera dentro del nivel básico de protección pública.",
-        "Sí, la pensión de jubilación contributiva se caracteriza por ser universal y para todos los ciudadanos.",
-        "La pensión de jubilación del Régimen especial agrario es de nivel complementario.",
-        "Ninguna opción es correcta"
+        "La parte de la indemnización percibida que supere el límite del despido improcedente (art. 56 ET), de 33 días por año trabajado con un límite de 24 mensualidades.",
+        "La parte de la indemnización percibida que supere el límite del despido objetivo (art. 53 ET), de 20 días por año trabajado, con un límite de 12 mensualidades.",
+        "La parte de la indemnización percibida que supere el límite del convenio colectivo, de 30 días por año trabajado, con un límite de 12 mensualidades.",
+        "La parte de la indemnización percibida que supere el límite legal establecido en la Ley del IRPF (art. 7.e), no tributando las cantidades superiores a 180.000 € en ningún caso."
       ],
       "c": 0,
       "correctas": [
@@ -1317,83 +1373,22 @@
       ],
       "multiple": false,
       "respuestas": 0,
-      "law": "El derecho constitucional al mantenimiento de un sistema público de la Seguridad Social, la pensión de jubilación en su modalidad contributiva, está dentro del Nivel contributivo, dentro de los ciudadanos que ejercen una actividad profesional y hayan cotizado, no es universal per se.",
-      "tip": ""
-    },
-    {
-      "bloqueId": "B1",
-      "statementId": "E1",
-      "factIds": [],
-      "tag": "Campo de aplicación",
-      "q": "Pepe tiene un hijo pequeño, Pepe JR, con edad de 16 años cumplidos. Su mujer y otros hijos han trabajado alguna vez con él y quiere que su hijo se incorpore como él al negocio familiar. ¿Puede Pepe JR incorporarse al Sistema Especial de los trabajadores Agrarios por cuenta Propia?",
-      "a": [
-        "No, ya que no cumple los requisitos para su incorporación en este Sistema Especial",
-        "No, deberá incorporarse obligatoriamente en el RETA como familiar colaborador.",
-        "En este caso, a elección del titular de la explotación, puede elegir entre el Régimen General y el Régimen Especial de Trabajadores por cuenta Ajena",
-        "Todas las opciones son Correctas."
-      ],
-      "c": 0,
-      "correctas": [
-        0
-      ],
-      "multiple": false,
-      "respuestas": 0,
-      "law": "Los menores de 18 años no pueden inscribirse al RETA. El Art 305.1 LGSS, ya exige para la inclusión en este Régimen Especial la necesidad de tener al menos 18 años de edad. Igualmente, en el Art 324.3 LGSS sobre las reglas de inclusión en el SETA: “…siempre que sean mayores de dieciocho años”. Por lo tanto, al tener en cuenta las soluciones, la única correcta es la de que no reúne los requisitos de inclusión en el RETA.",
-      "tip": ""
-    },
-    {
-      "bloqueId": "B1",
-      "statementId": "E1",
-      "factIds": [],
-      "tag": "Afiliación · Art. 28 RIA",
-      "q": "Un trabajador de Pepe, Julián, se cambia en el registro civil su nombre y género, pasando a llamarse Julieta. ¿Cuál es el plazo para la variación de datos de Afiliación?",
-      "a": [
-        "El plazo para la variación de datos de afiliación es de 3 días naturales",
-        "El plazo para la variación de datos de afiliación es de 6 días naturales",
-        "El plazo para la variación de datos de afiliación es de 3 días hábiles",
-        "El plazo para la variación de datos de afiliación es de 6 días hábiles"
-      ],
-      "c": 0,
-      "correctas": [
-        0
-      ],
-      "multiple": false,
-      "respuestas": 0,
-      "law": "El art 28.1 del RIA, no ha sido modificado por el RD 643/2026, manteniéndose en 3 días naturales. El artículo modificado es el 32.3.1º RIA, que trata sobre la variación de datos de los trabajadores sobre su jornada, cambio de grupo de cotización, etc.",
-      "tip": "No confundir cuando te preguntas sobre variación de datos de afiliación (Art 28 RIA), con la variación de datos del Art 32 RIA."
-    },
-    {
-      "bloqueId": "B1",
-      "statementId": "E1",
-      "factIds": [],
-      "tag": "Cotización RETA · Orden de Cotización 2026, Art. 19",
-      "q": "Pepe y las matemáticas no se llevan bien, si el mes de junio de 2026 tuvo unos ingresos de 2000 euros de rendimientos netos. Por lo que acude a un CAISS para asesorarse. ¿Como funcionario de la Seguridad Social, qué le indicas a PEPE?",
-      "a": [
-        "Pepe cotizará por los primeros 1.141,18 euros al 18,75% y por el resto al 26.5%, pudiendo voluntariamente mejorarse la IT.",
-        "Pepe cotizará por los primeros 2.000 euros por el resto al 28.3%, pudiendo voluntariamente mejorarse la IT.",
-        "Pepe cotizará según su tramo de cotización de las tablas de la Orden de cotización para los RETA, pudiendo voluntariamente mejorarse la IT.",
-        "Pepe cotizará por los primeros 1.141,18 euros al 18,75% y por el resto al 28.3%, no pudiendo mejorar voluntariamente la IT."
-      ],
-      "c": 0,
-      "correctas": [
-        0
-      ],
-      "multiple": false,
-      "respuestas": 0,
-      "law": "La Orden de Cotización de 2026, en su Art 19, fija para el Sistema Especial Agrario dentro del RETA: “Respecto de las contingencias de cobertura obligatoria, cuando la persona trabajadora haya optado por una base de cotización de hasta 1.141,18 euros mensuales, el tipo de cotización aplicable será el 18,75 por ciento. Si la persona trabajadora cotizará por una base de cotización superior a 1.141,18 euros mensuales, a la cuantía que exceda de esta última le será de aplicación el tipo de cotización del 26,50 por ciento”. Pudiendo mejorar la IT voluntariamente.",
+      "law": "La base de cotización en los despidos colectivos viene regulada en el art. 147.2.c).5.º de la LGSS y, complementariamente, en el art. 23.2.B) del Reglamento General de Cotización (Real Decreto 2064/1995). Establecen que, en el despido colectivo del art. 51 ET por las causas tasadas económicas, técnicas, organizativas o de producción, el límite exento de cotización será el del despido improcedente (33 días por año trabajado, con un máximo de 24 mensualidades). Esto no quiere decir que los convenios colectivos no puedan establecer otras cuantías de indemnización, pero, en términos de cotización, lo establecido en los convenios no se aplica (art. 147.2.c).1.º LGSS). La Ley del IRPF, aunque funciona de forma similar (aplicando al despido colectivo los límites del despido improcedente), no es la norma aplicable: la legislación social no remite en este punto a la regulación del IRPF, pues tiene su propia regulación en la LGSS. Además, el límite de 180.000 € es un límite mínimo, no máximo.",
       "tip": ""
     },
     {
       "bloqueId": "B1",
       "statementId": "E2",
-      "factIds": [],
-      "tag": "Sistema RED · Art. 2 Orden ESS/484/2013",
-      "q": "¿Cuál de los siguientes oficios no está obligado a relacionarse obligatoriamente con el Sistema RED?",
+      "factIds": [
+        "E3H1"
+      ],
+      "tag": "Prestaciones familiares · Parto múltiple",
+      "q": "Si en el momento del nacimiento de sus mellizas ninguno de los dos cuenta con ingresos ni con trabajo, ¿qué cantidad recibirán de la Seguridad Social?",
       "a": [
-        "Un percebeiro del Grupo 3.",
-        "Un empresario respecto a sus trabajadores.",
-        "Los encargados de la afiliación de los trabajadores del carbón.",
-        "Un Autónomo del Grupo 1 del REMAR"
+        "Un pago único de 1.000 euros y 4 SMI.",
+        "4 SMI.",
+        "Un pago único de 2.000 euros y 4 SMI.",
+        "Un pago único de 1.000 euros."
       ],
       "c": 0,
       "correctas": [
@@ -1401,62 +1396,22 @@
       ],
       "multiple": false,
       "respuestas": 0,
-      "law": "El Art 2 de la Orden ESS/484/2013, especifica quién está obligado y quién no a comunicarse con el Sistema RED, del Régimen General, no está obligado los Profesionales taurinos y SEEH. Tampoco están obligados los RETAMAR cuenta propia grupos 2º y 3º. Un Percebeiro del Grupo 3 estaría encuadrado en este régimen.",
-      "tip": ""
-    },
-    {
-      "bloqueId": "B1",
-      "statementId": "E2",
-      "factIds": [],
-      "tag": "Aplazamientos · Art. 35.6 RD 1415/2004",
-      "q": "Juan, en septiembre de 2026, tiene una deuda con la Seguridad Social de 1222 euros. Solicita un aplazamiento a la Seguridad Social, para pagar el plazo en 13 cuotas. ¿se lo concederán?",
-      "a": [
-        "Sí, al ser la cantidad superior al mínimo exigido para su denegación.",
-        "No, al no superar dos veces el SMI vigente en 2026.",
-        "No, al no ser el mínimo por cuota superior a 100 euros mensuales.",
-        "Sí, los aplazamientos no tienen un mínimo por el cual se denieguen."
-      ],
-      "c": 0,
-      "correctas": [
-        0
-      ],
-      "multiple": false,
-      "respuestas": 0,
-      "law": "El Art 35.6 del Real decreto 1415/2004 sobre la denegación de los aplazamientos, fija desde la reforma por el Real Decreto 643/2026, la denegación de aplazamiento en la cuantía de un SMI. En 2026 es 1221€.",
-      "tip": "No confundir aplazamiento con reintegro de prestaciones indebidas. Que este último sí tiene un límite de reintegro de 100€ mensuales."
-    },
-    {
-      "bloqueId": "B1",
-      "statementId": "E2",
-      "factIds": [],
-      "tag": "Recaudación · Tercerías · Art. 134.1 RD 1415/2004",
-      "q": "En casos de tercerías de buen dominio el tercerista…",
-      "a": [
-        "Alega la propiedad del bien, suspende el procedimiento sin presentar garantías",
-        "Tiene que justificar el crédito preferente, sin suspensión del procedimiento",
-        "Alega la propiedad del bien, sin suspensión del procedimiento",
-        "Tiene que justificar el crédito preferente, suspende el procedimiento sin presentar garantías"
-      ],
-      "c": 0,
-      "correctas": [
-        0
-      ],
-      "multiple": false,
-      "respuestas": 0,
-      "law": "El Art 134.1 del RDL 1415/2004, estipula en la tramitación de las tercerías que: “Si fuera de mejor derecho, se proseguirá el procedimiento hasta la realización de los bienes. Si fuera de dominio… suspenderá el procedimiento de apremio en cuanto a los bienes controvertidos, en tanto la tercería se resuelva”.",
+      "law": "Reciben un pago único de 1.000 euros por familia numerosa (arts. 357 y 358 LGSS) y 4 SMI por parto múltiple (arts. 359 y 360 LGSS).",
       "tip": ""
     },
     {
       "bloqueId": "B1",
       "statementId": "E3",
-      "factIds": [],
-      "tag": "Recaudación · Aplazamientos · Art. 80 Rgto. Recaudación",
-      "q": "Con los datos proporcionados, corrige el error que ha cometido la Tesorería.",
+      "factIds": [
+        "E4H1"
+      ],
+      "tag": "Cotización · Autónomo colaborador (RETA)",
+      "q": "¿Qué base mínima de cotización tendrá Diana como autónoma colaboradora en el RETA, si comenzó a trabajar en 2026?",
       "a": [
-        "El tiempo concedido de aplazamiento, por normativa, debería ser inferior.",
-        "El importe mínimo mensual del aplazamiento, por normativa, debería ser superior.",
-        "Debería haber emitido un acta de liquidación, no una reclamación de deuda.",
-        "No ha cometido error alguno."
+        "La base mínima del grupo 7 del Régimen General: 1.424,40 €.",
+        "La base mínima para los familiares trabajadores autónomos: 1.000 €.",
+        "La base mínima del tramo 1 de la tabla reducida de rendimientos netos: 653,59 €.",
+        "La base mínima del tramo 1 de la tabla general de rendimientos netos: 950,98 €."
       ],
       "c": 0,
       "correctas": [
@@ -1464,43 +1419,45 @@
       ],
       "multiple": false,
       "respuestas": 0,
-      "law": "El Art 80 del reglamento de recaudación, establece que el fraccionamiento puede solicitarse por el sujeto obligado tras la reclamación de deuda con un plazo máximo de 60 mensualidades (5 años) y un importe mínimo de 100€ mes.",
+      "law": "En el año 2026 ya no se aplica la DT 7.ª del RDL 13/2022, que establecía para el año 2023 (y se mantuvo en 2024 y 2025) la base mínima de cotización de los autónomos colaboradores del art. 305.2.k) LGSS. Por ello, en 2026 se aplica lo establecido en el art. 308.1.a).4.ª LGSS que, de acuerdo con la orden de cotización del presente ejercicio, fija la base mínima de este colectivo en la base mínima del grupo 7 del Régimen General. Los autónomos colaboradores que tenían la base mínima de 1.000 € con anterioridad a este ejercicio pueden mantenerla este año (art. 18.2.4 de la Orden PJC/297/2026).",
       "tip": ""
     },
     {
       "bloqueId": "B1",
       "statementId": "E3",
-      "factIds": [],
-      "tag": "Recaudación · Vía ejecutiva · Art. 80 RDL 1415/2004",
-      "q": "María de la Cruz de todos los Santos decide antes de pagar el primer mes cambiar la cuantía del aplazamiento a 250€ mensuales durante 26 meses, que es aceptado por la tesorería. En los meses 20 y 26 no puede hacer frente al pago del fraccionamiento, ingresando religiosamente el resto de las mensualidades. ¿Qué supone esto para María de la Cruz?",
+      "factIds": [
+        "E4H2"
+      ],
+      "tag": "Encuadramiento · Familiares del empresario",
+      "q": "¿En qué régimen encuadrarías a Victoria y a Dolores en el momento en que comienzan a trabajar (antes del reparto de participaciones)?",
       "a": [
-        "Se iniciará automáticamente la vía ejecutiva, los intereses de demora se calcularán desde el último plazo del fraccionamiento.",
-        "Se iniciará automáticamente la vía ejecutiva, los intereses de demora se calcularán desde el primer plazo del fraccionamiento impagado.",
-        "Se iniciará automáticamente la vía ejecutiva, los intereses de demora se calcularán desde el primer plazo del fraccionamiento.",
-        "Se iniciará automáticamente la vía ejecutiva, los intereses de demora se calcularán desde la reclamación de deuda."
+        "Victoria podrá optar por el RETA o por el Régimen General, sin desempleo. Dolores, Régimen General.",
+        "Victoria podrá optar por el RETA o por el Régimen General, con desempleo. Dolores, Régimen General.",
+        "Dolores podrá optar por el RETA o por el Régimen General, sin desempleo. Victoria, RETA.",
+        "Ambas, RETA."
       ],
       "c": 0,
       "correctas": [
         0
       ],
       "multiple": false,
-      "respuestas": 0,
-      "law": "El Art 80 del RDL 1415/2004: “Concluido el período de pago del último de los plazos de fraccionamiento concedidos, si existiera alguna cantidad pendiente de abono, se iniciará igualmente, de manera automática, la vía ejecutiva, mediante la emisión de la correspondiente providencia de apremio. En este caso, y a efectos de determinar el cálculo de los intereses de demora que correspondan, se entenderá como plazo reglamentario de ingreso el correspondiente al último plazo del fraccionamiento.”",
-      "tip": "Estamos ante la finalización del fraccionamiento sin que el total de los impagos sea tres mensualidades, por lo que los intereses de demora se calculan desde el último plazo del fraccionamiento."
+      "respuestas": 4,
+      "law": "A Victoria, al convivir con su padre, se le aplicaría el art. 12.2 LGSS, pudiendo optar entre el Régimen General sin desempleo o el RETA. Dolores, al no convivir con el empresario, no queda afectada por esa exclusión y se encuadra como trabajadora por cuenta ajena en el Régimen General.",
+      "tip": ""
     },
     {
       "bloqueId": "B1",
-      "statementId": "E4",
+      "statementId": "E3",
       "factIds": [
-        "H1"
+        "E4H3"
       ],
-      "tag": "Jubilación",
-      "q": "¿Qué modalidad de jubilación compatible con el trabajo se puede acoger Horse Luis?",
+      "tag": "Encuadramiento ·  Sociedad Limitada",
+      "q": "¿En qué régimen encuadrarías a la familia después del reparto de participaciones?",
       "a": [
-        "Jubilación flexible, como asalariado.",
-        "Jubilación flexible como autónomo.",
-        "Jubilación activa.",
-        "No se puede acoger a ninguna modalidad de compatibilidad de la pensión con el trabajo. Si quiere trabajar, se le deberá suspender la pensión."
+        "Miguel y Diana, en el Régimen Especial de Trabajadores Autónomos. Victoria y Dolores, trabajadoras por cuenta ajena en el Régimen General. Paquita, como asimilada a trabajadora por cuenta ajena en el Régimen General, sin desempleo ni FOGASA.",
+        "Miguel, Paquita y Diana, en el Régimen Especial de Trabajadores Autónomos. Victoria y Dolores, trabajadoras por cuenta ajena en el Régimen General.",
+        "Miguel y Paquita, en el Régimen Especial de Trabajadores Autónomos. Victoria y Dolores, trabajadoras por cuenta ajena en el Régimen General. Diana, como asimilada a trabajadora por cuenta ajena en el Régimen General, sin desempleo ni FOGASA.",
+        "Miguel y Diana, en el Régimen Especial de Trabajadores Autónomos. Victoria podrá optar por el RETA o por el Régimen General, sin desempleo. Dolores, trabajadora por cuenta ajena en el Régimen General. Paquita, como asimilada a trabajadora por cuenta ajena en el Régimen General, sin desempleo ni FOGASA."
       ],
       "c": 0,
       "correctas": [
@@ -1508,45 +1465,22 @@
       ],
       "multiple": false,
       "respuestas": 0,
-      "law": "El nuevo Real Decreto 416/2026, sí permite el trabajo de asalariado compatible con la pensión, aun procediendo del RETA. Ahora bien, para poder acceder a la jubilación Flexible como autónomo, no hay que haber estado de alta en el Régimen Especial de Trabajadores por Cuenta Propia en los últimos 3 años. La jubilación activa no es posible porque no ha demorado 1 año la edad de jubilación a la edad ordinaria de jubilación.",
-      "tip": "Revisar el nuevo Real Decreto 416/2026. Art 4 a 9."
-    },
-    {
-      "bloqueId": "B1",
-      "statementId": "E4",
-      "factIds": [
-        "H2"
-      ],
-      "tag": "Muerte y supervivencia · Orfandad",
-      "q": "¿Cuándo surtirán los EFECTOS ECONOMICOS de la orfandad del hijo?",
-      "a": [
-        "Mismo día del nacimiento, como el hecho causante",
-        "Día después del nacimiento, día después del hecho causante",
-        "Solo cobra 12 mensualidades al ser póstumo.",
-        "No tendrá derecho a orfandad, al no estar el sujeto causante de alta en el momento de la muerte."
-      ],
-      "c": 0,
-      "correctas": [
-        0
-      ],
-      "multiple": false,
-      "respuestas": 0,
-      "law": "Pregunta típica que cada academia da una respuesta. La regla general es que los efectos económicos surgen el día siguiente al nacimiento del derecho. Pero el anterior tribunal de nuestra oposición dio por buena la de que surge con el mismo hecho, y la Seguridad Social aplica este principio también. Esto se debe a que no está bien puesta esta cuestión normativamente.",
+      "law": "En esta pregunta hay que tener muy claro qué es el control efectivo de una sociedad. El art. 305.2.b) LGSS lo recoge así: «Quienes ejerzan las funciones de dirección y gerencia que conlleva el desempeño del cargo de consejero o administrador, o presten otros servicios para una sociedad de capital, a título lucrativo y de forma habitual, personal y directa, siempre que posean el control efectivo, directo o indirecto, de aquella. Se entenderá, en todo caso, que se produce tal circunstancia cuando las acciones o participaciones del trabajador supongan, al menos, la mitad del capital social. Se presumirá, salvo prueba en contrario, que el trabajador posee el control efectivo de la sociedad cuando concurra alguna de las siguientes circunstancias: 1.º Que, al menos, la mitad del capital de la sociedad para la que preste sus servicios esté distribuido entre socios con los que conviva y a quienes se encuentre unido por vínculo conyugal o de parentesco por consanguinidad, afinidad o adopción, hasta el segundo grado. 2.º Que su participación en el capital social sea igual o superior a la tercera parte del mismo. 3.º Que su participación en el capital social sea igual o superior a la cuarta parte del mismo, si tiene atribuidas funciones de dirección y gerencia de la sociedad».\n\nCon esta definición, y con las del art. 12 LGSS junto al art. 136 LGSS, ya podemos comenzar el análisis. Miguel es administrador de la sociedad, pero solo tiene el 20 % de las participaciones; ahora bien, convive con Diana, que tiene el 35 %. En total, en la casa de Miguel hay un 55 % de las participaciones, lo que le hace tener el control de la sociedad y, por tanto, queda encuadrado en el RETA. Diana, por convivir con su padre y sumar entre ambos más del 50 %, va al RETA; aunque no conviviera, al tener más de un tercio del capital también iría al RETA por sí misma. Victoria tiene el 25 % de las participaciones: por sí misma, y sin funciones de dirección y gerencia, sería una empleada del Régimen General; la convivencia con su madre suma el 45 % de las participaciones, por lo que no alcanza la mayoría de control de la sociedad, que está en manos de Diana y Miguel. Dolores sigue como trabajadora por cuenta ajena en el Régimen General. Paquita tiene el 20 % de las participaciones y funciones de dirección y gerencia, por lo que, de acuerdo con el art. 136.2.e) LGSS, sería una trabajadora asimilada a la de cuenta ajena, sin desempleo ni FOGASA.",
       "tip": ""
     },
     {
       "bloqueId": "B1",
       "statementId": "E4",
       "factIds": [
-        "H3"
+        "E5H1"
       ],
-      "tag": "Ingreso Mínimo Vital",
-      "q": "¿Con los datos presentados, se les otorgará la prestación del IMV?",
+      "tag": "Encuadramiento · Pareja de hecho y familiar colaborador",
+      "q": "¿En qué régimen o sistema debería afiliarse Pepe a la Seguridad Social?",
       "a": [
-        "Sí, cumplen los requisitos de vulnerabilidad económica.",
-        "Se les concederá si subsanan la firma de todos los miembros de la unidad económica.",
-        "No, deberán esperar al siguiente año, entonces cumplirán los requisitos.",
-        "Sí, solo se tiene en cuenta para el requisito del IMV los ingresos para la prestación por desempleo, que en cómputo anual, sean inferiores al IMV."
+        "Trabajador por cuenta ajena, Régimen General.",
+        "Familiar colaborador por afinidad, Régimen Especial de Trabajadores por Cuenta Propia o Autónomos.",
+        "Sistema Especial de los Servicios Extraordinarios de Hostelería, sistema especial dentro del Régimen General.",
+        "Trabajador por cuenta ajena, Régimen Especial de los Trabajadores del Mar, porque es gallego."
       ],
       "c": 0,
       "correctas": [
@@ -1554,22 +1488,22 @@
       ],
       "multiple": false,
       "respuestas": 0,
-      "law": "De acuerdo con el art 11.5 LIMV, la situación de vulnerabilidad sobrevenida, se solicita a partir del segundo trimestre del año hasta la finalización de este. Solo se tienen en cuenta la parte proporcional de ingresos o declaración responsable, sin contar la prestación por desempleo o subsidios por desempleo que se haya agotado en el momento de la solicitud del IMV.",
+      "law": "Pregunta sencilla: Pepe será un trabajador por cuenta ajena por su relación laboral. La definición de familiar autónomo, como tal, no está bien recogida en nuestra legislación ni en sus límites; pero, teniendo en cuenta el art. 12 LGSS, aunque Pepe esté en una relación con Paquita, no cabe aplicar la relación de afinidad del mencionado artículo, porque una relación sin ser pareja de hecho ni matrimonio no genera una relación jurídica. Por último, el Sistema Especial de los Servicios Extraordinarios de la Hostelería (pensado para Madrid y Barcelona, y aplicado solo en la primera) estuvo vigente entre 1973 y 1993, de modo que no se cumplen ni los requisitos de inclusión ni la vigencia necesaria para encuadrar en él al pobre Pepe.",
       "tip": ""
     },
     {
       "bloqueId": "B1",
       "statementId": "E4",
       "factIds": [
-        "H4"
+        "E5H2"
       ],
-      "tag": "Nacimiento y cuidado del menor",
-      "q": "¿Qué prestaciones y/o subsidios económicos tendrán el matrimonio por el nacimiento de sus hijos?",
+      "tag": "Derechos · Afiliacion",
+      "q": "¿Qué derechos le otorga en materia de Seguridad Social a Pepe la falta de alta?",
       "a": [
-        "Ella tendrá una prestación base de 42 días, aumentada en 14 días parto múltiple. Él tendrá la prestación de paternidad de 19 semanas base, incrementada en 1 semanas por parto múltiple y otra por cada uno de los hijos con discapacidad. Más un subsidio especial de 6 semanas de duración.",
-        "Ella tendrá una prestación base de 42 días, aumentada en 14 días por la disparidad de los hijos. Él tendrá la prestación de paternidad de 19 semanas base, incrementada en 2 semanas por uno de los hijos con discapacidad. Más un subsidio especial de 6 semanas de duración por cada hijo.",
-        "Ella tendrá una prestación base de 42 días, aumentada en 14 días parto múltiple. Él tendrá la prestación de paternidad de 19 semanas base, incrementada en 2 semanas por los hijos con discapacidad. Más un subsidio especial de 6 semanas de duración.",
-        "Ella tendrá una prestación base de 42 días, aumentada en 14 días parto múltiple y otros 14 días por discapacidad de los hijos. Él tendrá la prestación de paternidad de 19 semanas base, incrementada en 1 semanas por parto múltiple y otras 2 por cada uno de los hijos con discapacidad. Más un subsidio especial de 6 semanas de duración."
+        "Atención médica.",
+        "Atención médica y un anticipo de las prestaciones de IT de 2,5 veces el IPREM.",
+        "Atención médica y un anticipo de las prestaciones de IT de 2,5 veces el SMI.",
+        "No le corresponde derecho alguno, teniendo que ser declarado responsable el empresario."
       ],
       "c": 0,
       "correctas": [
@@ -1577,43 +1511,68 @@
       ],
       "multiple": false,
       "respuestas": 0,
-      "law": "De acuerdo con el Capítulo 6 del Titulo II de la LGSS y al Real Decreto 295/2009. En caso de cumplir las condiciones para la prestación de nacimiento y cuidado del menor. De base son 19 semanas, incrementado una por parto múltiple y dos adicionales, una por cada hijo con discapacidad. Más un subsidio especial que equivale a 6 semanas de duración. María de las Mercedes, no cumple con los periodos de cotización mínimos que se exigen a las personas mayores de 26 años, por lo que se aplican los Art 181 y 182 de la LGSS. El cual da un subsidio del tiempo de duración del periodo obligatorio (6 semanas, que son 42 días), más un incremento único de 14 días por circunstancias especiales, en este caso parto múltiple.",
-      "tip": "En el subsidio por nacimiento y cuidado del menor no hay incremento por discapacidad del hijo"
-    },
-    {
-      "bloqueId": "B1",
-      "statementId": "E4",
-      "factIds": [
-        "H4"
-      ],
-      "tag": "Incapacidad Temporal",
-      "q": "¿Cómo se abonará la IT de Eugenio?",
-      "a": [
-        "A partir de 9 día de trabajo, estando a cargo del empleador del día 4 al 8 de la baja, ambos inclusive. A partir del 9 lo abonará el INSS, no procediendo el pago delegado.",
-        "A partir de 16 día de trabajo, estando a cargo del empleador del día 4 al 15 de la baja, ambos inclusive. A partir del 16 lo abonará el INSS, no procediendo el pago delegado.",
-        "A partir de 16 día de trabajo, estando a cargo del empleador del día 4 al 15 de la baja, ambos inclusive. A partir del 16 lo abonará el INSS, procediendo el pago delegado.",
-        "A partir de 9 día de trabajo, estando a cargo del empleador del día 4 al 8 de la baja, ambos inclusive. A partir del 9 lo abonará el INSS, procediendo el pago delegado."
-      ],
-      "c": 0,
-      "correctas": [
-        0
-      ],
-      "multiple": false,
-      "respuestas": 0,
-      "law": "El art 251.1 LGSS: “a) El subsidio por incapacidad temporal, en caso de enfermedad común o accidente no laboral, se abonará a partir del noveno día de la baja en el trabajo, estando a cargo del empleador el abono de la prestación al trabajador desde los días cuarto al octavo de la citada baja, ambos inclusive. b) El pago de subsidio por incapacidad temporal causado por los trabajadores incluidos en este sistema especial se efectuará directamente por la entidad a la que corresponda su gestión, no procediendo el pago delegado del mismo.”",
+      "law": "El art. 166.4 LGSS establece el alta de pleno derecho a efectos de la asistencia sanitaria por contingencias comunes, sin que proceda la IT por dichas contingencias. Por tanto, no se anticiparán las prestaciones (con subrogación frente al empresario infractor) del anticipo de 2,5 veces el IPREM.",
       "tip": ""
     },
     {
       "bloqueId": "B1",
       "statementId": "E5",
-      "factIds": [],
-      "tag": "Gestión financiera SS · Art. 14 RD 696/2018",
-      "q": "De acuerdo con el Real Decreto 696/2018, de 29 de junio, por el que se aprueba el Reglamento general de la gestión financiera de la Seguridad Social, ¿quiénes pueden ordenar pagos con carácter secundario en la Tesorería General de la Seguridad Social?",
+      "factIds": [
+        "E6H1"
+      ],
+      "tag": "Viudedad · Requisitos",
+      "q": "¿Tendrá derecho Paquita a la pensión de viudedad?",
       "a": [
-        "Los titulares de los órganos de la Tesorería General de la Seguridad Social expresamente habilitados por su director general.",
-        "Exclusivamente el director general de la Tesorería General de la Seguridad Social.",
-        "Cualquier funcionario de la Seguridad Social con rango administrativo.",
-        "Solo la ministra de Inclusión, Seguridad Social y Migraciones."
+        "Sí, por la existencia de hijos comunes.",
+        "No, por no ser el periodo del matrimonio superior a un año.",
+        "No; cobrará una prestación temporal de viudedad.",
+        "Sí, al haber convivido con el causante más de dos años."
+      ],
+      "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 4,
+      "law": "El art. 219 LGSS supedita la pensión de viudedad, cuando la muerte se produce por contingencias comunes no sobrevenidas al matrimonio, a una antigüedad del matrimonio de un año, a la existencia de hijos comunes o a una duración de la convivencia superior a dos años. La opción D es incorrecta porque la referida convivencia de 2 años (atendiendo a la remisión del art. 221.2 LGSS) tiene que ser ininterrumpida.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E5",
+      "factIds": [
+        "E6H2"
+      ],
+      "tag": "Orfandad",
+      "q": "Identifica la opción Incorrecta sobre la orfandad:",
+      "a": [
+        "Si la pensión de orfandad se extingue por el fallecimiento del propio huérfano antes de haber cobrado doce mensualidades, se abonará de una sola vez a sus herederos el importe necesario para completar dicho año de prestación",
+        "La pensión de orfandad se extinguirá si el huérfano contrae matrimonio, a menos que esté afectado por una incapacidad permanente absoluta o una gran invalidez.",
+        "Cuando la pensión se extingue porque el beneficiario alcanza la edad límite aplicable a su caso, se le abonará en un único pago la cantidad que le falte para completar doce mensualidades si no las hubiera devengado previamente.",
+        "En un supuesto de orfandad pluripersonal donde las pensiones se incrementaron con el porcentaje de la de viudedad, la extinción de la pensión de uno de los huérfanos beneficia a los demás al redistribuirse ese porcentaje de viudedad."
+      ],
+      "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 4,
+      "law": "¿Por qué es incorrecta? Afirma que si el huérfano fallece antes de percibir doce mensualidades, se abonará de una sola vez a sus herederos la cantidad restante.\nSin embargo, las fuentes especifican que la regla de entregar el importe necesario para completar las doce mensualidades en un pago único se aplica exclusivamente cuando la pensión se extingue por las causas de los párrafos a), b), c) y d)  del Art 21 del Orden 13 de Febrero de 1967 (cumplimiento de la edad, cese de la incapacidad, adopción o matrimonio). El fallecimiento del beneficiario, regulado en el párrafo e), queda explícitamente excluido de este beneficio de compensación.\n\t•\tLa opción 1 es correcta porque el matrimonio extingue la pensión \t\tsalvo si el beneficiario tiene una incapacidad permanente absoluta o gran invalidez.\n\t•\tLa opción 3 es correcta porque el cumplimiento de la edad límite (párrafo a) sí da derecho a completar las doce mensualidades en un pago único si no se hubieran devengado antes.\n\t•\tLa opción 4 es correcta porque la norma establece que, si la pensión se incrementó con el porcentaje de la de viudedad, la extinción de uno de los huérfanos redistribuye su parte para incrementar la de los beneficiarios restantes.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E5",
+      "factIds": [
+        "E6H3"
+      ],
+      "tag": "Recaudación · Responsabilidad mortis causa",
+      "q": "¿Qué responsabilidad y qué alcance tienen las hijas de Miguel ante las deudas de su padre con la Seguridad Social?",
+      "a": [
+        "La deuda comprenderá el principal de la deuda y los recargos, intereses y costas. Responderán solidariamente con los bienes de la herencia adjudicados.",
+        "La deuda comprenderá el principal de la deuda y los recargos, intereses y costas. Responderán solidariamente con los bienes de la herencia y con su propio patrimonio.",
+        "La deuda comprenderá el principal de la deuda, excluidos los recargos, intereses y costas. Responderán subsidiariamente con los bienes de la herencia adjudicados.",
+        "La deuda comprenderá el principal de la deuda, excluidos los recargos, intereses y costas. Responderán solidariamente con los bienes de la herencia y con su propio patrimonio."
       ],
       "c": 0,
       "correctas": [
@@ -1621,8 +1580,123 @@
       ],
       "multiple": false,
       "respuestas": 0,
-      "law": "Artículo 14. Ordenadores de pagos. 1. El Director General de la Tesorería General de la Seguridad Social ejercerá las funciones de Tesorero General y de Ordenador General de Pagos de la Seguridad Social, bajo la autoridad del Ministerio de Trabajo, Migraciones y Seguridad Social. 2. Podrán también ordenar pagos, con carácter secundario, los titulares de los órganos de la Tesorería General de la Seguridad Social expresamente habilitados para ello por su Director General, con cargo a las cuentas que se determinen. Las funciones de los ordenadores secundarios de pagos a que se refiere el párrafo anterior se determinarán por el Ministerio de Trabajo, Migraciones y Seguridad Social, sin perjuicio de aquellas otras que puedan ejercer mediante delegación de competencias o de firma del Ordenador General de Pagos de la Seguridad Social, en los términos establecidos, respectivamente, por los artículos 9 y 12 de la Ley 40/2015, de 1 de octubre, de Régimen Jurídico del Sector Público.",
-      "tip": "Ya lo siento por esta pregunta"
+      "law": "En algunas de las opciones se produce una mezcla de los arts. 14 y 15 del RD 1415/2004. La responsabilidad mortis causa es solidaria y comprende el principal de la deuda junto con los recargos, intereses y costas. Al haberse aceptado la herencia a beneficio de inventario, solo se responde de la deuda con los bienes de la propia herencia adjudicados, no con el patrimonio propio de las herederas.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E6",
+      "factIds": [
+        "E7H1"
+      ],
+      "tag": "Cotización · Dietas",
+      "q": "¿Qué importes no computan en la base de cotización?",
+      "a": [
+        "Gastos de manutención de 36,06 euros diarios si corresponden a desplazamiento dentro del territorio español, o de 66,11 euros diarios si corresponden a desplazamiento a territorio extranjero.",
+        "Gastos de manutención de 53,34 euros diarios si corresponden a desplazamiento dentro del territorio español, o de 91,35 euros diarios si corresponden a desplazamiento a territorio extranjero.",
+        "Gastos de estancia que no excedan de 15 euros diarios si se producen por desplazamiento dentro del territorio español, o de 25 euros diarios si se producen por desplazamiento a territorio extranjero.",
+        "Gastos de manutención de 39,35 euros diarios si corresponden a desplazamiento dentro del territorio español, o de 53,34 euros diarios si corresponden a desplazamiento a territorio extranjero."
+      ],
+      "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "De acuerdo con el art. 23 del Real Decreto 2064/1995, que a su vez remite al art. 9 del Reglamento del IRPF, se establece para el personal de vuelo: gastos de manutención de 36,06 euros diarios si corresponden a desplazamiento dentro del territorio español, o de 66,11 euros diarios si corresponden a desplazamiento a territorio extranjero.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E7",
+      "factIds": [
+        "E8H1"
+      ],
+      "tag": "Encuadramiento",
+      "q": "Otro encuadramiento: indica cómo encuadrarías a Lorenzo.",
+      "a": [
+        "Pluriactividad. Sistema Especial para Trabajadores por Cuenta Ajena Agrarios, dentro del Régimen General, y Régimen Especial de Trabajadores por Cuenta Propia o Autónomos.",
+        "Pluriactividad. Sistema Especial para Trabajadores por Cuenta Ajena Agrarios, dentro del Régimen General, y Sistema Especial para Trabajadores por Cuenta Propia Agrarios, dentro del Régimen Especial de Trabajadores por Cuenta Propia o Autónomos.",
+        "Pluriempleo. Sistema Especial para Trabajadores por Cuenta Ajena Agrarios, dentro del Régimen General, y Sistema Especial para Trabajadores por Cuenta Propia Agrarios, dentro del Régimen Especial de Trabajadores por Cuenta Propia o Autónomos.",
+        "Pluriempleo. Sistema Especial para Trabajadores por Cuenta Ajena Agrarios, dentro del Régimen General, y Régimen Especial de Trabajadores por Cuenta Propia o Autónomos."
+      ],
+      "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "La respuesta correcta puede parecer que debe situarse en los dos sistemas agrarios (RETA y Régimen General), en pluriactividad. Pero el art. 324 LGSS exige, entre otros requisitos de inclusión, ser titular de una explotación agraria y obtener al menos el 50 por ciento de la renta total de la realización de actividades agrarias u otras complementarias, siempre que la parte de renta procedente directamente de la actividad agraria realizada en su explotación no sea inferior al 25 por ciento de su renta total, y que el tiempo de trabajo dedicado a actividades agrarias o complementarias de las mismas sea superior a la mitad de su tiempo de trabajo total.\n\nPor tanto, Lorenzo, aunque desconocemos el dato del tiempo dedicado a sus tierras, sí sabemos que no llega al 20 % de su renta total procedente de sus propias tierras, aunque el 100 % de sus ingresos venga de actividades agrarias. Por ello, si consideramos que ese 20 % es suficiente para las condiciones de habitualidad y de significación, deberá darse de alta en el RETA, al no cumplir las condiciones de su sistema especial. Además, al tratarse de un trabajo por cuenta propia y otro por cuenta ajena, estamos ante pluriactividad y no ante pluriempleo.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E7",
+      "factIds": [
+        "E8H2"
+      ],
+      "tag": "Convenio especial · Efectos",
+      "q": "El convenio especial de Lorenzo surtirá efecto desde:",
+      "a": [
+        "El día siguiente a aquel en que tuvo efectos la baja, o la fecha de presentación de la solicitud.",
+        "La fecha de presentación de la solicitud.",
+        "La fecha de efectos de la baja.",
+        "El día siguiente a aquel en que tuvo efectos la baja."
+      ],
+      "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "El día de presentación de la solicitud es el día 88 tras el cese de la actividad (si no he hecho mal las cuentas), por lo que es inferior a los 90 días de plazo de solicitud y el suscriptor del convenio puede optar por el día siguiente al de efectos de la baja o por el momento de la presentación de la solicitud (art. 5 de la Orden TAS/2865/2003).",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E7",
+      "factIds": [
+        "E8H3"
+      ],
+      "tag": "Cotización · Coeficientes reductores de la edad de jubilación",
+      "q": "¿Qué porcentaje adicional por el coeficiente reductor de la edad de jubilación se le aplica a Andrés por su trabajo de guardia civil?",
+      "a": [
+        "Ninguno.",
+        "Un tipo de cotización adicional sobre la base de cotización por contingencias comunes del 10,60 por ciento, del que el 8,84 por ciento será a cargo de la empresa y el 1,76 por ciento, a cargo de la persona trabajadora.",
+        "Un tipo de cotización adicional sobre la base de cotización por contingencias comunes del 28,30 por ciento, del que el 23,60 por ciento será a cargo de la empresa y el 4,70 por ciento, a cargo de la persona trabajadora.",
+        "Un tipo de cotización adicional sobre la base de cotización por contingencias comunes del 0,90 por ciento, del que el 0,75 por ciento será a cargo de la empresa y el 0,15 por ciento, a cargo de la persona trabajadora."
+      ],
+      "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "El art. 32 de la orden de cotización establece los colectivos que cotizan por el porcentaje adicional del 10,6 % por el coeficiente reductor de la edad de jubilación: bomberos, policías locales, Ertzaintza, Policía Foral de Navarra y Mossos d'Esquadra. Por el momento no se aplica a guardias civiles ni a policías nacionales.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E7",
+      "factIds": [
+        "E8H3"
+      ],
+      "tag": "Pensiones extraordinarias por actos de terrorismo · Art. 61 LGSS",
+      "q": "De conformidad con lo dispuesto en el artículo 61 LGSS sobre las pensiones extraordinarias originadas por actos de terrorismo, señale la opción CORRECTA:",
+      "a": [
+        "A efectos de la aplicación del mínimo mensual equivalente al triple del IPREM vigente en cada momento, las pensiones de muerte y supervivencia derivadas de un mismo hecho terrorista se computarán de manera conjunta.",
+        "Estas pensiones están excluidas del límite de reconocimiento inicial, pero deben someterse necesariamente a los límites de revalorización anual previstos en la ley.",
+        "La diferencia entre la cuantía de la pensión que teóricamente hubiese correspondido y la que finalmente se abone será financiada exclusivamente con cargo a los recursos de la Seguridad Social.",
+        "El importe mínimo garantizado se calcula de forma estática, tomando como referencia el triple del indicador público de renta de efectos múltiples (IPREM) del año en que se reconoció la pensión por primera vez."
+      ],
+      "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "«Artículo 61 LGSS. Pensiones extraordinarias originadas por actos de terrorismo. 1. Las pensiones extraordinarias que se reconozcan por la Seguridad Social, originadas por actos de terrorismo, no estarán sujetas a los límites de reconocimiento inicial y de revalorización de pensiones previstos en esta ley. 2. El importe mínimo mensual de las pensiones extraordinarias por actos de terrorismo que se reconozcan y abonen por la Seguridad Social será el equivalente al triple del indicador público de renta de efectos múltiples vigente en cada momento. Las diferencias existentes entre las cuantías de las pensiones que hubieran correspondido y las que realmente se abonen serán financiadas con cargo a los Presupuestos del Estado. A los efectos previstos en este apartado, las pensiones por muerte y supervivencia causadas por un mismo hecho se computarán conjuntamente».",
+      "tip": ""
     }
   ]
 }
@@ -1858,11 +1932,7 @@ const ENVIO_DETALLE_DEFECTO = {
         'entry.1108878147', 'entry.1471749573', 'entry.1082014329', 'entry.2112539399', 'entry.15417682', // 61-65
         'entry.2104298979', 'entry.949437792', 'entry.2071397813', 'entry.2001115340', 'entry.1445602013', // 66-70
         'entry.911131704', 'entry.1517320485', 'entry.548517073', 'entry.932772700', 'entry.1987322673', // 71-75
-        'entry.529360562', 'entry.2050801750', 'entry.82935037', 'entry.48912348', 'entry.1553896761', // 76-80
-        'entry.1016698177', 'entry.1584638604', 'entry.1327257853', 'entry.1726180779', 'entry.574614711', // 81-85
-        'entry.2070952397', 'entry.1752221665', 'entry.203467465', 'entry.470537063', 'entry.1753285763', // 86-90
-        'entry.1200176677', 'entry.1600805991', 'entry.1986998899', 'entry.1552574829', 'entry.290117084', // 91-95
-        'entry.1429046308', 'entry.1510972535', 'entry.281414865', 'entry.673373891', 'entry.2071377334' // 96-100
+        'entry.529360562', 'entry.2050801750', 'entry.82935037', 'entry.48912348', 'entry.1553896761' // 76-80
     ]
 };
 
@@ -1912,8 +1982,7 @@ let unaEnUnaPorBloque    = {};
 let modoFoco             = false;    // ⚙ "Modo foco" (dentro de la anterior)
 let navPlegada           = false;    // cabecera plegada (solo el bloque actual)
 let dedoEnMovimiento     = false;    // el dedo se ha desplazado: no es un toque
-let ultimoScroll         = 0;        // instante del último desplazamiento del DEDO
-let desplazamientoPropio = 0;        // instante del último movimiento que mandó el código
+let ultimoScroll         = 0;        // instante del último desplazamiento
 
 /* ═══════════════════════════════════════════
    BLOQUES — utilidades
@@ -2921,13 +2990,6 @@ function selectAnswer(qIdx, optIdx) {
 
     pintarRespuesta(qIdx);
     updateProgress();
-
-    // Con las preguntas en cadena se contesta bajando por la página, sin
-    // tocar «Siguiente»: la casilla marcada en la cabecera se quedaba en la
-    // primera del bloque por mucho que se avanzara. Al contestar una, esa
-    // pasa a ser la pregunta actual (sin mover la página, que ya está donde
-    // el alumno quiere), así que la cabecera señala siempre por dónde va.
-    if (qIdx !== current) jump(qIdx, true);
 }
 
 // Marca en verde las correctas y en rojo las falladas de una pregunta.
@@ -2995,17 +3057,7 @@ document.addEventListener('touchmove', (e) => {
     }
 }, { passive: true });
 
-/* Solo cuenta el desplazamiento que hace el DEDO. Cuando la página se
-   mueve porque se lo ha mandado el código (al cambiar de pregunta, que va
-   con animación y puede durar bastante si el salto es largo), esos avisos
-   de «scroll» no deben armar el guardia: si lo hacían, el toque con el que
-   se contestaba nada más parar la página se perdía sin dejar rastro, y la
-   pregunta se quedaba en blanco. Pasaba sobre todo en la primera pregunta
-   de una cadena, a la que se llega tras recorrer todo el enunciado. */
-window.addEventListener('scroll', () => {
-    if (Date.now() - desplazamientoPropio < 1500) return;
-    ultimoScroll = Date.now();
-}, { passive: true });
+window.addEventListener('scroll', () => { ultimoScroll = Date.now(); }, { passive: true });
 
 /* ═══════════════════════════════════════════
    NAVEGACIÓN
@@ -3059,11 +3111,6 @@ function jump(i, sinDesplazar) {
     navBox.classList.add('active');
 
     if (sinDesplazar) return;
-
-    // A partir de aquí la página se mueve porque lo manda el código: se deja
-    // constancia para que el guardia táctil no confunda esa animación con un
-    // desplazamiento del dedo y se trague la respuesta siguiente.
-    desplazamientoPropio = Date.now();
 
     // En móvil la fila de preguntas se desplaza en horizontal: al cambiar
     // de pregunta la casilla activa siempre vuelve a quedar visible.

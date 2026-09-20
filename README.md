@@ -36,7 +36,7 @@ Este proyecto se distribuye bajo licencia **MIT**, lo que permite su uso, modifi
 
 ## ⚠️ Aviso importante
 
-**Este repositorio no tiene ninguna relación con la plataforma oficial del proceso selectivo ni con ninguna entidad gubernamental.** Es un recurso creado de forma independiente por opositores para opositores, con el único fin de facilitar el estudio y la práctica.
+**Este repositorio no tiene ninguna relación con la plataforma oficial del proceso selectivo ni con ninguna entidad gubernamental. Ni con la plataforma ECAP Oficial** Es un recurso creado de forma independiente por opositores para opositores, con el único fin de facilitar el estudio y la práctica.
 
 ---
 
