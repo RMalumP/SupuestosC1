@@ -9,7 +9,7 @@
         con la suya y, si el archivo se quedó atrás, ofrece ponerlo al día
         al guardar. Subir este número al cambiar el motor.
     -->
-    <meta name="motor-plantilla" content="3">
+    <meta name="motor-plantilla" content="4">
     <title>[TÍTULO DE LA EVALUACIÓN]</title>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,600;1,8..60,300&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 
@@ -3659,7 +3659,8 @@ let unaEnUnaPorBloque    = {};
 let modoFoco             = false;    // ⚙ "Modo foco" (dentro de la anterior)
 let navPlegada           = false;    // cabecera plegada (solo el bloque actual)
 let dedoEnMovimiento     = false;    // el dedo se ha desplazado: no es un toque
-let ultimoScroll         = 0;        // instante del último desplazamiento
+let ultimoScroll         = 0;        // instante del último desplazamiento del DEDO
+let desplazamientoPropio = 0;        // instante del último movimiento que mandó el código
 
 /* ═══════════════════════════════════════════
    BLOQUES — utilidades
@@ -4696,6 +4697,13 @@ function selectAnswer(qIdx, optIdx) {
 
     pintarRespuesta(qIdx);
     updateProgress();
+
+    // Con las preguntas en cadena se contesta bajando por la página, sin
+    // tocar «Siguiente»: la casilla marcada en la cabecera se quedaba en la
+    // primera del bloque por mucho que se avanzara. Al contestar una, esa
+    // pasa a ser la pregunta actual (sin mover la página, que ya está donde
+    // el alumno quiere), así que la cabecera señala siempre por dónde va.
+    if (qIdx !== current) jump(qIdx, true);
 }
 
 // Marca en verde las correctas y en rojo las falladas de una pregunta.
@@ -4763,7 +4771,17 @@ document.addEventListener('touchmove', (e) => {
     }
 }, { passive: true });
 
-window.addEventListener('scroll', () => { ultimoScroll = Date.now(); }, { passive: true });
+/* Solo cuenta el desplazamiento que hace el DEDO. Cuando la página se
+   mueve porque se lo ha mandado el código (al cambiar de pregunta, que va
+   con animación y puede durar bastante si el salto es largo), esos avisos
+   de «scroll» no deben armar el guardia: si lo hacían, el toque con el que
+   se contestaba nada más parar la página se perdía sin dejar rastro, y la
+   pregunta se quedaba en blanco. Pasaba sobre todo en la primera pregunta
+   de una cadena, a la que se llega tras recorrer todo el enunciado. */
+window.addEventListener('scroll', () => {
+    if (Date.now() - desplazamientoPropio < 1500) return;
+    ultimoScroll = Date.now();
+}, { passive: true });
 
 /* ═══════════════════════════════════════════
    NAVEGACIÓN
@@ -4822,6 +4840,11 @@ function jump(i, sinDesplazar) {
     navBox.classList.add('active');
 
     if (sinDesplazar) return;
+
+    // A partir de aquí la página se mueve porque lo manda el código: se deja
+    // constancia para que el guardia táctil no confunda esa animación con un
+    // desplazamiento del dedo y se trague la respuesta siguiente.
+    desplazamientoPropio = Date.now();
 
     // En móvil la fila de preguntas se desplaza en horizontal: al cambiar
     // de pregunta la casilla activa siempre vuelve a quedar visible.
