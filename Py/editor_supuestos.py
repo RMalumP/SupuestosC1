@@ -164,9 +164,11 @@ CAMPOS_CABECERA = [
      "Abre el panel de opciones del alumno. Si lo ocultas, no podrá cambiar el tiempo "
      "ni las opciones de abajo."),
     ("botonPlegar", "Botón de plegar la cabecera ⌃", '<button id="fold-btn">', None,
-     "Deja a la vista solo la fila del bloque en el que está. Solo aparece cuando el "
-     "examen tiene más de un bloque. Con «Empieza plegada», cada intento arranca "
-     "mostrando una sola fila."),
+     "Deja a la vista solo la fila del bloque en el que está, en UNA sola línea: si el "
+     "bloque tiene más casillas de las que caben, la fila se desliza a izquierda y "
+     "derecha y se centra sola en la pregunta actual al cambiar de pregunta o de "
+     "bloque. Solo aparece cuando el examen tiene más de un bloque. Con «Empieza "
+     "plegada», cada intento arranca mostrando una sola fila."),
     ("opcionTiempo", "Opción: cambiar la duración", '<div class="settings-row" id="row-tiempo">',
      "Texto", "Permite al alumno fijar otro tiempo. Ocúltala para que el examen dure "
      "siempre lo que hayas puesto en la pestaña 1."),

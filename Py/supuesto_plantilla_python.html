@@ -9,7 +9,7 @@
         con la suya y, si el archivo se quedó atrás, ofrece ponerlo al día
         al guardar. Subir este número al cambiar el motor.
     -->
-    <meta name="motor-plantilla" content="2">
+    <meta name="motor-plantilla" content="3">
     <title>[TÍTULO DE LA EVALUACIÓN]</title>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,600;1,8..60,300&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 
@@ -92,6 +92,29 @@
         /* Cabecera plegada: solo queda a la vista la fila del bloque actual */
         body.nav-plegada .nav-row { display: none; border-top: none; padding-top: 0; }
         body.nav-plegada .nav-row.fila-actual { display: flex; }
+        /* Plegada de verdad: la fila del bloque actual ocupa UNA sola línea,
+           por largo que sea el bloque. Las casillas que no caben no bajan a
+           una segunda línea: se quedan fuera y se llega a ellas deslizando
+           la fila a izquierda y derecha (con el dedo, la rueda o la barra).
+           Al cambiar de pregunta o de bloque, la casilla activa se centra
+           sola (ver centrarCasillaActiva). */
+        body.nav-plegada .nav-row.fila-actual .nav-row-boxes {
+            flex-wrap: nowrap;
+            overflow-x: auto; overflow-y: hidden;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-x: contain;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(var(--gold-rgb),0.45) transparent;
+            padding-bottom: 4px;
+        }
+        body.nav-plegada .nav-row.fila-actual .nav-row-boxes::-webkit-scrollbar { height: 5px; }
+        body.nav-plegada .nav-row.fila-actual .nav-row-boxes::-webkit-scrollbar-track { background: transparent; }
+        body.nav-plegada .nav-row.fila-actual .nav-row-boxes::-webkit-scrollbar-thumb {
+            background: rgba(var(--gold-rgb),0.45); border-radius: 3px;
+        }
+        /* Sin esto las casillas se encogerían hasta deformarse al no caber */
+        body.nav-plegada .nav-row.fila-actual .nav-box { flex: 0 0 auto; }
         .nav-row-boxes { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; flex: 1; min-width: 0; }
         .nav-box {
             width: 36px; height: 36px;
@@ -1554,10 +1577,36 @@ function medirCabecera() {
     document.documentElement.style.setProperty('--nav-h', cab.offsetHeight + 'px');
 }
 window.addEventListener('resize', medirCabecera);
+// Al cambiar el ancho cambian las casillas que caben en la línea:
+// se vuelve a centrar la actual.
+window.addEventListener('resize', () => centrarCasillaActiva(false));
 
 /* Plegar la cabecera: deja a la vista solo la fila del bloque actual.
    Al cambiar de bloque (con Anterior/Siguiente o pulsando una casilla)
    la fila visible cambia sola. */
+/* Con la cabecera plegada la fila del bloque actual es una sola línea que
+   se desliza: esto la desplaza para que la casilla de la pregunta en la que
+   estamos quede centrada (o lo más cerca posible del centro). Así, al pasar
+   a otro bloque o avanzar hasta el número 60, la casilla activa nunca se
+   queda fuera de la vista. */
+function centrarCasillaActiva(suave = true) {
+    if (!navPlegada) return;
+    const casilla = document.getElementById('nav-' + current);
+    if (!casilla) return;
+    const carril = casilla.closest('.nav-row-boxes');
+    if (!carril) return;
+    // Si no hay nada que deslizar (el bloque cabe entero), no se toca nada.
+    if (carril.scrollWidth <= carril.clientWidth + 1) return;
+    const destino = casilla.offsetLeft - (carril.clientWidth - casilla.offsetWidth) / 2;
+    const tope    = carril.scrollWidth - carril.clientWidth;
+    const x       = Math.max(0, Math.min(destino, tope));
+    if (typeof carril.scrollTo === 'function') {
+        carril.scrollTo({ left: x, behavior: suave ? 'smooth' : 'auto' });
+    } else {
+        carril.scrollLeft = x;
+    }
+}
+
 function togglePlegado() {
     navPlegada = !navPlegada;
     document.body.classList.toggle('nav-plegada', navPlegada);
@@ -1569,6 +1618,9 @@ function togglePlegado() {
             : 'Plegar: ver solo el bloque actual';
     }
     medirCabecera();
+    // Al plegar, la fila pasa a una sola línea: hay que llevar la vista a la
+    // casilla actual de inmediato (sin animación, que aún no se veía).
+    centrarCasillaActiva(false);
 }
 
 // El botón de plegar solo tiene sentido con más de un bloque en pantalla.
@@ -2546,7 +2598,12 @@ function jump(i, sinDesplazar) {
     document.querySelectorAll('.nav-row').forEach(f => {
         f.classList.toggle('fila-actual', f.dataset.bloque === bloque.id);
     });
-    if (navPlegada) medirCabecera();
+    if (navPlegada) {
+        medirCabecera();
+        // La fila visible es de una sola línea: se desliza sola hasta la
+        // casilla de esta pregunta (imprescindible al cambiar de bloque).
+        centrarCasillaActiva();
+    }
 
     // Tarjetas: en cadena se ven todas las del bloque; si no, solo la actual.
     document.querySelectorAll('.question-card').forEach((c, idx) => {
