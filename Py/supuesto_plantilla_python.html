@@ -9,7 +9,7 @@
         con la suya y, si el archivo se quedó atrás, ofrece ponerlo al día
         al guardar. Subir este número al cambiar el motor.
     -->
-    <meta name="motor-plantilla" content="2">
+    <meta name="motor-plantilla" content="5">
     <title>[TÍTULO DE LA EVALUACIÓN]</title>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,600;1,8..60,300&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 
@@ -92,6 +92,29 @@
         /* Cabecera plegada: solo queda a la vista la fila del bloque actual */
         body.nav-plegada .nav-row { display: none; border-top: none; padding-top: 0; }
         body.nav-plegada .nav-row.fila-actual { display: flex; }
+        /* Plegada de verdad: la fila del bloque actual ocupa UNA sola línea,
+           por largo que sea el bloque. Las casillas que no caben no bajan a
+           una segunda línea: se quedan fuera y se llega a ellas deslizando
+           la fila a izquierda y derecha (con el dedo, la rueda o la barra).
+           Al cambiar de pregunta o de bloque, la casilla activa se centra
+           sola (ver centrarCasillaActiva). */
+        body.nav-plegada .nav-row.fila-actual .nav-row-boxes {
+            flex-wrap: nowrap;
+            overflow-x: auto; overflow-y: hidden;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-x: contain;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(var(--gold-rgb),0.45) transparent;
+            padding-bottom: 4px;
+        }
+        body.nav-plegada .nav-row.fila-actual .nav-row-boxes::-webkit-scrollbar { height: 5px; }
+        body.nav-plegada .nav-row.fila-actual .nav-row-boxes::-webkit-scrollbar-track { background: transparent; }
+        body.nav-plegada .nav-row.fila-actual .nav-row-boxes::-webkit-scrollbar-thumb {
+            background: rgba(var(--gold-rgb),0.45); border-radius: 3px;
+        }
+        /* Sin esto las casillas se encogerían hasta deformarse al no caber */
+        body.nav-plegada .nav-row.fila-actual .nav-box { flex: 0 0 auto; }
         .nav-row-boxes { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; flex: 1; min-width: 0; }
         .nav-box {
             width: 36px; height: 36px;
@@ -573,6 +596,41 @@
         /* ════════════════════════════════════════
            PRINT / PDF
         ════════════════════════════════════════ */
+        /* ── FORMATO DEL TEXTO ────────────────────────────────────────
+           Negrita, cursiva, subrayado, tachado, resaltado y tamaños de
+           letra que se pueden usar dentro de cualquier texto del supuesto
+           (narración de los hechos, hitos, preguntas, respuestas,
+           motivación legal y consejo). Las escribe el editor de Python
+           con sus botones, pero también valen escritas a mano:
+
+               <b>negrita</b>   <i>cursiva</i>   <u>subrayado</u>
+               <s>tachado</s>   <mark>resaltado</mark>
+               <mark class="mk-verde">resaltado en verde</mark>
+               <span class="fs-l">letra más grande</span>
+        ─────────────────────────────────────────────────────────────── */
+        b, strong { font-weight: 700; }
+        i, em     { font-style: italic; }
+        u         { text-decoration: underline; text-underline-offset: 2px; }
+        s, del, strike { text-decoration: line-through; }
+
+        /* Rotulador. El color de la letra se fija a oscuro porque hay
+           sitios (la cronología, las opciones marcadas) donde el texto es
+           claro y sobre el resaltado no se leería. */
+        mark { background: #ffe9a8; color: #1f2937; padding: 0 3px; border-radius: 3px;
+               box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+        mark.mk-verde { background: #c9f0d2; }
+        mark.mk-azul  { background: #cfe4fb; }
+        mark.mk-rosa  { background: #fbd0e2; }
+
+        /* Tamaños de letra, relativos al texto que los rodea: así una
+           pregunta y un párrafo del enunciado guardan su proporción. */
+        .fs-xs  { font-size: 0.75em; }
+        .fs-s   { font-size: 0.875em; }
+        .fs-m   { font-size: 1em; }
+        .fs-l   { font-size: 1.15em; }
+        .fs-xl  { font-size: 1.35em; }
+        .fs-xxl { font-size: 1.6em; }
+
         @media print {
             body { background: white !important; color: black !important; }
             #nav-header, #timer, #overlay, #random-modal, .btn-zone, body::before { display:none !important; }
@@ -592,6 +650,13 @@
             .inst-header::before { display:none; }
             .progress-bar-wrap { display:none; }
             .fact-block { border-left-color:#999; }
+            /* El resaltado tiene que salir también en el PDF: por
+               defecto el navegador quita los fondos al imprimir. */
+            mark { -webkit-print-color-adjust: exact; print-color-adjust: exact;
+                   background:#ffe9a8 !important; color:#1f2937 !important; }
+            mark.mk-verde { background:#c9f0d2 !important; }
+            mark.mk-azul  { background:#cfe4fb !important; }
+            mark.mk-rosa  { background:#fbd0e2 !important; }
             .timeline { display:none; }
             .option { border-color:#ccc; color:black !important; background:white !important; }
             .option.correct { background:#e6f4ea !important; border-color:#2d8c5a !important; color:#1a4731 !important; }
@@ -1398,7 +1463,11 @@ const ENVIO_DETALLE_DEFECTO = {
         'entry.1108878147', 'entry.1471749573', 'entry.1082014329', 'entry.2112539399', 'entry.15417682', // 61-65
         'entry.2104298979', 'entry.949437792', 'entry.2071397813', 'entry.2001115340', 'entry.1445602013', // 66-70
         'entry.911131704', 'entry.1517320485', 'entry.548517073', 'entry.932772700', 'entry.1987322673', // 71-75
-        'entry.529360562', 'entry.2050801750', 'entry.82935037', 'entry.48912348', 'entry.1553896761' // 76-80
+        'entry.529360562', 'entry.2050801750', 'entry.82935037', 'entry.48912348', 'entry.1553896761', // 76-80
+        'entry.1016698177', 'entry.1584638604', 'entry.1327257853', 'entry.1726180779', 'entry.574614711', // 81-85
+        'entry.2070952397', 'entry.1752221665', 'entry.203467465', 'entry.470537063', 'entry.1753285763', // 86-90
+        'entry.1200176677', 'entry.1600805991', 'entry.1986998899', 'entry.1552574829', 'entry.290117084', // 91-95
+        'entry.1429046308', 'entry.1510972535', 'entry.281414865', 'entry.673373891', 'entry.2071377334' // 96-100
     ]
 };
 
@@ -1448,7 +1517,8 @@ let unaEnUnaPorBloque    = {};
 let modoFoco             = false;    // ⚙ "Modo foco" (dentro de la anterior)
 let navPlegada           = false;    // cabecera plegada (solo el bloque actual)
 let dedoEnMovimiento     = false;    // el dedo se ha desplazado: no es un toque
-let ultimoScroll         = 0;        // instante del último desplazamiento
+let ultimoScroll         = 0;        // instante del último desplazamiento del DEDO
+let desplazamientoPropio = 0;        // instante del último movimiento que mandó el código
 
 /* ═══════════════════════════════════════════
    BLOQUES — utilidades
@@ -1554,10 +1624,36 @@ function medirCabecera() {
     document.documentElement.style.setProperty('--nav-h', cab.offsetHeight + 'px');
 }
 window.addEventListener('resize', medirCabecera);
+// Al cambiar el ancho cambian las casillas que caben en la línea:
+// se vuelve a centrar la actual.
+window.addEventListener('resize', () => centrarCasillaActiva(false));
 
 /* Plegar la cabecera: deja a la vista solo la fila del bloque actual.
    Al cambiar de bloque (con Anterior/Siguiente o pulsando una casilla)
    la fila visible cambia sola. */
+/* Con la cabecera plegada la fila del bloque actual es una sola línea que
+   se desliza: esto la desplaza para que la casilla de la pregunta en la que
+   estamos quede centrada (o lo más cerca posible del centro). Así, al pasar
+   a otro bloque o avanzar hasta el número 60, la casilla activa nunca se
+   queda fuera de la vista. */
+function centrarCasillaActiva(suave = true) {
+    if (!navPlegada) return;
+    const casilla = document.getElementById('nav-' + current);
+    if (!casilla) return;
+    const carril = casilla.closest('.nav-row-boxes');
+    if (!carril) return;
+    // Si no hay nada que deslizar (el bloque cabe entero), no se toca nada.
+    if (carril.scrollWidth <= carril.clientWidth + 1) return;
+    const destino = casilla.offsetLeft - (carril.clientWidth - casilla.offsetWidth) / 2;
+    const tope    = carril.scrollWidth - carril.clientWidth;
+    const x       = Math.max(0, Math.min(destino, tope));
+    if (typeof carril.scrollTo === 'function') {
+        carril.scrollTo({ left: x, behavior: suave ? 'smooth' : 'auto' });
+    } else {
+        carril.scrollLeft = x;
+    }
+}
+
 function togglePlegado() {
     navPlegada = !navPlegada;
     document.body.classList.toggle('nav-plegada', navPlegada);
@@ -1569,6 +1665,9 @@ function togglePlegado() {
             : 'Plegar: ver solo el bloque actual';
     }
     medirCabecera();
+    // Al plegar, la fila pasa a una sola línea: hay que llevar la vista a la
+    // casilla actual de inmediato (sin animación, que aún no se veía).
+    centrarCasillaActiva(false);
 }
 
 // El botón de plegar solo tiene sentido con más de un bloque en pantalla.
@@ -2456,6 +2555,13 @@ function selectAnswer(qIdx, optIdx) {
 
     pintarRespuesta(qIdx);
     updateProgress();
+
+    // Con las preguntas en cadena se contesta bajando por la página, sin
+    // tocar «Siguiente»: la casilla marcada en la cabecera se quedaba en la
+    // primera del bloque por mucho que se avanzara. Al contestar una, esa
+    // pasa a ser la pregunta actual (sin mover la página, que ya está donde
+    // el alumno quiere), así que la cabecera señala siempre por dónde va.
+    if (qIdx !== current) jump(qIdx, true);
 }
 
 // Marca en verde las correctas y en rojo las falladas de una pregunta.
@@ -2523,7 +2629,17 @@ document.addEventListener('touchmove', (e) => {
     }
 }, { passive: true });
 
-window.addEventListener('scroll', () => { ultimoScroll = Date.now(); }, { passive: true });
+/* Solo cuenta el desplazamiento que hace el DEDO. Cuando la página se
+   mueve porque se lo ha mandado el código (al cambiar de pregunta, que va
+   con animación y puede durar bastante si el salto es largo), esos avisos
+   de «scroll» no deben armar el guardia: si lo hacían, el toque con el que
+   se contestaba nada más parar la página se perdía sin dejar rastro, y la
+   pregunta se quedaba en blanco. Pasaba sobre todo en la primera pregunta
+   de una cadena, a la que se llega tras recorrer todo el enunciado. */
+window.addEventListener('scroll', () => {
+    if (Date.now() - desplazamientoPropio < 1500) return;
+    ultimoScroll = Date.now();
+}, { passive: true });
 
 /* ═══════════════════════════════════════════
    NAVEGACIÓN
@@ -2546,7 +2662,12 @@ function jump(i, sinDesplazar) {
     document.querySelectorAll('.nav-row').forEach(f => {
         f.classList.toggle('fila-actual', f.dataset.bloque === bloque.id);
     });
-    if (navPlegada) medirCabecera();
+    if (navPlegada) {
+        medirCabecera();
+        // La fila visible es de una sola línea: se desliza sola hasta la
+        // casilla de esta pregunta (imprescindible al cambiar de bloque).
+        centrarCasillaActiva();
+    }
 
     // Tarjetas: en cadena se ven todas las del bloque; si no, solo la actual.
     document.querySelectorAll('.question-card').forEach((c, idx) => {
@@ -2577,6 +2698,11 @@ function jump(i, sinDesplazar) {
     navBox.classList.add('active');
 
     if (sinDesplazar) return;
+
+    // A partir de aquí la página se mueve porque lo manda el código: se deja
+    // constancia para que el guardia táctil no confunda esa animación con un
+    // desplazamiento del dedo y se trague la respuesta siguiente.
+    desplazamientoPropio = Date.now();
 
     // En móvil la fila de preguntas se desplaza en horizontal: al cambiar
     // de pregunta la casilla activa siempre vuelve a quedar visible.
@@ -2856,7 +2982,9 @@ function showCorrectionPanel() {
 
         // Textos de las opciones tal y como han salido en esta tarjeta
         const optEls   = document.querySelectorAll(`#qcard-${i} .option span:last-child`);
-        const optTexts = [...optEls].map(el => el.textContent.trim());
+        // innerHTML y no textContent: así el formato de la respuesta
+        // (negrita, resaltado, tamaño…) también se ve en la corrección.
+        const optTexts = [...optEls].map(el => el.innerHTML.trim());
         const listar   = idx => idx.map(n => `${LETTERS[n]}) ${optTexts[n]}`).join('<br>');
         const varias   = correctas.length > 1;
 
@@ -3005,9 +3133,12 @@ function postAFormulario(url, campos, nombreMarco) {
 ═══════════════════════════════════════════ */
 
 // Texto de una opción sin la letra "A) " que a veces se escribe delante,
-// igual que se presenta en pantalla.
+// igual que se presenta en pantalla. Las etiquetas de formato (<b>,
+// <mark>, <span class="fs-l">…) se quitan: al formulario va texto pelado,
+// que es lo que se puede comparar y contar en la hoja de resultados.
 function textoOpcionLimpio(txt) {
     return String(txt === undefined || txt === null ? '' : txt)
+                .replace(/<[^<>]*>/g, '')
                 .replace(/^[A-G]\)\s*/, '')
                 .replace(/\s+/g, ' ')
                 .trim();

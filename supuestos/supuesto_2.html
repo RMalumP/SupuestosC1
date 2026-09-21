@@ -9,8 +9,8 @@
         con la suya y, si el archivo se quedó atrás, ofrece ponerlo al día
         al guardar. Subir este número al cambiar el motor.
     -->
-    <meta name="motor-plantilla" content="4">
-    <title>[TÍTULO DE LA EVALUACIÓN]</title>
+    <meta name="motor-plantilla" content="2">
+    <title>[Un repasito antes de empezar]</title>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,600;1,8..60,300&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 
     <style>
@@ -92,29 +92,6 @@
         /* Cabecera plegada: solo queda a la vista la fila del bloque actual */
         body.nav-plegada .nav-row { display: none; border-top: none; padding-top: 0; }
         body.nav-plegada .nav-row.fila-actual { display: flex; }
-        /* Plegada de verdad: la fila del bloque actual ocupa UNA sola línea,
-           por largo que sea el bloque. Las casillas que no caben no bajan a
-           una segunda línea: se quedan fuera y se llega a ellas deslizando
-           la fila a izquierda y derecha (con el dedo, la rueda o la barra).
-           Al cambiar de pregunta o de bloque, la casilla activa se centra
-           sola (ver centrarCasillaActiva). */
-        body.nav-plegada .nav-row.fila-actual .nav-row-boxes {
-            flex-wrap: nowrap;
-            overflow-x: auto; overflow-y: hidden;
-            scroll-behavior: smooth;
-            -webkit-overflow-scrolling: touch;
-            overscroll-behavior-x: contain;
-            scrollbar-width: thin;
-            scrollbar-color: rgba(var(--gold-rgb),0.45) transparent;
-            padding-bottom: 4px;
-        }
-        body.nav-plegada .nav-row.fila-actual .nav-row-boxes::-webkit-scrollbar { height: 5px; }
-        body.nav-plegada .nav-row.fila-actual .nav-row-boxes::-webkit-scrollbar-track { background: transparent; }
-        body.nav-plegada .nav-row.fila-actual .nav-row-boxes::-webkit-scrollbar-thumb {
-            background: rgba(var(--gold-rgb),0.45); border-radius: 3px;
-        }
-        /* Sin esto las casillas se encogerían hasta deformarse al no caber */
-        body.nav-plegada .nav-row.fila-actual .nav-box { flex: 0 0 auto; }
         .nav-row-boxes { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; flex: 1; min-width: 0; }
         .nav-box {
             width: 36px; height: 36px;
@@ -946,12 +923,12 @@
 <script type="application/json" id="datos-supuesto">
 {
   "config": {
-    "titulo": "[TÍTULO DE LA EVALUACIÓN]",
-    "referencia": "[REFERENCIA / EXPEDIENTE]",
-    "ambito": "[LEGISLACIÓN VIGENTE A ...]",
+    "titulo": "Un repasito antes de empezar",
+    "referencia": "S002",
+    "ambito": "Legislación a 11 de septiembre · Temas varios",
     "minutos": 30,
     "aptoPorcentaje": 50.0,
-    "respuestas": 0,
+    "respuestas": 4,
     "logo": "https://academia.ecap.es/pluginfile.php?file=%2F1%2Fcore_admin%2Flogo%2F0x200%2F1782109950%2FACADEMIA%20VIRTUAL%20%281%29.png",
     "logoAlt": "ECAP - Escuela Ciudadana de Administración Pública",
     "organismo": "Comunidad ECAP ASS C1"
@@ -982,21 +959,21 @@
       "titulo": "Configuración"
     },
     "botonPlegar": {
-      "visible": true,
+      "visible": false,
       "titulo": "Plegar: ver solo el bloque actual",
-      "plegado": false
+      "plegado": true
     },
     "opcionTiempo": {
       "visible": true,
       "texto": "Duración del examen (mm:ss)"
     },
     "opcionCorregir": {
-      "visible": true,
+      "visible": false,
       "texto": "Corregir pregunta a pregunta",
       "activa": false
     },
     "opcionUnaEnUna": {
-      "visible": true,
+      "visible": false,
       "texto": "Ver las preguntas de una en una"
     },
     "opcionRepetirRespuestas": {
@@ -1057,6 +1034,95 @@
     "tiempoAsignado": "entry.1069013600",
     "tiempoEmpleado": "entry.815398067"
   },
+  "envioDetalle": {
+    "url": "https://docs.google.com/forms/d/e/1FAIpQLSfICCUGWcmcJ1zLFtphE1pictGOyfY9epNbSrHtEFfGvvK8HQ/formResponse",
+    "nombre": "entry.315726614",
+    "tiempo": "entry.1329722701",
+    "aciertos": "entry.979170555",
+    "fallos": "entry.1962238201",
+    "preguntas": [
+      "entry.712361381",
+      "entry.709874002",
+      "entry.661924675",
+      "entry.1030651222",
+      "entry.200283712",
+      "entry.134789499",
+      "entry.966701265",
+      "entry.2110630525",
+      "entry.1056110206",
+      "entry.960222499",
+      "entry.1846963224",
+      "entry.900211285",
+      "entry.1003793269",
+      "entry.263573841",
+      "entry.784118366",
+      "entry.1588074600",
+      "entry.1770731044",
+      "entry.211278072",
+      "entry.1659967631",
+      "entry.1690155252",
+      "entry.2143039054",
+      "entry.1904113686",
+      "entry.1470800200",
+      "entry.1255018865",
+      "entry.1513500",
+      "entry.1854371083",
+      "entry.1620187954",
+      "entry.729113678",
+      "entry.293340307",
+      "entry.1724050220",
+      "entry.1062380832",
+      "entry.2085402594",
+      "entry.950414350",
+      "entry.602730095",
+      "entry.614220064",
+      "entry.1856632108",
+      "entry.909455125",
+      "entry.693661547",
+      "entry.632847159",
+      "entry.335441030",
+      "entry.1456618893",
+      "entry.852090648",
+      "entry.589626122",
+      "entry.183473563",
+      "entry.1217213161",
+      "entry.1968115194",
+      "entry.531136136",
+      "entry.1209534835",
+      "entry.1577734057",
+      "entry.312691398",
+      "entry.1116760340",
+      "entry.768501311",
+      "entry.694863628",
+      "entry.673940089",
+      "entry.1533606077",
+      "entry.253021395",
+      "entry.1326657452",
+      "entry.2041886464",
+      "entry.1051043932",
+      "entry.1809273037",
+      "entry.1108878147",
+      "entry.1471749573",
+      "entry.1082014329",
+      "entry.2112539399",
+      "entry.15417682",
+      "entry.2104298979",
+      "entry.949437792",
+      "entry.2071397813",
+      "entry.2001115340",
+      "entry.1445602013",
+      "entry.911131704",
+      "entry.1517320485",
+      "entry.548517073",
+      "entry.932772700",
+      "entry.1987322673",
+      "entry.529360562",
+      "entry.2050801750",
+      "entry.82935037",
+      "entry.48912348",
+      "entry.1553896761"
+    ]
+  },
   "bloques": [
     {
       "id": "B1",
@@ -1068,7 +1134,7 @@
       "opcionUnaEnUna": true,
       "porIntento": 0,
       "acierto": 1.0,
-      "fallo": 0.33,
+      "fallo": 0.25,
       "blanco": 0.0,
       "envio": {
         "preguntas": "entry.771114786",
@@ -1077,71 +1143,196 @@
         "blancos": "entry.943386498",
         "puntos": ""
       }
-    },
-    {
-      "id": "B2",
-      "tipo": "test",
-      "titulo": "Teoría",
-      "color": "#e0ac4a",
-      "modo": "cadena",
-      "cabeceraSobreEnunciado": true,
-      "opcionUnaEnUna": true,
-      "porIntento": 0,
-      "acierto": 1.0,
-      "fallo": 0.25,
-      "blanco": 0.0,
-      "envio": {
-        "preguntas": "",
-        "aciertos": "",
-        "fallos": "",
-        "blancos": "",
-        "puntos": ""
-      }
     }
   ],
   "enunciados": [
     {
       "id": "E1",
       "number": "1",
-      "title": "[Título del supuesto/expediente]",
-      "ref": "[código de referencia]",
-      "ambito": "[materias que abarca]",
+      "title": "Enunciado 1. Los sistemas especiales de la Seguridad Social",
+      "ref": "S002",
+      "ambito": "Temas varios",
       "factBlocks": [
         {
-          "id": "H1",
-          "title": "[Título del bloque de hechos]",
+          "id": "E1H1",
+          "title": "Hecho desencadenante único",
           "paragraphs": [
-            "[Narrativa de hechos 1.]",
-            "[Narrativa de hechos 2, si procede.]"
+            "El artículo 11 de la LGSS, sobre sistemas especiales, establece la posibilidad de crear sistemas especiales en los regímenes de la Seguridad Social en que sea necesario, fijando unas materias en las que caben particularidades. Sin embargo, existen excepciones a esta regla."
           ],
           "red": false,
-          "hidden": false
-        },
-        {
-          "id": "H2",
-          "title": "[Título del bloque de hechos críticos]",
-          "paragraphs": [
-            "[Hecho desencadenante 1.]",
-            "[Hecho desencadenante 2.]"
-          ],
-          "red": true,
           "hidden": false
         }
       ],
-      "timeline": [
+      "timeline": []
+    },
+    {
+      "id": "E2",
+      "number": "2",
+      "title": "Enunciado 2. Un funcionario, dos funcionarios",
+      "ref": "S002",
+      "ambito": "Temas varios",
+      "factBlocks": [
         {
-          "date": "[FECHA]",
-          "text": "[Hito 1]",
+          "id": "E2H1",
+          "title": "Hecho desencadenante único",
+          "paragraphs": [
+            "Mari Carmen y Charito son funcionarias desde hace poco (2023). Mari Carmen es Administrativa del Estado y Charito es Administrativa de la Seguridad Social. Como son amigas, se ponen a cotillear sobre sus trabajos y sobre su protección de Seguridad Social."
+          ],
+          "red": false,
+          "hidden": false
+        }
+      ],
+      "timeline": []
+    },
+    {
+      "id": "E3",
+      "number": "3",
+      "title": "Enunciado 3. Una tienda Fashion",
+      "ref": "S002",
+      "ambito": "Temas varios",
+      "factBlocks": [
+        {
+          "id": "E3H1",
+          "title": "Hecho desencadenante único",
+          "paragraphs": [
+            "Benita Benítez es peluquera y propietaria del local «Ciudadanía Fashion, S.L.» teniendo el 100% de las participaciones. Tiene una hija de 33 años de edad, con la que convive, con una discapacidad sensorial del 33 %, que no cuenta con altas previas en la Seguridad Social."
+          ],
+          "red": false,
+          "hidden": false
+        }
+      ],
+      "timeline": []
+    },
+    {
+      "id": "E4",
+      "number": "4",
+      "title": "Enunciado 4. Paco, el fontanero de confianza",
+      "ref": "S002",
+      "ambito": "Temas varios",
+      "factBlocks": [
+        {
+          "id": "E4H1",
+          "title": "Hecho desencadenante único",
+          "paragraphs": [
+            "Paco es un fontanero encuadrado en el RETA como autónomo persona física. Paco es el marido de Benita y padre de los mellizos, con los que convive. Su hija trabaja con su madre y su hijo trabaja con él. Su hijo tiene la misma discapacidad sensorial del 33 % que su hermana. Ya ha estado en varias empresas de fontanería anteriormente y en un futuro quiere quedarse con el negocio."
+          ],
+          "red": false,
+          "hidden": false
+        }
+      ],
+      "timeline": []
+    },
+    {
+      "id": "E5",
+      "number": "5",
+      "title": "Enunciado 5. Una empresa, dos trabajos",
+      "ref": "S002",
+      "ambito": "Temas varios",
+      "factBlocks": [
+        {
+          "id": "E5H1",
+          "title": "Hecho desencadenante único",
+          "paragraphs": [
+            "La empresa «Brilla Brilla, S.L.» cuenta con dos centros de trabajo con actividades diferentes, ambos en la misma provincia. Su actividad principal es la creación de brillantina para actividades manuales y su actividad secundaria es el transporte y la distribución de material escolar. Pepe es un trabajador que se dedica al empaquetado de brillantina en el centro de trabajo principal y lo trasladan a empaquetar al otro centro de trabajo."
+          ],
+          "red": false,
+          "hidden": false
+        }
+      ],
+      "timeline": []
+    },
+    {
+      "id": "E6",
+      "number": "6",
+      "title": "Enunciado 6. ¡Ay, Mariano!",
+      "ref": "S002",
+      "ambito": "Temas varios",
+      "factBlocks": [
+        {
+          "id": "E6H1",
+          "title": "Hecho desencadenante 1",
+          "paragraphs": [
+            "Mariano Martínez trabaja como oficial de primera en la empresa cárnica «Carnecita Fresca, S.A.». Tienen cubiertas las contingencias comunes y profesionales con la mutua «MalaMutua, S.L.». Mariano lleva de baja en IT en observacion por enfermedad profesional 7 meses debido a un fuerte dolor de espalda que no le permite trabajar. Le están tratando el dolor mientras está de baja, pero por el momento no cuenta con un diagnóstico definitivo de a qué se debe la dolencia."
+          ],
           "red": false,
           "hidden": false
         },
         {
-          "date": "[FECHA]",
-          "text": "[Hito crítico final]",
-          "red": true,
+          "id": "E6H2",
+          "title": "Hecho desencadenante 2",
+          "paragraphs": [
+            "Finalmente, a Mariano le reconocen una incapacidad permanente parcial para la profesión habitual. Años después, Mariano cumple 63 años el 1 de julio de 2026. Mariano comenzó a trabajar a los 16 años en «TuCarneNegra, S.A.» en 1979 y trabajó en negro durante 10 años, hasta 1989. El 1 de enero de 1990 entró a trabajar dado de alta en «Carnecita Fresca, S.A.» hasta el 31 de diciembre de 1992, momento en el que, debido a que le tocó el sorteo de Navidad, se hizo millonario. Mariano siguió haciendo inversiones y viviendo de su suerte hasta 2017, cuando, debido a la crisis y a las malas inversiones, la perdió. Comienza a trabajar en «TuCarneNegra, S.A.» el 1 de enero de 2018 y se mantiene por el momento en su puesto, sin perspectiva de cambios."
+          ],
+          "red": false,
+          "hidden": false
+        },
+        {
+          "id": "E6H3",
+          "title": "Hecho desencadenante 3",
+          "paragraphs": [
+            "Mariano, ya jubilado, encuentra el amor, pero las alegrías de Mariano duran poco. A los dos años de casarse, Mariano sufre un trágico accidente al ser atropellado por un tranvía. La viuda, desconsolada, solicita la pensión de viudedad medio año después."
+          ],
+          "red": false,
           "hidden": false
         }
-      ]
+      ],
+      "timeline": []
+    },
+    {
+      "id": "E7",
+      "number": "7",
+      "title": "Enunciado 7. Buen deporte el buceo",
+      "ref": "S002",
+      "ambito": "Temas varios",
+      "factBlocks": [
+        {
+          "id": "E7H1",
+          "title": "Hecho desencadenante 1",
+          "paragraphs": [
+            "La empresa «BuceoHobby, S.L.», cuya actividad principal es el buceo deportivo y recreativo, contrata a María Luisa como administrativa en sus oficinas. María Luisa, como nueva empleada que es en el sector, gestiona los pagos de las cotizaciones a la Seguridad Social, así como las altas, bajas y variaciones de datos de la empresa con la Tesorería General de la Seguridad Social."
+          ],
+          "red": false,
+          "hidden": false
+        },
+        {
+          "id": "E7H2",
+          "title": "Hecho desencadenante 2",
+          "paragraphs": [
+            "José Luis es el gerente de «BuceoHobby, S.L.», tiene una deuda con la Seguridad Social por importe de 5.000 € y recibe unos ingresos mensuales de 3.000 €. Tiene un embargo sobre el salario debido a la deuda."
+          ],
+          "red": false,
+          "hidden": false
+        },
+        {
+          "id": "E7H3",
+          "title": "Hecho desencadenante 3",
+          "paragraphs": [
+            "Mario, de 25 años de edad, es otro trabajador de «BuceoHobby, S.L.». Cuenta como única cotización con la del 1 de enero de 2026 al 30 de marzo de 2026. El 1 de abril de 2026 es padre de trillizos. Mario tiene una discapacidad física del 45 %. Los ingresos familiares totales en cómputo anual fueron de 45.000 €."
+          ],
+          "red": false,
+          "hidden": false
+        }
+      ],
+      "timeline": []
+    },
+    {
+      "id": "E8",
+      "number": "8",
+      "title": "Enunciado 8. Viendo el Mediterráneo",
+      "ref": "S002",
+      "ambito": "Temas varios",
+      "factBlocks": [
+        {
+          "id": "E8H1",
+          "title": "Hecho desencadenante único",
+          "paragraphs": [
+            "Joan, residente y nacional español. Contempla la lejanía del mar desde la playa de su ciudad al otro lado del estrecho y mira a la península. Piensa en su familia y en su situación. Decide que va a solicitar la pensión no contributiva de incapacidad, ya que cumple las condiciones y no consigue encontrar un trabajo."
+          ],
+          "red": false,
+          "hidden": false
+        }
+      ],
+      "timeline": []
     }
   ],
   "preguntas": [
@@ -1149,13 +1340,13 @@
       "bloqueId": "B1",
       "statementId": "E1",
       "factIds": [],
-      "tag": "",
-      "q": "[Texto de la pregunta del supuesto.]",
+      "tag": "Sistemas especiales · Particularidades",
+      "q": "¿En cuál de las siguientes materias caben particularidades en el Sistema Especial de Empleadas de Hogar y en el Sistema Especial Agrario por cuenta ajena que no se incluye en el art. 11 LGSS?",
       "a": [
-        "[Opción correcta]",
-        "[Opción incorrecta 2]",
-        "[Opción incorrecta 3]",
-        "[Opción incorrecta 4]"
+        "En la acción protectora.",
+        "En el encuadramiento.",
+        "En materia de afiliación.",
+        "En la forma de cotización o recaudación."
       ],
       "c": 0,
       "correctas": [
@@ -1163,20 +1354,22 @@
       ],
       "multiple": false,
       "respuestas": 0,
-      "law": "[Motivación legal: normativa aplicable y razonamiento.]",
-      "tip": "[Consejo práctico o error frecuente.]"
+      "law": "El art. 11 de la LGSS establece que los sistemas especiales pueden establecer particularidades exclusivamente en alguna o algunas de las siguientes materias: encuadramiento, afiliación, forma de cotización o recaudación. Sin embargo, el Sistema Especial de Empleadas de Hogar y el Sistema Especial Agrario por cuenta ajena también incluyen, en la propia LGSS, particularidades en la acción protectora (art. 251 LGSS en el SEEH y art. 256 LGSS en el SETA).",
+      "tip": ""
     },
     {
-      "bloqueId": "B2",
-      "statementId": null,
-      "factIds": [],
-      "tag": "",
-      "q": "[Texto de la pregunta de teoría.]",
+      "bloqueId": "B1",
+      "statementId": "E2",
+      "factIds": [
+        "E2H1"
+      ],
+      "tag": "Encuadramiento · Funcionarios",
+      "q": "¿Cómo quedan encuadradas Mari Carmen y Charito?",
       "a": [
-        "[Opción correcta]",
-        "[Opción incorrecta 2]",
-        "[Opción incorrecta 3]",
-        "[Opción incorrecta 4]"
+        "Mari Carmen está encuadrada en la Mutualidad General de Funcionarios Civiles del Estado y Charito en el Régimen General. Ambas están en el Régimen General en pensiones.",
+        "Ambas están encuadradas en la Mutualidad General de Funcionarios Civiles del Estado. Ambas están en el Régimen General en pensiones.",
+        "Ambas están encuadradas en la Mutualidad General de Funcionarios Civiles del Estado. Ambas están en Clases Pasivas en pensiones.",
+        "Mari Carmen está encuadrada en la Mutualidad General de Funcionarios Civiles del Estado y Charito en el Régimen General. Mari Carmen está en Clases Pasivas y Charito en el Régimen General en pensiones."
       ],
       "c": 0,
       "correctas": [
@@ -1184,7 +1377,306 @@
       ],
       "multiple": false,
       "respuestas": 0,
-      "law": "[Motivación legal: normativa aplicable y razonamiento.]",
+      "law": "El art. 3 del Real Decreto 4/2000 establece que los miembros del cuerpo de funcionarios de la Seguridad Social están excluidos de MUFACE, por lo que van al Régimen General, tanto por contingencias como para pensiones. Adicionalmente, el art. 2 del mencionado Real Decreto dispone que, desde el 1 de enero de 2011, los funcionarios civiles del Estado estarán en el Régimen General en materia de pensiones.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E3",
+      "factIds": [
+        "E3H1"
+      ],
+      "tag": "Encuadramiento · Familiares",
+      "q": "Benita quiere que su hija le ayude en la tienda y comience a cotizar. ¿Cómo quedaría encuadrada la hija de Benita?",
+      "a": [
+        "Régimen Especial de Trabajadores por Cuenta Propia o Autónomos.",
+        "Régimen General, con desempleo.",
+        "Régimen General, sin desempleo.",
+        "No es necesaria la inscripción en la Seguridad Social; es un trabajo benévolo sin contraprestación económica."
+      ],
+      "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "Aunque el artículo 12 LGSS permite, para los hijos menores de 30 años y con determinadas discapacidades, la inclusión en el Régimen General, no se aplica a las sociedades de capital (sociedades limitadas y anónimas), sino únicamente a las personas físicas en el RETA. No es un trabajo benévolo: aunque el enunciado no diga nada del salario, la pregunta sí nos dice que quiere cotizar.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E4",
+      "factIds": [
+        "E4H1"
+      ],
+      "tag": "Encuadramiento · Familiares",
+      "q": "El hijo de Paco comienza a trabajar también a tiempo completo. ¿Cómo quedaría encuadrado el hijo de Paco?",
+      "a": [
+        "Régimen Especial de Trabajadores por Cuenta Propia o Autónomos.",
+        "Régimen General, con desempleo.",
+        "Régimen General, sin desempleo.",
+        "No es necesaria la inscripción en la Seguridad Social; es un trabajo benévolo sin contraprestación económica."
+      ],
+      "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "De nuevo, el artículo 12 LGSS permite, para los hijos menores de 30 años y con determinadas discapacidades, la inclusión en el Régimen General. A Paco, al ser autónomo como persona física, sí se le aplica el art. 12 LGSS. Sin embargo, para una discapacidad física igual o superior al 33 % e inferior al 65 %, el requisito para estar en el Régimen General es no haber estado de alta con anterioridad. El hijo de Paco sí ha estado de alta con anterioridad, como indica el enunciado, por lo que va al RETA.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E5",
+      "factIds": [
+        "E5H1"
+      ],
+      "tag": "Afiliación · Altas, bajas y variaciones de datos",
+      "q": "¿Cómo debería actuar la empresa «Brilla Brilla, S.L.» ante el cambio de centro de trabajo de Pepe?",
+      "a": [
+        "Deberá darse de baja en un centro de trabajo y de alta en el otro centro de trabajo.",
+        "No debe darse de baja y de alta en el otro centro de trabajo; solo debe realizar una variación de datos.",
+        "No debe darse de baja y de alta en el otro centro de trabajo; sigue de alta igualmente en la empresa.",
+        "Solo debería darse de baja y de alta en el otro centro de trabajo si estuviera en una provincia diferente."
+      ],
+      "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "El art. 29.1.º del RIA (Real Decreto 84/1996, de 26 de enero, por el que se aprueba el Reglamento General sobre inscripción de empresas y afiliación, altas, bajas y variaciones de datos de trabajadores en la Seguridad Social): «… También deberán promoverse la baja y el alta de los trabajadores que, aun dentro de la misma provincia, hubieren cambiado de centro de trabajo con código de cuenta de cotización diferente o cuando por cualquier causa proceda su adscripción a una cuenta de cotización distinta». Al ser diferentes las actividades de los dos centros de trabajo de la empresa, cada centro cuenta con un código de cuenta de cotización y, por tanto, Pepe tiene que darse de baja y de alta en el nuevo centro de trabajo.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E6",
+      "factIds": [
+        "E6H1"
+      ],
+      "tag": "IT · Altas y bajas en IT",
+      "q": "¿Cuál es el tiempo máximo que puede estar Mariano en IT en su situación?",
+      "a": [
+        "Puede estar 5 meses más en IT, hasta un máximo de un año (360 días). Al terminar, Mariano pasará a la situación que proceda o continuará en la situación de incapacidad temporal de acuerdo con su estado.",
+        "Puede estar 11 meses más en IT, hasta un máximo de un año y medio (545 días). Al terminar, Mariano pasará a la situación que proceda o continuará en la situación de incapacidad temporal de acuerdo con su estado.",
+        "Puede estar 11 meses más en IT, hasta un máximo de un año y medio (545 días). Al terminar, Mariano pasará a la situación de incapacidad permanente o continuará en la situación de prolongación de efectos económicos.",
+        "Puede estar 13 meses más en IT, hasta un máximo de 2 años (730 días). Al terminar, Mariano pasará a la situación de incapacidad permanente o continuará en la situación de incapacidad temporal de acuerdo con su estado."
+      ],
+      "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "El art. 169.1.b) LGSS establece los periodos de observación por enfermedad profesional en los que se prescriba la baja en el trabajo durante los mismos, con una duración máxima de ciento ochenta días, prorrogables por otros ciento ochenta días cuando se estime necesario para el estudio y diagnóstico de la enfermedad. El art. 15 de la Orden de 13 de octubre de 1967 define el periodo de observación como «la situación del trabajador durante el tiempo necesario para el estudio médico de su enfermedad cuando haya necesidad de aplazar el diagnóstico definitivo, siempre que lleve consigo la baja en el trabajo. […] Al término del período de observación, el trabajador pasará a la situación que proceda o continuará en la de incapacidad laboral transitoria de acuerdo con su estado». Mariano está de baja en observación por enfermedad profesional, pero no cuenta con un diagnóstico, por lo que entra en la IT por periodo de observación por enfermedad profesional, con una duración máxima de un año.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E6",
+      "factIds": [
+        "E6H2"
+      ],
+      "tag": "Incapacidad permanente · Prestación económica",
+      "q": "¿Cuál es la prestación económica de la incapacidad permanente de Mariano?",
+      "a": [
+        "Una cantidad a tanto alzado de 24 mensualidades de la base reguladora de la IT.",
+        "Una cantidad a tanto alzado que corresponde al cociente de dividir 112 bases de cotización durante los 96 meses anteriores al hecho causante.",
+        "Una cantidad a tanto alzado que corresponde al cociente de dividir 28 bases de cotización durante los 24 meses anteriores al hecho causante.",
+        "Una cantidad a tanto alzado de 24 mensualidades que corresponde al cociente de dividir 112 bases de cotización durante los 96 meses anteriores al hecho causante."
+      ],
+      "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "El art. 196.1 LGSS establece que la prestación económica por una IPP (incapacidad permanente parcial) consistirá en una cantidad a tanto alzado. El art. 9 del Decreto 1646/1972 establece que la cantidad a cobrar son veinticuatro mensualidades de la base reguladora que haya servido para determinar la prestación económica por incapacidad temporal.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E6",
+      "factIds": [
+        "E6H2"
+      ],
+      "tag": "Jubilación ordinaria · Requisitos",
+      "q": "¿Cuál es la primera fecha en la que se puede jubilar Mariano?",
+      "a": [
+        "1 de enero de 2031.",
+        "1 de julio de 2028.",
+        "1 de julio de 2030.",
+        "1 de enero de 2030."
+      ],
+      "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "Vamos a analizar opción por opción. El 1 de julio de 2028 cumple 65 años, pero no tiene la carencia de 38 años y 6 meses para jubilarse a los 65. El 1 de enero de 2030 cuenta con 66 años y medio y 14 años cotizados: no puede jubilarse. El 1 de julio de 2030 tiene 67 años y 14 años y medio cotizados: no tiene la carencia mínima de 15 años. El 1 de enero de 2031, con 67 años y medio, tendría la carencia mínima de 15 años cotizados. Repasar el art. 205 LGSS sobre los requisitos de la jubilación ordinaria.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E6",
+      "factIds": [
+        "E6H3"
+      ],
+      "tag": "Viudedad · Base reguladora",
+      "q": "¿Cuál es la base reguladora de la pensión de viudedad?",
+      "a": [
+        "La base reguladora de la pensión de jubilación, actualizada.",
+        "La suma de los 24 meses consecutivos dividida entre 28.",
+        "La suma de la pensión o salario diario multiplicada por 365 y dividida entre 12.",
+        "Se calculan las cotizaciones que acreditó el causante según los periodos exigidos."
+      ],
+      "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "La base reguladora de la pensión de viudedad se recoge en el art. 9 de la Orden de 13 de febrero de 1967, que establece que la base, en caso de pensionista de jubilación o incapacidad permanente, será el importe de su pensión.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E6",
+      "factIds": [
+        "E6H3"
+      ],
+      "tag": "Viudedad · Efectos económicos",
+      "q": "¿Cuándo tendrá efectos económicos la pensión de viudedad de la mujer de Mariano?",
+      "a": [
+        "Retroactividad máxima de 3 meses, contados desde la fecha en que se presenta la solicitud.",
+        "El día primero del mes siguiente al del fallecimiento.",
+        "El día siguiente al del fallecimiento.",
+        "El día del fallecimiento."
+      ],
+      "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "Art. 53 LGSS. La retroactividad máxima es de 3 meses. Mariano era pensionista, por lo que la regla general es que los efectos económicos nazcan desde el primer día del mes siguiente al fallecimiento (si está en alta, es el día siguiente al fallecimiento); pero, al haber pasado más de 6 meses desde el fallecimiento, los efectos económicos se producen el día de la solicitud, con una retroactividad de 3 meses.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E7",
+      "factIds": [
+        "E7H1"
+      ],
+      "tag": "Relación de las empresas con la Administración de la Seguridad Social",
+      "q": "¿Ha realizado María Luisa las gestiones de cotización, altas, bajas y variación de datos con el organismo correcto?",
+      "a": [
+        "Sí, la entidad correcta es la Tesorería General de la Seguridad Social.",
+        "No, la entidad correcta es el Instituto Social de la Marina.",
+        "No, la entidad correcta es el Instituto Nacional de la Seguridad Social.",
+        "No, la entidad correcta es la Tesorería de la Marina."
+      ],
+      "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "El art. 43 de la Ley 47/2015 (del Régimen Especial del Mar) establece que el Instituto Social de la Marina es una entidad colaboradora de la Tesorería General de la Seguridad Social en materia de inscripción de empresas, afiliación, altas, bajas y variación de datos de las personas trabajadoras adscritas al citado régimen especial, así como en la gestión de la cotización y la recaudación en periodo voluntario. Sin embargo, los arts. 3 y 4 de la misma ley excluyen a los buceadores con titulación deportivo-recreativa de dicho Régimen del Mar, encuadrando a sus trabajadores en el Régimen General o en el Régimen Especial de Trabajadores por Cuenta Propia o Autónomos, donde la Tesorería General de la Seguridad Social es la encargada de la recaudación (art. 21 LGSS) y de las altas, bajas y variación de datos (RIA).",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E7",
+      "factIds": [
+        "E7H2"
+      ],
+      "tag": "Recaudación · Embargo de salario",
+      "q": "Si el salario mínimo interprofesional es de 1.000 € justos, ¿cuánto le embargará el ente competente por la deuda que tiene con la Seguridad Social?",
+      "a": [
+        "800 €.",
+        "1.500 €.",
+        "300 €.",
+        "1.400 €."
+      ],
+      "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "El Reglamento General de Recaudación, en lo referido al embargo de salarios (art. 82), remite al artículo 607 de la Ley de Enjuiciamiento Civil, que regula el procedimiento de embargo de salarios conforme a la siguiente estructura: desde el salario mínimo y hasta el doble del mismo es embargable un 30 %; desde el doble y hasta el triple, el 50 %; desde el triple y hasta el cuádruple, el 60 %; desde el cuádruple y hasta el quíntuple, el 75 %; en adelante, será embargable un 90 %. Por lo tanto: primer tramo (hasta 1.000 € / 1.er SMI): el salario mínimo es inembargable (0 €). Segundo tramo (de 1.000 € a 2.000 €): se aplica un 30 % sobre los 1.000 € de este tramo = 300 €. Tercer tramo (de 2.000 € a 3.000 €): se aplica un 50 % sobre los 1.000 € de este tramo = 500 €. Total embargado al mes: 300 € + 500 € = 800 €.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E7",
+      "factIds": [
+        "E7H3"
+      ],
+      "tag": "Nacimiento y cuidado del menor · Duración del permiso",
+      "q": "¿Qué permiso de paternidad tendrá Mario?",
+      "a": [
+        "Tendrá derecho a 6 semanas obligatorias, 11 voluntarias, 2 semanas adicionales hasta que los menores tengan 8 años y una ampliación de 2 semanas por parto múltiple: total, 21 semanas.",
+        "Tendrá derecho a 6 semanas obligatorias, 11 voluntarias, 2 semanas adicionales hasta que los menores tengan 8 años y una ampliación de 1 semana por parto múltiple: total, 20 semanas.",
+        "Tendrá derecho a 6 semanas obligatorias, 11 voluntarias, 2 semanas adicionales hasta que los menores tengan 8 años, una ampliación de 2 semanas por parto múltiple y una ampliación de 1 semana por discapacidad del padre: total, 22 semanas.",
+        "Tendrá derecho a 6 semanas obligatorias, 11 voluntarias, 2 semanas adicionales hasta que los menores tengan 8 años, una ampliación de 1 semana por parto múltiple y una ampliación de 1 semana por discapacidad del padre: total, 21 semanas."
+      ],
+      "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "La prestación económica por nacimiento y cuidado del menor se recoge en el art. 179 LGSS, y el subsidio especial por parto múltiple, en el art. 6 del Real Decreto 295/2009. Pero en la pregunta se pregunta por la duración del descanso, no por la prestación económica, por lo que hay que remitirse al art. 48 ET. El periodo de descanso estándar es de 19 semanas: 6 obligatorias, 11 voluntarias y 2 adicionales hasta los 8 años. Se incrementa en dos semanas por cada hijo del parto múltiple a partir del primero, pero es una ampliación de 1 semana por progenitor. Igual duración tiene la ampliación por discapacidad de cada uno de los hijos, pero no existe la opción de ampliar el permiso por discapacidad del padre (en la prestación económica no contributiva sí, pero debe ser superior al 65 %; repito: estamos en el permiso, no en el pago).",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E7",
+      "factIds": [
+        "E7H3"
+      ],
+      "tag": "Prestaciones familiares · Parto múltiple",
+      "q": "¿Qué prestaciones no contributivas recibirán por el nacimiento de sus hijos?",
+      "a": [
+        "Recibirán 8 SMI.",
+        "Recibirán 4 SMI.",
+        "Recibirán 8 SMI y 1.000 € por familia numerosa.",
+        "Recibirán 4 SMI y 1.000 € por familia numerosa."
+      ],
+      "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "El art. 357 LGSS establece un límite de ingresos para la prestación económica por nacimiento o adopción de hijo en supuestos de familias numerosas, monoparentales y de madres o padres con discapacidad, que el Real Decreto-ley 3/2026 (art. 2.7) fija en 23.109,00 €. Por lo tanto, Mario supera los ingresos requeridos para cobrar estas ayudas. Por ello, solo reciben la prestación por parto múltiple de los arts. 359 y 360 LGSS, que fija la cantidad de 8 SMI para un parto múltiple de 3 hijos (2 hijos: 4 SMI; 4 o más: 12 SMI).",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": "E8",
+      "factIds": [
+        "E8H1"
+      ],
+      "tag": "PNC · Invalidez",
+      "q": "¿Dónde debe solicitar Joan su pensión de incapacidad no contributiva?",
+      "a": [
+        "En el IMSERSO.",
+        "En el IMSERSO o en la entidad de la CCAA que corresponda.",
+        "En la entidad de la CCAA que corresponda.",
+        "En el INSS."
+      ],
+      "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "El art. 373 LGSS atribuye la gestión de las PNC de jubilación e incapacidad a las comunidades autónomas. Sin embargo, cuando no se produzca esa atribución, la gestión corresponderá al Instituto de Mayores y Servicios Sociales (IMSERSO). Como Joan ve la península desde el otro lado del estrecho, está en Ceuta o Melilla, por lo que no hay CCAA que la gestione y la entidad gestora correspondiente será el IMSERSO.",
       "tip": ""
     }
   ]
@@ -1421,11 +1913,7 @@ const ENVIO_DETALLE_DEFECTO = {
         'entry.1108878147', 'entry.1471749573', 'entry.1082014329', 'entry.2112539399', 'entry.15417682', // 61-65
         'entry.2104298979', 'entry.949437792', 'entry.2071397813', 'entry.2001115340', 'entry.1445602013', // 66-70
         'entry.911131704', 'entry.1517320485', 'entry.548517073', 'entry.932772700', 'entry.1987322673', // 71-75
-        'entry.529360562', 'entry.2050801750', 'entry.82935037', 'entry.48912348', 'entry.1553896761', // 76-80
-        'entry.1016698177', 'entry.1584638604', 'entry.1327257853', 'entry.1726180779', 'entry.574614711', // 81-85
-        'entry.2070952397', 'entry.1752221665', 'entry.203467465', 'entry.470537063', 'entry.1753285763', // 86-90
-        'entry.1200176677', 'entry.1600805991', 'entry.1986998899', 'entry.1552574829', 'entry.290117084', // 91-95
-        'entry.1429046308', 'entry.1510972535', 'entry.281414865', 'entry.673373891', 'entry.2071377334' // 96-100
+        'entry.529360562', 'entry.2050801750', 'entry.82935037', 'entry.48912348', 'entry.1553896761' // 76-80
     ]
 };
 
@@ -1475,8 +1963,7 @@ let unaEnUnaPorBloque    = {};
 let modoFoco             = false;    // ⚙ "Modo foco" (dentro de la anterior)
 let navPlegada           = false;    // cabecera plegada (solo el bloque actual)
 let dedoEnMovimiento     = false;    // el dedo se ha desplazado: no es un toque
-let ultimoScroll         = 0;        // instante del último desplazamiento del DEDO
-let desplazamientoPropio = 0;        // instante del último movimiento que mandó el código
+let ultimoScroll         = 0;        // instante del último desplazamiento
 
 /* ═══════════════════════════════════════════
    BLOQUES — utilidades
@@ -1582,36 +2069,10 @@ function medirCabecera() {
     document.documentElement.style.setProperty('--nav-h', cab.offsetHeight + 'px');
 }
 window.addEventListener('resize', medirCabecera);
-// Al cambiar el ancho cambian las casillas que caben en la línea:
-// se vuelve a centrar la actual.
-window.addEventListener('resize', () => centrarCasillaActiva(false));
 
 /* Plegar la cabecera: deja a la vista solo la fila del bloque actual.
    Al cambiar de bloque (con Anterior/Siguiente o pulsando una casilla)
    la fila visible cambia sola. */
-/* Con la cabecera plegada la fila del bloque actual es una sola línea que
-   se desliza: esto la desplaza para que la casilla de la pregunta en la que
-   estamos quede centrada (o lo más cerca posible del centro). Así, al pasar
-   a otro bloque o avanzar hasta el número 60, la casilla activa nunca se
-   queda fuera de la vista. */
-function centrarCasillaActiva(suave = true) {
-    if (!navPlegada) return;
-    const casilla = document.getElementById('nav-' + current);
-    if (!casilla) return;
-    const carril = casilla.closest('.nav-row-boxes');
-    if (!carril) return;
-    // Si no hay nada que deslizar (el bloque cabe entero), no se toca nada.
-    if (carril.scrollWidth <= carril.clientWidth + 1) return;
-    const destino = casilla.offsetLeft - (carril.clientWidth - casilla.offsetWidth) / 2;
-    const tope    = carril.scrollWidth - carril.clientWidth;
-    const x       = Math.max(0, Math.min(destino, tope));
-    if (typeof carril.scrollTo === 'function') {
-        carril.scrollTo({ left: x, behavior: suave ? 'smooth' : 'auto' });
-    } else {
-        carril.scrollLeft = x;
-    }
-}
-
 function togglePlegado() {
     navPlegada = !navPlegada;
     document.body.classList.toggle('nav-plegada', navPlegada);
@@ -1623,9 +2084,6 @@ function togglePlegado() {
             : 'Plegar: ver solo el bloque actual';
     }
     medirCabecera();
-    // Al plegar, la fila pasa a una sola línea: hay que llevar la vista a la
-    // casilla actual de inmediato (sin animación, que aún no se veía).
-    centrarCasillaActiva(false);
 }
 
 // El botón de plegar solo tiene sentido con más de un bloque en pantalla.
@@ -2513,13 +2971,6 @@ function selectAnswer(qIdx, optIdx) {
 
     pintarRespuesta(qIdx);
     updateProgress();
-
-    // Con las preguntas en cadena se contesta bajando por la página, sin
-    // tocar «Siguiente»: la casilla marcada en la cabecera se quedaba en la
-    // primera del bloque por mucho que se avanzara. Al contestar una, esa
-    // pasa a ser la pregunta actual (sin mover la página, que ya está donde
-    // el alumno quiere), así que la cabecera señala siempre por dónde va.
-    if (qIdx !== current) jump(qIdx, true);
 }
 
 // Marca en verde las correctas y en rojo las falladas de una pregunta.
@@ -2587,17 +3038,7 @@ document.addEventListener('touchmove', (e) => {
     }
 }, { passive: true });
 
-/* Solo cuenta el desplazamiento que hace el DEDO. Cuando la página se
-   mueve porque se lo ha mandado el código (al cambiar de pregunta, que va
-   con animación y puede durar bastante si el salto es largo), esos avisos
-   de «scroll» no deben armar el guardia: si lo hacían, el toque con el que
-   se contestaba nada más parar la página se perdía sin dejar rastro, y la
-   pregunta se quedaba en blanco. Pasaba sobre todo en la primera pregunta
-   de una cadena, a la que se llega tras recorrer todo el enunciado. */
-window.addEventListener('scroll', () => {
-    if (Date.now() - desplazamientoPropio < 1500) return;
-    ultimoScroll = Date.now();
-}, { passive: true });
+window.addEventListener('scroll', () => { ultimoScroll = Date.now(); }, { passive: true });
 
 /* ═══════════════════════════════════════════
    NAVEGACIÓN
@@ -2620,12 +3061,7 @@ function jump(i, sinDesplazar) {
     document.querySelectorAll('.nav-row').forEach(f => {
         f.classList.toggle('fila-actual', f.dataset.bloque === bloque.id);
     });
-    if (navPlegada) {
-        medirCabecera();
-        // La fila visible es de una sola línea: se desliza sola hasta la
-        // casilla de esta pregunta (imprescindible al cambiar de bloque).
-        centrarCasillaActiva();
-    }
+    if (navPlegada) medirCabecera();
 
     // Tarjetas: en cadena se ven todas las del bloque; si no, solo la actual.
     document.querySelectorAll('.question-card').forEach((c, idx) => {
@@ -2656,11 +3092,6 @@ function jump(i, sinDesplazar) {
     navBox.classList.add('active');
 
     if (sinDesplazar) return;
-
-    // A partir de aquí la página se mueve porque lo manda el código: se deja
-    // constancia para que el guardia táctil no confunda esa animación con un
-    // desplazamiento del dedo y se trague la respuesta siguiente.
-    desplazamientoPropio = Date.now();
 
     // En móvil la fila de preguntas se desplaza en horizontal: al cambiar
     // de pregunta la casilla activa siempre vuelve a quedar visible.

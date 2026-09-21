@@ -288,7 +288,7 @@
     <div class="hero-inner">
         <div class="logo-wrap">
             <img src="https://academia.ecap.es/pluginfile.php?file=%2F1%2Fcore_admin%2Flogo%2F0x200%2F1782109950%2FACADEMIA%20VIRTUAL%20%281%29.png" alt="ECAP - Escuela Ciudadana de Administración Pública">
-            <span class="logo-subtitle">Comunidad ECAP ASS C1</span>
+            <span class="logo-subtitle">Comunidad ECAP ASS C1 | NO RELACIONADO CON LA PLATFORMA OFICIAL </span>
         </div>
         <h1>Tabla de<strong>resultados</strong></h1>
         <p>Clasificación dinámica de las puntuaciones de la comunidad</p>
@@ -328,7 +328,7 @@
         </div>
     </div>
 
-    <footer>DATOS CARGADOS EN TIEMPO REAL DESDE GOOGLE SHEETS · ECAP ASS C1</footer>
+    <footer>DATOS CARGADOS EN TIEMPO REAL DESDE GOOGLE SHEETS · REALIZADO DESDE LA COMUNIDAD DE ECAP · NO RELACIONADO CON LA PLATFORMA OFICIAL</footer>
 
 </div>
 
@@ -336,11 +336,13 @@
 (function () {
     var SHEET_ID = '19HZy6JZlljrvuEWdryuxWFqGHMf15qjsCVFe6OvLtLo';
 
-    // Tres pestañas de la misma hoja de cálculo, cada una con su propio botón superior
+    // Tres pestañas de la misma hoja de cálculo, cada una con su propio botón
+    // superior. La tercera recoge tanto los simulacros como los exámenes
+    // oficiales completos (sección «Exámenes / Simulacros» del menú).
     var CATEGORIES = {
         supuestos:  { label: 'Supuestos',  gid: '408413850', format: 'simple' },
         test:       { label: 'Test',       sheetName: 'Respuestas de formulario 2', format: 'simple' },
-        simulacros: { label: 'Simulacros', sheetName: 'Respuestas de formulario 3', format: 'combined' }
+        simulacros: { label: 'Exámenes/Simulacros', sheetName: 'Respuestas de formulario 3', format: 'combined' }
     };
     var CATEGORY_ORDER = ['supuestos', 'test', 'simulacros'];
     var selectedCategory = 'supuestos';

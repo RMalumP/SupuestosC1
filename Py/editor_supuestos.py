@@ -164,9 +164,11 @@ CAMPOS_CABECERA = [
      "Abre el panel de opciones del alumno. Si lo ocultas, no podrá cambiar el tiempo "
      "ni las opciones de abajo."),
     ("botonPlegar", "Botón de plegar la cabecera ⌃", '<button id="fold-btn">', None,
-     "Deja a la vista solo la fila del bloque en el que está. Solo aparece cuando el "
-     "examen tiene más de un bloque. Con «Empieza plegada», cada intento arranca "
-     "mostrando una sola fila."),
+     "Deja a la vista solo la fila del bloque en el que está, en UNA sola línea: si el "
+     "bloque tiene más casillas de las que caben, la fila se desliza a izquierda y "
+     "derecha y se centra sola en la pregunta actual al cambiar de pregunta o de "
+     "bloque. Solo aparece cuando el examen tiene más de un bloque. Con «Empieza "
+     "plegada», cada intento arranca mostrando una sola fila."),
     ("opcionTiempo", "Opción: cambiar la duración", '<div class="settings-row" id="row-tiempo">',
      "Texto", "Permite al alumno fijar otro tiempo. Ocúltala para que el examen dure "
      "siempre lo que hayas puesto en la pestaña 1."),
@@ -284,7 +286,7 @@ CAMPOS_ENVIO_BLOQUE = [
 # fallos en bruto y, pregunta a pregunta, si la acertó y qué opción marcó.
 #
 # Cada pregunta viaja SIEMPRE a la casilla de su número de orden en este
-# programa (la 1ª pregunta de la lista → «Pregunta 1», y así hasta 80), sin
+# programa (la 1ª pregunta de la lista → «Pregunta 1», y así hasta 100), sin
 # importar en qué bloque esté ni si el intento salió aleatorizado.
 ENTRADAS_PREGUNTA_DETALLE = [
     "entry.712361381", "entry.709874002", "entry.661924675", "entry.1030651222", "entry.200283712", #  1- 5
@@ -302,8 +304,29 @@ ENTRADAS_PREGUNTA_DETALLE = [
     "entry.1108878147", "entry.1471749573", "entry.1082014329", "entry.2112539399", "entry.15417682", # 61-65
     "entry.2104298979", "entry.949437792", "entry.2071397813", "entry.2001115340", "entry.1445602013", # 66-70
     "entry.911131704", "entry.1517320485", "entry.548517073", "entry.932772700", "entry.1987322673", # 71-75
-    "entry.529360562", "entry.2050801750", "entry.82935037", "entry.48912348", "entry.1553896761" # 76-80
+    "entry.529360562", "entry.2050801750", "entry.82935037", "entry.48912348", "entry.1553896761", # 76-80
+    "entry.1016698177", "entry.1584638604", "entry.1327257853", "entry.1726180779", "entry.574614711", # 81-85
+    "entry.2070952397", "entry.1752221665", "entry.203467465", "entry.470537063", "entry.1753285763", # 86-90
+    "entry.1200176677", "entry.1600805991", "entry.1986998899", "entry.1552574829", "entry.290117084", # 91-95
+    "entry.1429046308", "entry.1510972535", "entry.281414865", "entry.673373891", "entry.2071377334" # 96-100
 ]
+
+def normalizar_casillas_detalle(casillas):
+    """Deja la lista de casillas del detalle con TANTAS como tenga el
+    formulario (ver ENTRADAS_PREGUNTA_DETALLE).
+
+    Antes se cortaba en 80 a secas: un examen con más preguntas perdía de
+    la 81 en adelante, y encima el recorte se volvía a aplicar cada vez
+    que se guardaba, así que un archivo corto se quedaba corto para
+    siempre. Ahora lo que sobra se corta y lo que falta se completa con
+    las casillas del proyecto, respetando las que ya viniesen puestas.
+    """
+    limpias = [str(c or "").strip() for c in (casillas or [])]
+    limpias = limpias[:len(ENTRADAS_PREGUNTA_DETALLE)]
+    if len(limpias) < len(ENTRADAS_PREGUNTA_DETALLE):
+        limpias += ENTRADAS_PREGUNTA_DETALLE[len(limpias):]
+    return limpias
+
 
 ENVIO_DETALLE_DEFECTO = {
     "url": ("https://docs.google.com/forms/d/e/"
@@ -522,7 +545,7 @@ def normalizar(datos):
                for clave in ("url", "nombre", "tiempo", "aciertos", "fallos")}
     casillas = detalle_bruto.get("preguntas")
     if isinstance(casillas, list) and casillas:
-        detalle["preguntas"] = [str(c or "").strip() for c in casillas][:80]
+        detalle["preguntas"] = normalizar_casillas_detalle(casillas)
     else:
         detalle["preguntas"] = list(ENTRADAS_PREGUNTA_DETALLE)
 
@@ -1160,15 +1183,365 @@ def rotulo(padre, visible, tecnico, html, ayuda="", con_titulo=True):
     return marco
 
 
-def caja_texto(padre, alto=4, ancho=90):
-    """Cuadro de texto multilínea con su barra de desplazamiento."""
+# ══════════════════════════════════════════════════════════════════════
+#  FORMATO DEL TEXTO (negrita, cursiva, subrayado, tachado, resaltado y
+#  tamaños de letra)
+#  ─────────────────────────────────────────────────────────────────────
+#  El texto del supuesto se guarda tal cual dentro del JSON y la página
+#  lo pinta con innerHTML, así que el formato se escribe con etiquetas
+#  HTML sencillas:
+#
+#      <b>…</b>        negrita
+#      <i>…</i>        cursiva
+#      <u>…</u>        subrayado
+#      <s>…</s>        tachado
+#      <mark>…</mark>  resaltado (rotulador); con class="mk-verde",
+#                      "mk-azul" o "mk-rosa" cambia el color
+#      <span class="fs-l">…</span>   tamaño de letra (fs-xs, fs-s, fs-m,
+#                                    fs-l, fs-xl, fs-xxl)
+#
+#  Para no tener que escribirlas a mano, cada cuadro de texto lleva
+#  encima una barra de botones que envuelve lo que esté seleccionado, y
+#  el propio cuadro pinta el resultado a la vista (la negrita se ve en
+#  negrita, el resaltado con su color…) dejando las etiquetas en gris
+#  claro para que se sigan pudiendo tocar a mano.
+# ══════════════════════════════════════════════════════════════════════
+
+# Colores de rotulador: clase HTML → (color en la página, color en el editor)
+RESALTADOS = [
+    ("",          "Amarillo", "#ffe9a8"),
+    ("mk-verde",  "Verde",    "#c9f0d2"),
+    ("mk-azul",   "Azul",     "#cfe4fb"),
+    ("mk-rosa",   "Rosa",     "#fbd0e2"),
+]
+
+# Tamaños de letra: clase HTML → (nombre visible, tamaño en el editor)
+TAMANOS = [
+    ("fs-xs",  "Muy pequeña",  8),
+    ("fs-s",   "Pequeña",      9),
+    ("fs-m",   "Normal",      10),
+    ("fs-l",   "Grande",      12),
+    ("fs-xl",  "Muy grande",  14),
+    ("fs-xxl", "Enorme",      17),
+]
+
+_COLOR_RESALTADO = {clave: color for clave, _n, color in RESALTADOS}
+_TAM_EDITOR = {clave: tam for clave, _n, tam in TAMANOS}
+
+# Cualquier etiqueta HTML del texto (de apertura o de cierre).
+RE_ETIQUETA_HTML = re.compile(r"</?\s*([a-zA-Z][a-zA-Z0-9]*)\b[^<>]*>")
+RE_CLASE_HTML = re.compile(r"""class\s*=\s*["']([^"']*)["']""", re.I)
+
+# Etiquetas que el editor sabe pintar y qué cambian del aspecto.
+_EFECTO_ETIQUETA = {
+    "b": "negrita", "strong": "negrita",
+    "i": "cursiva", "em": "cursiva",
+    "u": "subrayado",
+    "s": "tachado", "del": "tachado", "strike": "tachado",
+}
+
+# Etiquetas que el editor sigue de apertura a cierre. <span> entra en la
+# lista aunque no todos los <span> sean de formato: se apila igualmente
+# (con estilo None) para que cada </span> cierre el suyo y no el de otro.
+ETIQUETAS_FORMATO = set(_EFECTO_ETIQUETA) | {"mark", "span"}
+
+FUENTE_CAJA = ("Georgia", 10)
+
+
+def _estilo_de_etiqueta(nombre, atributos):
+    """Qué cambia esta etiqueta de apertura. None si el editor no la pinta."""
+    efecto = _EFECTO_ETIQUETA.get(nombre)
+    if efecto:
+        return (efecto, True)
+    clases = ""
+    m = RE_CLASE_HTML.search(atributos or "")
+    if m:
+        clases = m.group(1).lower()
+    if nombre == "mark":
+        clave = next((c for c in _COLOR_RESALTADO if c and c in clases.split()), "")
+        return ("resaltado", clave)
+    if nombre == "span":
+        for clave in clases.split():
+            if clave in _TAM_EDITOR:
+                return ("tamano", clave)
+    return None
+
+
+def _etiqueta_compuesta(widget, estilo):
+    """Devuelve (creándola si hace falta) la etiqueta de tkinter que pinta
+    esa combinación de efectos. Se hace una sola por combinación para que
+    negrita + cursiva + tamaño puedan verse a la vez."""
+    negrita, cursiva, subrayado, tachado, tamano, resaltado = estilo
+    nombre = "fmt_%s" % "_".join(
+        str(x) for x in (int(negrita), int(cursiva), int(subrayado), int(tachado),
+                         tamano or "-", resaltado if resaltado is not None else "-"))
+    if nombre in widget.tag_names():
+        return nombre
+    fuente = tkfont.Font(
+        family=FUENTE_CAJA[0],
+        size=_TAM_EDITOR.get(tamano, FUENTE_CAJA[1]),
+        weight="bold" if negrita else "normal",
+        slant="italic" if cursiva else "roman",
+        underline=1 if subrayado else 0,
+        overstrike=1 if tachado else 0)
+    # La fuente hay que guardarla: si se la lleva el recolector de basura,
+    # tkinter se queda sin ella y el cuadro deja de pintarse.
+    widget._fuentes_formato.append(fuente)
+    widget.tag_configure(nombre, font=fuente)
+    if resaltado is not None:
+        widget.tag_configure(nombre, background=_COLOR_RESALTADO.get(resaltado, "#ffe9a8"),
+                             foreground="#111827")
+    return nombre
+
+
+def repintar_formato(widget):
+    """Pinta el cuadro de texto como se verá en la página: lee las
+    etiquetas HTML del contenido y aplica el aspecto a lo que envuelven."""
+    if not getattr(widget, "_formato", False):
+        return
+    for etq in widget.tag_names():
+        if etq.startswith("fmt_") or etq == "fmt_etiqueta":
+            widget.tag_remove(etq, "1.0", "end")
+    contenido = widget.get("1.0", "end-1c")
+
+    def indice(n):
+        return "1.0 + %d chars" % n
+
+    def pintar(desde, hasta, pila):
+        if hasta <= desde:
+            return
+        negrita = cursiva = subrayado = tachado = False
+        tamano = None
+        resaltado = None
+        for _nombre, estilo in pila:
+            if not estilo:
+                continue
+            efecto, valor = estilo
+            if efecto == "negrita":     negrita = True
+            elif efecto == "cursiva":   cursiva = True
+            elif efecto == "subrayado": subrayado = True
+            elif efecto == "tachado":   tachado = True
+            elif efecto == "tamano":    tamano = valor
+            elif efecto == "resaltado": resaltado = valor
+        if not (negrita or cursiva or subrayado or tachado or tamano or resaltado is not None):
+            return
+        etq = _etiqueta_compuesta(
+            widget, (negrita, cursiva, subrayado, tachado, tamano, resaltado))
+        widget.tag_add(etq, indice(desde), indice(hasta))
+
+    pila = []
+    pos = 0
+    for m in RE_ETIQUETA_HTML.finditer(contenido):
+        ini, fin = m.span()
+        pintar(pos, ini, pila)
+        widget.tag_add("fmt_etiqueta", indice(ini), indice(fin))
+        nombre = m.group(1).lower()
+        entero = m.group(0)
+        if nombre in ETIQUETAS_FORMATO:
+            if entero.startswith("</"):
+                for k in range(len(pila) - 1, -1, -1):
+                    if pila[k][0] == nombre:
+                        pila.pop(k)
+                        break
+            elif not entero.endswith("/>"):
+                pila.append((nombre, _estilo_de_etiqueta(nombre, entero)))
+        pos = fin
+    pintar(pos, len(contenido), pila)
+    # Las etiquetas, siempre en gris por encima de todo lo demás.
+    widget.tag_raise("fmt_etiqueta")
+
+
+def _repintar_luego(widget):
+    """Repinta sin atascar la escritura: se espera a que el dedo levante."""
+    pendiente = getattr(widget, "_repintado_pendiente", None)
+    if pendiente:
+        try:
+            widget.after_cancel(pendiente)
+        except tk.TclError:
+            pass
+    widget._repintado_pendiente = widget.after(120, lambda: repintar_formato(widget))
+
+
+def envolver_formato(widget, apertura, cierre):
+    """Envuelve lo seleccionado (o deja el cursor dentro de las etiquetas,
+    si no hay nada seleccionado)."""
+    try:
+        ini = widget.index("sel.first")
+        fin = widget.index("sel.last")
+    except tk.TclError:
+        ini = fin = widget.index("insert")
+    largo = len(widget.get(ini, fin))
+    widget.insert(fin, cierre)
+    widget.insert(ini, apertura)
+    dentro = widget.index("%s + %d chars" % (ini, len(apertura)))
+    if largo:
+        widget.tag_remove("sel", "1.0", "end")
+        widget.tag_add("sel", dentro, "%s + %d chars" % (dentro, largo))
+        widget.mark_set("insert", "%s + %d chars" % (dentro, largo))
+    else:
+        widget.mark_set("insert", dentro)
+    widget.focus_set()
+    widget.see("insert")
+    repintar_formato(widget)
+    widget.event_generate("<<TextoTocado>>")
+    return "break"
+
+
+def quitar_formato(widget):
+    """Deja en texto pelado lo seleccionado: le quita todas las etiquetas
+    de formato (si no hay nada seleccionado, limpia el cuadro entero)."""
+    try:
+        ini = widget.index("sel.first")
+        fin = widget.index("sel.last")
+    except tk.TclError:
+        ini, fin = "1.0", "end-1c"
+    trozo = widget.get(ini, fin)
+    # Se quitan las etiquetas de formato con su cierre; lo que no sea
+    # formato (un <br>, un <span> de otra cosa) se queda como estaba.
+    pila = []
+
+    def fuera(m):
+        nombre = m.group(1).lower()
+        entero = m.group(0)
+        if nombre not in ETIQUETAS_FORMATO:
+            return entero
+        if entero.startswith("</"):
+            for k in range(len(pila) - 1, -1, -1):
+                if pila[k][0] == nombre:
+                    era_formato = pila.pop(k)[1]
+                    return "" if era_formato else entero
+            return entero
+        de_formato = bool(_estilo_de_etiqueta(nombre, entero))
+        if not entero.endswith("/>"):
+            pila.append((nombre, de_formato))
+        return "" if de_formato else entero
+
+    limpio = RE_ETIQUETA_HTML.sub(fuera, trozo)
+    if limpio == trozo:
+        return "break"
+    widget.delete(ini, fin)
+    widget.insert(ini, limpio)
+    repintar_formato(widget)
+    widget.event_generate("<<TextoTocado>>")
+    return "break"
+
+
+def barra_formato(padre, widget, compacta=False):
+    """Barra de botones de formato de un cuadro de texto."""
+    barra = ttk.Frame(padre, style="Panel.TFrame")
+    fuente = ("Segoe UI", 8 if compacta else 9)
+    ancho = 3 if compacta else 4
+
+    def boton(texto, orden, ayuda, **kw):
+        b = tk.Button(barra, text=texto, command=orden, relief="groove",
+                      background="#efe6da", foreground="#3b2f26",
+                      padx=2, pady=0, width=ancho, cursor="hand2", **kw)
+        b.pack(side="left", padx=1)
+        _consejo(b, ayuda)
+        return b
+
+    boton("N", lambda: envolver_formato(widget, "<b>", "</b>"),
+          "Negrita  ·  <b>…</b>  ·  Ctrl+B",
+          font=(fuente[0], fuente[1], "bold"))
+    boton("K", lambda: envolver_formato(widget, "<i>", "</i>"),
+          "Cursiva  ·  <i>…</i>  ·  Ctrl+I",
+          font=(fuente[0], fuente[1], "italic"))
+    boton("S", lambda: envolver_formato(widget, "<u>", "</u>"),
+          "Subrayado  ·  <u>…</u>  ·  Ctrl+U",
+          font=(fuente[0], fuente[1], "underline"))
+    boton("ab", lambda: envolver_formato(widget, "<s>", "</s>"),
+          "Tachado  ·  <s>…</s>  ·  Ctrl+T",
+          font=(fuente[0], fuente[1], "overstrike"))
+
+    # Resaltado: botón directo (amarillo) con menú de colores al lado.
+    boton("🖍", lambda: envolver_formato(widget, "<mark>", "</mark>"),
+          "Resaltar en amarillo  ·  <mark>…</mark>  ·  Ctrl+R", font=fuente)
+    menu_color = tk.Menubutton(barra, text="▾", relief="groove", font=fuente,
+                               background="#efe6da", foreground="#3b2f26",
+                               padx=2, pady=0, cursor="hand2")
+    menu_color.pack(side="left", padx=(0, 4))
+    m1 = tk.Menu(menu_color, tearoff=0)
+    for clave, nombre, color in RESALTADOS:
+        etq = ' class="%s"' % clave if clave else ""
+        m1.add_command(label="  %s  " % nombre, background=color, foreground="#111827",
+                       command=lambda e=etq: envolver_formato(
+                           widget, "<mark%s>" % e, "</mark>"))
+    menu_color.configure(menu=m1)
+    _consejo(menu_color, "Color del rotulador")
+
+    menu_tam = tk.Menubutton(barra, text="Aa ▾", relief="groove", font=fuente,
+                             background="#efe6da", foreground="#3b2f26",
+                             padx=4, pady=0, cursor="hand2")
+    menu_tam.pack(side="left", padx=(0, 4))
+    m2 = tk.Menu(menu_tam, tearoff=0)
+    for clave, nombre, tam in TAMANOS:
+        m2.add_command(label="%s  (%s)" % (nombre, clave),
+                       font=(FUENTE_CAJA[0], tam),
+                       command=lambda c=clave: envolver_formato(
+                           widget, '<span class="%s">' % c, "</span>"))
+    menu_tam.configure(menu=m2)
+    _consejo(menu_tam, "Tamaño de la letra  ·  <span class=\"fs-…\">…</span>")
+
+    boton("✕", lambda: quitar_formato(widget),
+          "Quitar el formato de lo seleccionado", font=fuente)
+    return barra
+
+
+def _consejo(widget, texto):
+    """Globo de ayuda amarillo al pasar el ratón por encima."""
+    estado = {"ventana": None}
+
+    def mostrar(_e=None):
+        if estado["ventana"] or not texto:
+            return
+        v = tk.Toplevel(widget)
+        v.wm_overrideredirect(True)
+        v.wm_geometry("+%d+%d" % (widget.winfo_rootx() + 6,
+                                  widget.winfo_rooty() + widget.winfo_height() + 4))
+        tk.Label(v, text=texto, background="#fff8dc", foreground="#3b2f26",
+                 relief="solid", borderwidth=1, font=("Segoe UI", 8),
+                 padx=6, pady=2).pack()
+        estado["ventana"] = v
+
+    def ocultar(_e=None):
+        if estado["ventana"]:
+            estado["ventana"].destroy()
+            estado["ventana"] = None
+
+    widget.bind("<Enter>", mostrar, add="+")
+    widget.bind("<Leave>", ocultar, add="+")
+    widget.bind("<ButtonPress>", ocultar, add="+")
+
+
+def caja_texto(padre, alto=4, ancho=90, formato=True):
+    """Cuadro de texto multilínea con su barra de desplazamiento y, salvo
+    que se pida lo contrario (formato=False), con su barra de botones de
+    formato encima."""
     marco = ttk.Frame(padre, style="Panel.TFrame")
-    texto = tk.Text(marco, height=alto, width=ancho, wrap="word",
-                    font=("Georgia", 10), relief="solid", borderwidth=1,
+    cuerpo = ttk.Frame(marco, style="Panel.TFrame")
+    texto = tk.Text(cuerpo, height=alto, width=ancho, wrap="word",
+                    font=FUENTE_CAJA, relief="solid", borderwidth=1,
                     background="white", foreground="#111827",
                     insertbackground="#111827", padx=6, pady=4)
-    barra = ttk.Scrollbar(marco, orient="vertical", command=texto.yview)
+    barra = ttk.Scrollbar(cuerpo, orient="vertical", command=texto.yview)
     texto.configure(yscrollcommand=barra.set)
+
+    if formato:
+        texto._formato = True
+        texto._fuentes_formato = []
+        texto.tag_configure("fmt_etiqueta", foreground="#b3aaa0")
+        barra_formato(marco, texto, compacta=(alto <= 3)).pack(fill="x", pady=(0, 2))
+        texto.bind("<KeyRelease>", lambda e: _repintar_luego(texto), add="+")
+        texto.bind("<<Paste>>", lambda e: _repintar_luego(texto), add="+")
+        atajos = [("b", "<b>", "</b>"), ("i", "<i>", "</i>"),
+                  ("u", "<u>", "</u>"), ("t", "<s>", "</s>"),
+                  ("r", "<mark>", "</mark>")]
+        for tecla, ap, ci in atajos:
+            for pulsacion in ("<Control-%s>" % tecla, "<Control-%s>" % tecla.upper()):
+                texto.bind(pulsacion,
+                           lambda e, a=ap, c=ci: envolver_formato(e.widget, a, c))
+
+    cuerpo.pack(fill="both", expand=True)
     texto.pack(side="left", fill="both", expand=True)
     barra.pack(side="right", fill="y")
     return marco, texto
@@ -1177,6 +1550,7 @@ def caja_texto(padre, alto=4, ancho=90):
 def poner_texto(widget, valor):
     widget.delete("1.0", "end")
     widget.insert("1.0", "" if valor is None else str(valor))
+    repintar_formato(widget)
 
 
 def sacar_texto(widget):
@@ -1191,8 +1565,10 @@ def nUm(x):
 
 
 def resumen(texto, largo=60):
-    """Primera línea recortada, para las listas laterales."""
-    t = " ".join(str(texto or "").split())
+    """Primera línea recortada, para las listas laterales. Las etiquetas de
+    formato (<b>, <mark>, <span class="fs-l">…) se quitan: en la lista
+    estorban más que ayudan."""
+    t = " ".join(RE_ETIQUETA_HTML.sub("", str(texto or "")).split())
     return t if len(t) <= largo else t[:largo - 1] + "…"
 
 
@@ -1420,6 +1796,9 @@ class EditorApp(tk.Tk):
     def _vigilar(self, *widgets):
         for w in widgets:
             w.bind("<KeyRelease>", self._tocado, add="+")
+            # Los botones de formato no pasan por el teclado: avisan con
+            # su propio evento para que el archivo se marque como tocado.
+            w.bind("<<TextoTocado>>", self._tocado, add="+")
 
     # ═════════════════════════════════════════════════════════════
     #  PESTAÑA 1 — DATOS GENERALES
@@ -2173,7 +2552,9 @@ class EditorApp(tk.Tk):
         rotulo(pb, "Narración de los hechos", "factBlocks[].paragraphs[]",
                '<div class="fact-block"> → <p>',
                "Un párrafo por bloque de texto: DEJA UNA LÍNEA EN BLANCO entre párrafo y párrafo. "
-               "Se admiten etiquetas HTML sencillas, por ejemplo <strong>texto en negrita</strong>."
+               "Con los botones de arriba (o con Ctrl+B, Ctrl+I, Ctrl+U, Ctrl+T y Ctrl+R) se pone "
+               "en negrita, cursiva, subrayado, tachado, resaltado y otro tamaño de letra lo que "
+               "esté seleccionado."
                ).pack(anchor="w", padx=8, pady=(8, 2))
         marco, self.txt_bloque_parr = caja_texto(pb, alto=9)
         marco.pack(fill="both", expand=True, padx=8)
@@ -3314,7 +3695,7 @@ class EditorApp(tk.Tk):
             ttk.Label(rejilla, text="envioDetalle.%s   ·   %s" % (clave, que),
                       style="Tec.TLabel").grid(row=fila, column=2, sticky="w")
 
-        ttk.Label(caja, text="Casillas de las 80 preguntas", style="Campo.TLabel"
+        ttk.Label(caja, text="Casillas de las %d preguntas" % len(ENTRADAS_PREGUNTA_DETALLE), style="Campo.TLabel"
                   ).pack(anchor="w", padx=10, pady=(14, 0))
         ttk.Label(caja, style="Tec.TLabel",
                   text="envioDetalle.preguntas   ·   una casilla por línea, en orden: "
@@ -3487,7 +3868,8 @@ class EditorApp(tk.Tk):
         casillas = [l.strip() for l in
                     self.txt_detalle_preguntas.get("1.0", "end").splitlines()]
         casillas = [c for c in casillas if c]
-        detalle["preguntas"] = casillas[:80] or list(ENTRADAS_PREGUNTA_DETALLE)
+        detalle["preguntas"] = (normalizar_casillas_detalle(casillas) if casillas
+                                else list(ENTRADAS_PREGUNTA_DETALLE))
         self.datos["envioDetalle"] = detalle
 
     # ---------- casillas del segundo formulario ----------
@@ -3515,7 +3897,7 @@ class EditorApp(tk.Tk):
                        "separadas, identificadores duplicados…"
                   ).pack(anchor="w", padx=10)
 
-        marco, self.txt_informe = caja_texto(panel, alto=30)
+        marco, self.txt_informe = caja_texto(panel, alto=30, formato=False)
         marco.pack(fill="both", expand=True, padx=10, pady=8)
         self.txt_informe.configure(font=("Consolas", 9))
 
