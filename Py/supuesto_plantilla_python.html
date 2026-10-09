@@ -9,9 +9,9 @@
         con la suya y, si el archivo se quedó atrás, ofrece ponerlo al día
         al guardar. Subir este número al cambiar el motor.
     -->
-    <meta name="motor-plantilla" content="5">
+    <meta name="motor-plantilla" content="7">
     <title>[TÍTULO DE LA EVALUACIÓN]</title>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,600;1,8..60,300&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,600;1,8..60,300&family=JetBrains+Mono:wght@400;700&family=Caveat:wght@500;700&display=swap" rel="stylesheet">
 
     <style>
         /* ════════════════════════════════════════
@@ -630,6 +630,45 @@
         .fs-l   { font-size: 1.15em; }
         .fs-xl  { font-size: 1.35em; }
         .fs-xxl { font-size: 1.6em; }
+
+        /* ── PÁRRAFOS Y JUSTIFICADO ───────────────────────────────────
+           Los saltos de línea (Enter) que se escriben en el editor se
+           respetan en la página: sin esto el navegador los trata como un
+           espacio y junta todo el texto en un solo párrafo.
+           pre-line conserva los saltos pero sigue colapsando los espacios
+           repetidos, así que el resto del texto se ve igual que antes. */
+        .q-text, .statement p, .feedback-body p, .feedback-body .tip,
+        .tl-item, .ci-q, .ci-law, .ci-tip, .option > span:last-child { white-space: pre-line; }
+
+        /* Justificado: ajusta el párrafo al ancho de la línea. Lo escribe
+           el editor con el botón «Just.»:  <span class="al-j">…</span>
+           (la última línea de cada párrafo queda alineada a la izquierda,
+           como en cualquier procesador de textos). Es un span en bloque y
+           no un div para que sea válido también dentro de un <p>. */
+        .al-j { display: block; text-align: justify; text-justify: inter-word; }
+        /* En la lista de respuestas de la corrección va en línea, para que
+           «A)» no quede solo en una línea y el texto debajo. */
+        .ci-answers .al-j { display: inline; text-align: inherit; }
+
+        /* ── SANGRÍA ──────────────────────────────────────────────────
+           Mete un párrafo más hacia dentro que el anterior, hasta tres
+           niveles. La escribe el editor con los botones «Sang+» y
+           «Sang-» (o con Tab y Mayús+Tab):
+               <span class="sg-1">…</span>   (sg-2, sg-3: más adentro)
+           Puede ir junto al justificado:  class="al-j sg-1" */
+        .sg-1 { display: block; margin-left: 1.5em; }
+        .sg-2 { display: block; margin-left: 3em; }
+        .sg-3 { display: block; margin-left: 4.5em; }
+        .ci-answers .sg-1, .ci-answers .sg-2, .ci-answers .sg-3 { display: inline; margin-left: 0; }
+
+        /* ── TIPOGRAFÍAS ──────────────────────────────────────────────
+           Se eligen en el editor con el menú «Fuente». Las tres últimas
+           ya se cargan arriba desde Google Fonts; cada una lleva una
+           fuente de reserva por si no hubiera conexión. */
+        .ff-sans   { font-family: 'Segoe UI', Helvetica, Arial, sans-serif; }
+        .ff-titulo { font-family: 'Playfair Display', Georgia, serif; }
+        .ff-mono   { font-family: 'JetBrains Mono', Consolas, monospace; font-size: 0.9em; }
+        .ff-mano   { font-family: 'Caveat', 'Segoe Script', cursive; font-size: 1.2em; }
 
         @media print {
             body { background: white !important; color: black !important; }
@@ -2981,11 +3020,11 @@ function showCorrectionPanel() {
         document.getElementById(`feed-${i}`).style.display = 'block';
 
         // Textos de las opciones tal y como han salido en esta tarjeta
-        const optEls   = document.querySelectorAll(`#qcard-${i} .option span:last-child`);
+        const optEls   = document.querySelectorAll(`#qcard-${i} .option > span:last-child`);
         // innerHTML y no textContent: así el formato de la respuesta
         // (negrita, resaltado, tamaño…) también se ve en la corrección.
         const optTexts = [...optEls].map(el => el.innerHTML.trim());
-        const listar   = idx => idx.map(n => `${LETTERS[n]}) ${optTexts[n]}`).join('<br>');
+        const listar   = idx => idx.map(n => `${LETTERS[n]}) ${String(optTexts[n]).replace(/\n/g, '<br>')}`).join('<br>');
         const varias   = correctas.length > 1;
 
         const badgeClass = isSkipped ? 'skip' : isCorrect ? 'ok' : 'err';
