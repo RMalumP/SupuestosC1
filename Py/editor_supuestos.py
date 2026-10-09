@@ -1199,6 +1199,18 @@ def rotulo(padre, visible, tecnico, html, ayuda="", con_titulo=True):
 #                      "mk-azul" o "mk-rosa" cambia el color
 #      <span class="fs-l">…</span>   tamaño de letra (fs-xs, fs-s, fs-m,
 #                                    fs-l, fs-xl, fs-xxl)
+#      <span class="al-j">…</span>   párrafo JUSTIFICADO (ajustado al ancho
+#                                    de la línea). Sin esta etiqueta el
+#                                    párrafo va alineado a la izquierda.
+#      <span class="sg-1">…</span>   párrafo con SANGRÍA (sg-1, sg-2, sg-3:
+#                                    cada nivel, más hacia dentro)
+#      <span class="ff-mono">…</span> tipografía (ff-sans, ff-titulo, ff-mono,
+#                                    ff-mano)
+#
+#  Los saltos de línea (Enter) se respetan: cada Enter es un salto de
+#  párrafo en la página. En la narración de los hechos cada línea pasa a
+#  ser un párrafo con su separación; en el resto de cuadros (pregunta,
+#  respuestas, motivación, consejo, hitos) es un salto de línea.
 #
 #  Para no tener que escribirlas a mano, cada cuadro de texto lleva
 #  encima una barra de botones que envuelve lo que esté seleccionado, y
@@ -1227,6 +1239,20 @@ TAMANOS = [
 
 _COLOR_RESALTADO = {clave: color for clave, _n, color in RESALTADOS}
 _TAM_EDITOR = {clave: tam for clave, _n, tam in TAMANOS}
+
+# Tipografías: clase HTML → (nombre visible, fuente con la que se pinta en el
+# editor, que es una aproximación: en la página salen las reales).
+FUENTES = [
+    ("ff-sans",   "Sans-serif (limpia)",          "Segoe UI"),
+    ("ff-titulo", "Elegante (Playfair Display)",  "Palatino Linotype"),
+    ("ff-mono",   "Máquina de escribir (mono)",   "Consolas"),
+    ("ff-mano",   "Manuscrita (Caveat)",          "Segoe Script"),
+]
+_FUENTE_EDITOR = {clave: fam for clave, _n, fam in FUENTES}
+
+# Clases que afectan a un PÁRRAFO entero (no a un trozo de línea)
+CLASES_PARRAFO = {"al-j", "sg-1", "sg-2", "sg-3"}
+SANGRIA_PX = 26          # sangría por nivel en el editor
 
 # Cualquier etiqueta HTML del texto (de apertura o de cierre).
 RE_ETIQUETA_HTML = re.compile(r"</?\s*([a-zA-Z][a-zA-Z0-9]*)\b[^<>]*>")
@@ -1261,7 +1287,13 @@ def _estilo_de_etiqueta(nombre, atributos):
         clave = next((c for c in _COLOR_RESALTADO if c and c in clases.split()), "")
         return ("resaltado", clave)
     if nombre == "span":
-        for clave in clases.split():
+        lista = clases.split()
+        if any(c in CLASES_PARRAFO for c in lista):
+            return ("parrafo", True)
+        for clave in lista:
+            if clave in _FUENTE_EDITOR:
+                return ("fuente", clave)
+        for clave in lista:
             if clave in _TAM_EDITOR:
                 return ("tamano", clave)
     return None
@@ -1271,14 +1303,14 @@ def _etiqueta_compuesta(widget, estilo):
     """Devuelve (creándola si hace falta) la etiqueta de tkinter que pinta
     esa combinación de efectos. Se hace una sola por combinación para que
     negrita + cursiva + tamaño puedan verse a la vez."""
-    negrita, cursiva, subrayado, tachado, tamano, resaltado = estilo
+    negrita, cursiva, subrayado, tachado, tamano, resaltado, fuente = estilo
     nombre = "fmt_%s" % "_".join(
         str(x) for x in (int(negrita), int(cursiva), int(subrayado), int(tachado),
-                         tamano or "-", resaltado if resaltado is not None else "-"))
+                         tamano or "-", resaltado if resaltado is not None else "-", fuente or "-"))
     if nombre in widget.tag_names():
         return nombre
     fuente = tkfont.Font(
-        family=FUENTE_CAJA[0],
+        family=_FUENTE_EDITOR.get(fuente, FUENTE_CAJA[0]),
         size=_TAM_EDITOR.get(tamano, FUENTE_CAJA[1]),
         weight="bold" if negrita else "normal",
         slant="italic" if cursiva else "roman",
@@ -1313,6 +1345,7 @@ def repintar_formato(widget):
         negrita = cursiva = subrayado = tachado = False
         tamano = None
         resaltado = None
+        fuente = None
         for _nombre, estilo in pila:
             if not estilo:
                 continue
@@ -1323,10 +1356,12 @@ def repintar_formato(widget):
             elif efecto == "tachado":   tachado = True
             elif efecto == "tamano":    tamano = valor
             elif efecto == "resaltado": resaltado = valor
-        if not (negrita or cursiva or subrayado or tachado or tamano or resaltado is not None):
+            elif efecto == "fuente":    fuente = valor
+        if not (negrita or cursiva or subrayado or tachado or tamano or fuente
+                or resaltado is not None):
             return
         etq = _etiqueta_compuesta(
-            widget, (negrita, cursiva, subrayado, tachado, tamano, resaltado))
+            widget, (negrita, cursiva, subrayado, tachado, tamano, resaltado, fuente))
         widget.tag_add(etq, indice(desde), indice(hasta))
 
     pila = []
@@ -1347,6 +1382,21 @@ def repintar_formato(widget):
                 pila.append((nombre, _estilo_de_etiqueta(nombre, entero)))
         pos = fin
     pintar(pos, len(contenido), pila)
+
+    # Párrafos justificados o con sangría: se marcan líneas enteras. Tk no
+    # sabe justificar, así que lo justificado se ve con fondo azulado; la
+    # sangría sí se ve de verdad.
+    for n, linea in enumerate(contenido.split("\n"), 1):
+        env = envoltorio_parrafo(linea)
+        if not env:
+            continue
+        clases = env[0]
+        a, b = "%d.0" % n, "%d.end" % n
+        if "al-j" in clases:
+            widget.tag_add("fmt_just", a, b)
+        nivel = nivel_sangria(clases)
+        if nivel:
+            widget.tag_add("fmt_sg%d" % nivel, a, b)
     # Las etiquetas, siempre en gris por encima de todo lo demás.
     widget.tag_raise("fmt_etiqueta")
 
@@ -1426,16 +1476,95 @@ def quitar_formato(widget):
     return "break"
 
 
+def nivel_sangria(clases):
+    """Nivel de sangría (0-3) que dicen unas clases."""
+    return next((n for n in (3, 2, 1) if "sg-%d" % n in clases), 0)
+
+
+def envoltorio_parrafo(linea):
+    """Si TODA la línea está envuelta en un único <span> de párrafo
+    (justificado y/o sangría) devuelve (clases, interior); si no, None."""
+    cuerpo = linea.rstrip()
+    m = re.match(r'^\s*<span class="([^"]*)">', cuerpo)
+    if not m or not cuerpo.endswith("</span>"):
+        return None
+    clases = set(m.group(1).split())
+    if not clases or not clases <= CLASES_PARRAFO:
+        return None
+    prof = 0
+    for t in RE_ETIQUETA_HTML.finditer(cuerpo):
+        if t.group(1).lower() != "span":
+            continue
+        if t.group(0).startswith("</"):
+            prof -= 1
+            if prof == 0 and t.end() != len(cuerpo):
+                return None             # el span se cierra antes del final
+        elif not t.group(0).endswith("/>"):
+            prof += 1
+    if prof != 0:
+        return None
+    return clases, cuerpo[m.end():-len("</span>")]
+
+
+def formato_parrafos(widget, accion):
+    """Justifica, quita el justificado o cambia la sangría de los PÁRRAFOS
+    tocados por la selección (cada línea escrita con Enter es un párrafo,
+    y se envuelve entera). Sin selección actúa sobre la línea del cursor.
+
+    accion: "just" · "izq" · "mas" (más sangría) · "menos" (menos sangría)."""
+    try:
+        ini = widget.index("sel.first")
+        fin = widget.index("sel.last")
+    except tk.TclError:
+        ini = fin = widget.index("insert")
+    l1, l2 = int(ini.split(".")[0]), int(fin.split(".")[0])
+    if l2 > l1 and fin.endswith(".0"):      # la selección acaba al principio de una línea
+        l2 -= 1
+    for n in range(l1, l2 + 1):
+        a, b = "%d.0" % n, "%d.end" % n
+        linea = widget.get(a, b)
+        if not linea.strip():
+            continue
+        env = envoltorio_parrafo(linea)
+        clases, interior = (set(env[0]), env[1]) if env else (set(), linea.strip())
+        nivel = nivel_sangria(clases)
+        if accion == "just":
+            clases.add("al-j")
+        elif accion == "izq":
+            clases.discard("al-j")
+        elif accion == "mas":
+            nivel = min(3, nivel + 1)
+        elif accion == "menos":
+            nivel = max(0, nivel - 1)
+        clases -= {"sg-1", "sg-2", "sg-3"}
+        if nivel:
+            clases.add("sg-%d" % nivel)
+        if clases:
+            orden = [c for c in ("al-j", "sg-1", "sg-2", "sg-3") if c in clases]
+            nueva = '<span class="%s">%s</span>' % (" ".join(orden), interior)
+        else:
+            nueva = interior
+        if nueva != linea:
+            widget.delete(a, b)
+            widget.insert(a, nueva)
+    widget.tag_remove("sel", "1.0", "end")
+    widget.tag_add("sel", "%d.0" % l1, "%d.end" % l2)
+    widget.focus_set()
+    repintar_formato(widget)
+    widget.event_generate("<<TextoTocado>>")
+    return "break"
+
+
 def barra_formato(padre, widget, compacta=False):
     """Barra de botones de formato de un cuadro de texto."""
     barra = ttk.Frame(padre, style="Panel.TFrame")
     fuente = ("Segoe UI", 8 if compacta else 9)
     ancho = 3 if compacta else 4
 
-    def boton(texto, orden, ayuda, **kw):
+    def boton(texto, orden, ayuda, ancho_b=None, **kw):
         b = tk.Button(barra, text=texto, command=orden, relief="groove",
                       background="#efe6da", foreground="#3b2f26",
-                      padx=2, pady=0, width=ancho, cursor="hand2", **kw)
+                      padx=2, pady=0, width=ancho_b or ancho, cursor="hand2", **kw)
         b.pack(side="left", padx=1)
         _consejo(b, ayuda)
         return b
@@ -1482,6 +1611,34 @@ def barra_formato(padre, widget, compacta=False):
     menu_tam.configure(menu=m2)
     _consejo(menu_tam, "Tamaño de la letra  ·  <span class=\"fs-…\">…</span>")
 
+    menu_fuente = tk.Menubutton(barra, text="Fuente ▾", relief="groove", font=fuente,
+                                background="#efe6da", foreground="#3b2f26",
+                                padx=4, pady=0, cursor="hand2")
+    menu_fuente.pack(side="left", padx=(0, 4))
+    m3 = tk.Menu(menu_fuente, tearoff=0)
+    for clave, nombre, familia in FUENTES:
+        m3.add_command(label="  %s  " % nombre, font=(familia, 10),
+                       command=lambda c=clave: envolver_formato(
+                           widget, '<span class="%s">' % c, "</span>"))
+    menu_fuente.configure(menu=m3)
+    _consejo(menu_fuente, "Tipografía  ·  <span class=\"ff-…\">…</span>")
+
+    # Párrafo: «Izq.» es como se ve por defecto; «Just.» ajusta el párrafo al
+    # ancho de la línea; «Sang+/Sang-» lo meten más o menos hacia dentro.
+    boton("Izq.", lambda: formato_parrafos(widget, "izq"),
+          "Quitar el justificado (alinear a la izquierda, como está por defecto)  ·  Ctrl+L",
+          ancho_b=5, font=fuente)
+    boton("Just.", lambda: formato_parrafos(widget, "just"),
+          "Justificar: ajustar al ancho de la línea el párrafo  ·  "
+          "<span class=\"al-j\">…</span>  ·  Ctrl+J",
+          ancho_b=5, font=fuente)
+    boton("Sang+", lambda: formato_parrafos(widget, "mas"),
+          "Más sangría: mete el párrafo más hacia dentro (hasta 3 niveles)  ·  "
+          "<span class=\"sg-1\">…</span>  ·  Tab",
+          ancho_b=5, font=fuente)
+    boton("Sang-", lambda: formato_parrafos(widget, "menos"),
+          "Menos sangría: lo saca un nivel hacia fuera  ·  Mayús+Tab",
+          ancho_b=5, font=fuente)
     boton("✕", lambda: quitar_formato(widget),
           "Quitar el formato de lo seleccionado", font=fuente)
     return barra
@@ -1529,6 +1686,10 @@ def caja_texto(padre, alto=4, ancho=90, formato=True):
     if formato:
         texto._formato = True
         texto._fuentes_formato = []
+        texto.tag_configure("fmt_just", background="#e6eefb")
+        for nivel in (1, 2, 3):
+            texto.tag_configure("fmt_sg%d" % nivel, lmargin1=SANGRIA_PX * nivel,
+                                lmargin2=SANGRIA_PX * nivel)
         texto.tag_configure("fmt_etiqueta", foreground="#b3aaa0")
         barra_formato(marco, texto, compacta=(alto <= 3)).pack(fill="x", pady=(0, 2))
         texto.bind("<KeyRelease>", lambda e: _repintar_luego(texto), add="+")
@@ -1540,6 +1701,18 @@ def caja_texto(padre, alto=4, ancho=90, formato=True):
             for pulsacion in ("<Control-%s>" % tecla, "<Control-%s>" % tecla.upper()):
                 texto.bind(pulsacion,
                            lambda e, a=ap, c=ci: envolver_formato(e.widget, a, c))
+        for tecla, accion in (("j", "just"), ("l", "izq")):
+            for pulsacion in ("<Control-%s>" % tecla, "<Control-%s>" % tecla.upper()):
+                texto.bind(pulsacion,
+                           lambda e, ac=accion: formato_parrafos(e.widget, ac))
+        # Tab / Mayús+Tab = más / menos sangría (en HTML un tabulador no
+        # se vería, así que la tecla se aprovecha para esto).
+        texto.bind("<Tab>", lambda e: formato_parrafos(e.widget, "mas"))
+        for ev in ("<Shift-Tab>", "<ISO_Left_Tab>"):
+            try:
+                texto.bind(ev, lambda e: formato_parrafos(e.widget, "menos"))
+            except tk.TclError:
+                pass
 
     cuerpo.pack(fill="both", expand=True)
     texto.pack(side="left", fill="both", expand=True)
@@ -1555,6 +1728,42 @@ def poner_texto(widget, valor):
 
 def sacar_texto(widget):
     return widget.get("1.0", "end-1c")
+
+
+def limpiar_texto(valor):
+    """Limpia un texto SIN perder los saltos de línea (Enter): quita los
+    espacios sobrantes de cada línea y las líneas en blanco del principio
+    y del final, y no deja más de una línea en blanco seguida."""
+    crudo = str(valor or "").replace("\r\n", "\n").replace("\r", "\n")
+    lineas = [" ".join(l.split()) for l in crudo.split("\n")]
+    return re.sub(r"\n{3,}", "\n\n", "\n".join(lineas).strip("\n"))
+
+
+def partir_parrafos(valor):
+    """Cada línea escrita con Enter pasa a ser un párrafo (las líneas en
+    blanco sobran). Si un formato (negrita, justificado…) abarca varias
+    líneas, se cierra al final de cada párrafo y se reabre en el siguiente,
+    para que ninguna etiqueta quede partida por la mitad."""
+    parrafos, abiertas = [], []              # abiertas: [(nombre, etiqueta completa)]
+    for linea in str(valor or "").replace("\r\n", "\n").replace("\r", "\n").split("\n"):
+        linea = linea.strip()
+        prefijo = "".join(ap for _n, ap in abiertas)
+        for m in RE_ETIQUETA_HTML.finditer(linea):
+            nombre, entero = m.group(1).lower(), m.group(0)
+            if nombre not in ETIQUETAS_FORMATO:
+                continue
+            if entero.startswith("</"):
+                for k in range(len(abiertas) - 1, -1, -1):
+                    if abiertas[k][0] == nombre:
+                        del abiertas[k]
+                        break
+            elif not entero.endswith("/>"):
+                abiertas.append((nombre, entero))
+        if not RE_ETIQUETA_HTML.sub("", linea).strip():
+            continue                          # línea vacía (o solo etiquetas)
+        cierre = "".join("</%s>" % n for n, _ap in reversed(abiertas))
+        parrafos.append(prefijo + linea + cierre)
+    return parrafos
 
 
 def nUm(x):
@@ -2551,10 +2760,16 @@ class EditorApp(tk.Tk):
 
         rotulo(pb, "Narración de los hechos", "factBlocks[].paragraphs[]",
                '<div class="fact-block"> → <p>',
-               "Un párrafo por bloque de texto: DEJA UNA LÍNEA EN BLANCO entre párrafo y párrafo. "
-               "Con los botones de arriba (o con Ctrl+B, Ctrl+I, Ctrl+U, Ctrl+T y Ctrl+R) se pone "
-               "en negrita, cursiva, subrayado, tachado, resaltado y otro tamaño de letra lo que "
-               "esté seleccionado."
+               "Cada vez que pulsas ENTER empieza un párrafo nuevo en la página (la línea en blanco "
+               "entre párrafos es opcional). Con los botones de arriba (o con Ctrl+B, Ctrl+I, "
+               "Ctrl+U, Ctrl+T y Ctrl+R) se pone en negrita, cursiva, subrayado, tachado, "
+               "resaltado y otro tamaño de letra lo que esté seleccionado. «Just.» (Ctrl+J) "
+               "justifica —ajusta al ancho de la línea— el párrafo donde esté el cursor o los "
+               "seleccionados; «Izq.» (Ctrl+L) quita el justificado. «Sang+» (tecla Tab) mete "
+               "el párrafo más hacia dentro que el anterior, hasta tres niveles, y «Sang-» "
+               "(Mayús+Tab) lo saca. El menú «Fuente» cambia la tipografía de lo seleccionado. "
+               "Los párrafos justificados se ven aquí con fondo azulado y justificados en la "
+               "página; las tipografías se ven aquí de forma aproximada."
                ).pack(anchor="w", padx=8, pady=(8, 2))
         marco, self.txt_bloque_parr = caja_texto(pb, alto=9)
         marco.pack(fill="both", expand=True, padx=8)
@@ -2816,7 +3031,7 @@ class EditorApp(tk.Tk):
             b["id"] = nuevo_id_hecho(self.enunciado_actual() or {})
         b["title"] = self.var_bloque_titulo.get().strip()
         crudo = sacar_texto(self.txt_bloque_parr)
-        b["paragraphs"] = [p.strip() for p in re.split(r"\n\s*\n", crudo) if p.strip()]
+        b["paragraphs"] = partir_parrafos(crudo)
         b["red"] = bool(self.var_bloque_red.get())
         b["hidden"] = bool(self.var_bloque_hidden.get())
 
@@ -2920,7 +3135,7 @@ class EditorApp(tk.Tk):
         if h is None:
             return
         h["date"] = self.var_hito_fecha.get().strip()
-        h["text"] = " ".join(sacar_texto(self.txt_hito_texto).split())
+        h["text"] = limpiar_texto(sacar_texto(self.txt_hito_texto))
         h["red"] = bool(self.var_hito_red.get())
         h["hidden"] = bool(self.var_hito_hidden.get())
 
@@ -3467,11 +3682,11 @@ class EditorApp(tk.Tk):
         if p is None:
             return
         p["tag"] = self.var_preg_tag.get().strip()
-        p["q"] = " ".join(sacar_texto(self.txt_preg_q).split())
+        p["q"] = limpiar_texto(sacar_texto(self.txt_preg_q))
 
         # Solo cuentan las filas de respuesta que estén a la vista
         cuantas = self._n_opciones()
-        p["a"] = [" ".join(sacar_texto(self.txt_opciones[i]).split()) for i in range(cuantas)]
+        p["a"] = [limpiar_texto(sacar_texto(self.txt_opciones[i])) for i in range(cuantas)]
         correctas = [i for i in range(cuantas) if self.var_preg_ok[i].get()]
         p["correctas"] = correctas or [0]
         p["c"] = p["correctas"][0]
@@ -3480,8 +3695,8 @@ class EditorApp(tk.Tk):
         p["respuestas"] = next((v for v, t in zip(self._valores_preg_resp,
                                                   self._etiquetas_preg_resp) if t == etiqueta), 0)
 
-        p["law"] = sacar_texto(self.txt_preg_law).strip()
-        p["tip"] = sacar_texto(self.txt_preg_tip).strip()
+        p["law"] = limpiar_texto(sacar_texto(self.txt_preg_law))
+        p["tip"] = limpiar_texto(sacar_texto(self.txt_preg_tip))
         if getattr(self, "_ids_bloque", None) and self.combo_bloque["values"]:
             p["bloqueId"] = self._ids_bloque[self.combo_bloque.current()]
         if hasattr(self, "_ids_combo") and self.combo_stmt["values"]:
