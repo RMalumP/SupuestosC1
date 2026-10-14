@@ -9,7 +9,7 @@
         con la suya y, si el archivo se quedó atrás, ofrece ponerlo al día
         al guardar. Subir este número al cambiar el motor.
     -->
-    <meta name="motor-plantilla" content="7">
+    <meta name="motor-plantilla" content="8">
     <title>[TÍTULO DE LA EVALUACIÓN]</title>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,600;1,8..60,300&family=JetBrains+Mono:wght@400;700&family=Caveat:wght@500;700&display=swap" rel="stylesheet">
 
@@ -1008,7 +1008,9 @@
                     encabezado (logo y organismo)
        tema       → colores de toda la página (fondos, textos, acentos)
        interfaz   → qué botones se ven y cómo se llaman
-       envio      → dirección del formulario y casilla de cada dato
+       envio      → dirección del formulario y casilla de cada dato;
+                    "total" = casillas del recuento ABSOLUTO (suma de todos
+                    los bloques) y "enviarTotal" = si se manda o no
        envioDetalle → (opcional) segundo formulario, el del detalle
                     pregunta a pregunta que sale solo al corregir. Si no
                     aparece, se usa el del proyecto, que ya viene puesto
@@ -1136,7 +1138,15 @@
     "examen": "entry.241409513",
     "usuario": "entry.1810433543",
     "tiempoAsignado": "entry.1069013600",
-    "tiempoEmpleado": "entry.815398067"
+    "tiempoEmpleado": "entry.815398067",
+    "enviarTotal": true,
+    "total": {
+      "preguntas": "entry.771114786",
+      "aciertos": "entry.1903892811",
+      "fallos": "entry.1155230396",
+      "blancos": "entry.943386498",
+      "puntos": ""
+    }
   },
   "envioDetalle": {
     "url": "https://docs.google.com/forms/d/e/1FAIpQLSfICCUGWcmcJ1zLFtphE1pictGOyfY9epNbSrHtEFfGvvK8HQ/formResponse",
@@ -1261,10 +1271,10 @@
       "fallo": 0.25,
       "blanco": 0.0,
       "envio": {
-        "preguntas": "entry.771114786",
-        "aciertos": "entry.1903892811",
-        "fallos": "entry.1155230396",
-        "blancos": "entry.943386498",
+        "preguntas": "",
+        "aciertos": "",
+        "fallos": "",
+        "blancos": "",
         "puntos": ""
       }
     },
@@ -1452,7 +1462,7 @@
       "statementId": null,
       "factIds": [],
       "tag": "Encuadramiento en Cooperativas de Trabajo Asociado",
-      "q": "La cooperativa de trabajo asociado \u003ci>\"MalTextil Soc. Coop.\" \u003c/i>debe formalizar la inclusión de sus socios trabajadores en la Seguridad Social.¿Qué alternativas prevé la legislación?",
+      "q": "La cooperativa de trabajo asociado \u003ci>\"MalTextil Soc. Coop.\" \u003c/i>debe formalizar la inclusión de sus socios trabajadores en la Seguridad Social. \u003cb>¿Qué alternativas prevé la legislación?\u003c/b>",
       "a": [
         "Inclusión obligatoria en el Régimen Especial de Trabajadores Autónomos (RETA).",
         "Opción en estatutos entre el Régimen General (como asimilados, sin FOGASA) o el RETA.",
@@ -1632,7 +1642,7 @@
         1
       ],
       "multiple": false,
-      "respuestas": 2,
+      "respuestas": 4,
       "law": "Conforme al \u003cb>art. 305.2.b)1.º de la LGSS\u003c/b>, se presume el control efectivo de la sociedad cuando al menos la mitad del capital (\u003cb>50%\u003c/b>) esté distribuido entre socios con los que el trabajador conviva y esté unido por vínculo conyugal o de parentesco hasta el segundo grado, lo que determina su inclusión obligatoria en el RETA.",
       "tip": ""
     },
@@ -1695,7 +1705,7 @@
         1
       ],
       "multiple": false,
-      "respuestas": 2,
+      "respuestas": 4,
       "law": "La \u003cb>Disposición Adicional quincuagésima segunda del TRLGSS\u003c/b> establece que las personas que realicen prácticas formativas o académicas externas se asimilan a trabajadores por cuenta ajena en el Régimen General. Su acción protectora excluye desempleo, FOGASA y formación profesional; y al ser no remuneradas, tampoco cubre la incapacidad temporal derivada de contingencias comunes",
       "tip": ""
     },
@@ -1800,7 +1810,7 @@
         2
       ],
       "multiple": false,
-      "respuestas": 2,
+      "respuestas": 4,
       "law": "Según el \u003cb>artículo 305.2.b) del TRLGSS\u003c/b>, se presume que el trabajador ostenta el control efectivo de la sociedad (y procede su inclusión en el \u003cb>RETA\u003c/b>) cuando al menos la mitad del capital social (\u003cb>50%\u003c/b>) esté distribuido entre socios con los que conviva y esté unido por vínculo conyugal o de parentesco hasta el segundo grado (en este caso: 10% + 25% + 20% = 55%).",
       "tip": ""
     },
@@ -3881,6 +3891,7 @@ function enviarResultados() {
     anota(ENVIO.tiempoEmpleado, tiempoEmpleado);
 
     // Un juego de casillas por cada bloque que haya salido en el intento
+    // (opcional: las casillas vacías no se envían).
     res.bloques.forEach(r => {
         const casillas = r.bloque.envio || {};
         anota(casillas.preguntas, r.total);
@@ -3889,6 +3900,22 @@ function enviarResultados() {
         anota(casillas.blancos,   r.blancos);
         anota(casillas.puntos,    nUm(r.puntos));
     });
+
+    // TOTAL ABSOLUTO: todos los bloques sumados como si fueran uno solo
+    // (preguntas, aciertos, fallos, en blanco y puntos). Se anota DESPUÉS
+    // de los bloques: si una casilla coincidiera con la de algún bloque,
+    // manda el total y no el último bloque que la pisaba.
+    // Archivos antiguos sin apartado "total": se usan las casillas del
+    // primer bloque, que es lo que antes hacía el formulario del proyecto.
+    if (ENVIO.enviarTotal !== false) {
+        const casTot = (ENVIO.total && typeof ENVIO.total === 'object') ? ENVIO.total
+                     : ((BLOCKS_BANK[0] && BLOCKS_BANK[0].envio) || {});
+        anota(casTot.preguntas, res.total);
+        anota(casTot.aciertos,  res.aciertos);
+        anota(casTot.fallos,    res.fallos);
+        anota(casTot.blancos,   res.blancos);
+        anota(casTot.puntos,    nUm(res.puntos));
+    }
 
     if (sendBtn) {
         sendBtn.disabled = true;
