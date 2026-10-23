@@ -52,6 +52,7 @@ if __name__ == "__main__":
 import menu_datos            # lista del menú
 import sincronizar_local     # poner al día y carpeta PARA_SUBIR
 import ventana_subir         # ventana «Para subir a GitHub»
+import ventana_menu          # ventana «Menú de inicio»
 
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, colorchooser
@@ -844,6 +845,7 @@ class EditorApp(tk.Tk):
         self.modo = "json"
         self.datos = datos_vacios()
         self.hay_cambios = False
+        self._destinos_menu = None      # sitios del menú (los rellena _alta_en_menu)
         self._silencio = False           # evita reentradas al repintar listas
 
         self.i_sec = None
@@ -921,6 +923,8 @@ class EditorApp(tk.Tk):
         ttk.Button(barra, text="🌐  Ver en el navegador", command=self.ver_navegador).pack(side="left")
         ttk.Button(barra, text="✔  Comprobar", command=self.comprobar).pack(side="left", padx=(6, 0))
         ttk.Separator(barra, orient="vertical").pack(side="left", fill="y", padx=10)
+        ttk.Button(barra, text="🗂  Menú de inicio…",
+                   command=lambda: ventana_menu.abrir(self)).pack(side="left", padx=(0, 6))
         ttk.Button(barra, text="📦  Para subir a GitHub…",
                    command=lambda: ventana_subir.abrir(self)).pack(side="left")
 
@@ -3609,6 +3613,7 @@ class EditorApp(tk.Tk):
                 escribir_menu(ruta_menu, texto, menu)
                 self.estado(self.lbl_estado.cget("text") + "   ·   menú actualizado")
                 return
+            self._destinos_menu = menu_datos.destinos(menu)
             elegido = self._pedir_grupo_menu(archivo)
             if not elegido:
                 self.estado(self.lbl_estado.cget("text") + "   ·   sin añadir al menú")
@@ -3636,8 +3641,9 @@ class EditorApp(tk.Tk):
         ttk.Label(marco, wraplength=380, justify="left",
                   text="«%s» todavía no está en el menú principal de la web.\n"
                        "¿En qué sección y grupo lo pongo?" % archivo).pack(anchor="w", pady=(0, 8))
-        grupo = tk.StringVar(value=GRUPOS_MENU[3][0])
-        for clave, etiqueta in GRUPOS_MENU:
+        sitios = self._destinos_menu or list(GRUPOS_MENU)
+        grupo = tk.StringVar(value="generales/avanzados" if any(c == "generales/avanzados" for c, _ in sitios) else sitios[0][0])
+        for clave, etiqueta in sitios:
             ttk.Radiobutton(marco, text=etiqueta, value=clave, variable=grupo).pack(anchor="w")
         fila = ttk.Frame(marco)
         fila.pack(fill="x", pady=(10, 0))

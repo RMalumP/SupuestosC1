@@ -25,7 +25,6 @@ Desde la línea de órdenes (el lanzador es editor_supuestos.py):
 import hashlib
 import json
 import os
-import re
 import shutil
 import sys
 from datetime import datetime

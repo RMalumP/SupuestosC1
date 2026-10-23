@@ -233,3 +233,182 @@ def destinos(menu):
             res.append(("%s/%s" % (s["id"], g["id"]), "%s · %s" % (s.get("titulo", s["id"]), g.get("titulo", g["id"]))))
     res.append(("examenes", "Exámenes y simulacros"))
     return res
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  Edición del menú (la usa la ventana «Menú de inicio» del editor)
+#  Todas estas funciones cambian el diccionario `menu` y no tocan el disco.
+# ══════════════════════════════════════════════════════════════════════
+CAMPOS_FICHA = ("letra", "ref", "titulo", "desc")
+
+
+def _slug(texto):
+    import unicodedata
+    t = unicodedata.normalize("NFKD", str(texto)).encode("ascii", "ignore").decode("ascii").lower()
+    t = re.sub(r"[^a-z0-9]+", "-", t).strip("-")
+    return t
+
+
+def _listas(menu):
+    """[(clave, lista)] de todas las listas de supuestos, en orden de pantalla."""
+    for s in menu.get("secciones", []):
+        for g in s.get("grupos", []):
+            yield "%s/%s" % (s["id"], g["id"]), g.setdefault("items", [])
+    yield "examenes", menu.setdefault("examenes", [])
+
+
+def buscar(menu, archivo):
+    """(clave, lista, posición) del supuesto, o None."""
+    for clave, lista in _listas(menu):
+        for i, it in enumerate(lista):
+            if it.get("archivo") == archivo:
+                return clave, lista, i
+    return None
+
+
+def mover(menu, archivo, delta):
+    """Sube (delta=-1) o baja (+1) un supuesto dentro de su lista. Devuelve True si se movió."""
+    r = buscar(menu, archivo)
+    if not r:
+        return False
+    _, lista, i = r
+    j = i + delta
+    if not 0 <= j < len(lista):
+        return False
+    lista[i], lista[j] = lista[j], lista[i]
+    return True
+
+
+def mover_a(menu, archivo, clave_destino, al_final=True):
+    """Cambia un supuesto de sección/grupo."""
+    r = buscar(menu, archivo)
+    if not r:
+        return False
+    _, lista, i = r
+    it = lista.pop(i)
+    destino = lista_de(menu, clave_destino)
+    destino.append(it) if al_final else destino.insert(0, it)
+    return True
+
+
+def editar(menu, archivo, **campos):
+    """Cambia letra, ref, titulo o desc de un supuesto."""
+    r = buscar(menu, archivo)
+    if not r:
+        return False
+    it = r[1][r[2]]
+    for k, v in campos.items():
+        if k in CAMPOS_FICHA:
+            it[k] = str(v).strip()
+    return True
+
+
+def ocultar(menu, archivo, oculto=True):
+    r = buscar(menu, archivo)
+    if not r:
+        return False
+    it = r[1][r[2]]
+    if oculto:
+        it["oculto"] = True
+    else:
+        it.pop("oculto", None)
+    return True
+
+
+def quitar(menu, archivo):
+    """Saca el supuesto del menú (no borra su .html)."""
+    r = buscar(menu, archivo)
+    if not r:
+        return False
+    r[1].pop(r[2])
+    return True
+
+
+def anadir(menu, ficha_supuesto, clave_destino):
+    """Añade una ficha (ver ficha()) al final del grupo; si ya estaba, la mueve."""
+    if buscar(menu, ficha_supuesto["archivo"]):
+        quitar(menu, ficha_supuesto["archivo"])
+    lista_de(menu, clave_destino).append(ficha_supuesto)
+
+
+def crear_seccion(menu, titulo, id_=None):
+    """Crea una sección vacía. Devuelve su id."""
+    id_ = _slug(id_ or titulo)
+    if not id_ or id_ == "examenes":
+        raise ValueError("El nombre de la sección no es válido.")
+    if any(s["id"] == id_ for s in menu.setdefault("secciones", [])):
+        raise ValueError("Ya existe una sección «%s»." % id_)
+    menu["secciones"].append({"id": id_, "titulo": titulo.strip() or id_.title(), "grupos": []})
+    return id_
+
+
+def crear_grupo(menu, seccion_id, titulo, id_=None):
+    """Crea un grupo vacío dentro de una sección. Devuelve la clave «sección/grupo»."""
+    sec = next((s for s in menu.get("secciones", []) if s["id"] == seccion_id), None)
+    if sec is None:
+        raise ValueError("No existe la sección «%s»." % seccion_id)
+    id_ = _slug(id_ or titulo)
+    if not id_:
+        raise ValueError("El nombre del grupo no es válido.")
+    if any(g["id"] == id_ for g in sec["grupos"]):
+        raise ValueError("Ya existe ese grupo en la sección.")
+    sec["grupos"].append({"id": id_, "titulo": titulo.strip() or id_.title(), "items": []})
+    return "%s/%s" % (seccion_id, id_)
+
+
+def renombrar(menu, clave, titulo):
+    """Cambia el título visible de una sección («temas») o de un grupo («temas/iniciales»)."""
+    sec_id, _, grupo_id = clave.partition("/")
+    sec = next((s for s in menu.get("secciones", []) if s["id"] == sec_id), None)
+    if sec is None:
+        return False
+    if not grupo_id:
+        sec["titulo"] = titulo.strip() or sec["titulo"]
+        return True
+    g = next((x for x in sec["grupos"] if x["id"] == grupo_id), None)
+    if g is None:
+        return False
+    g["titulo"] = titulo.strip() or g["titulo"]
+    return True
+
+
+def mover_contenedor(menu, clave, delta):
+    """Sube o baja una sección o un grupo entre sus hermanos."""
+    sec_id, _, grupo_id = clave.partition("/")
+    if not grupo_id:
+        lista = menu.get("secciones", [])
+        pos = next((i for i, s in enumerate(lista) if s["id"] == sec_id), None)
+    else:
+        sec = next((s for s in menu.get("secciones", []) if s["id"] == sec_id), None)
+        lista = sec["grupos"] if sec else []
+        pos = next((i for i, g in enumerate(lista) if g["id"] == grupo_id), None)
+    if pos is None or not 0 <= pos + delta < len(lista):
+        return False
+    lista[pos], lista[pos + delta] = lista[pos + delta], lista[pos]
+    return True
+
+
+def eliminar_contenedor(menu, clave):
+    """Borra una sección o grupo SOLO si está vacío."""
+    sec_id, _, grupo_id = clave.partition("/")
+    sec = next((s for s in menu.get("secciones", []) if s["id"] == sec_id), None)
+    if sec is None:
+        return False
+    if not grupo_id:
+        if any(g.get("items") for g in sec["grupos"]):
+            raise ValueError("La sección no está vacía: mueve antes sus supuestos a otro sitio.")
+        menu["secciones"].remove(sec)
+        return True
+    g = next((x for x in sec["grupos"] if x["id"] == grupo_id), None)
+    if g is None:
+        return False
+    if g.get("items"):
+        raise ValueError("El grupo no está vacío: mueve antes sus supuestos a otro sitio.")
+    sec["grupos"].remove(g)
+    return True
+
+
+def sin_alta(menu, carpeta_supuestos):
+    """Nombres de los .html de la carpeta que todavía no están en el menú."""
+    en_menu = set(archivos_del_menu(menu))
+    return sorted(p.stem for p in Path(carpeta_supuestos).glob("*.html") if p.stem not in en_menu)
