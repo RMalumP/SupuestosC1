@@ -118,20 +118,33 @@ async function envios() {
 
 /* ───────── 3. estilos ───────── */
 const ZONAS = ['body', '#nav-header', '#timer', '.inst-header', '.block-header', '.question-card.active', '.option', '.btn-zone', '.progress-bar-wrap', '#settings-panel'];
-const PROPS_DE_LAYOUT = /^(width|height|block-size|inline-size|perspective-origin|transform-origin|min-width|min-height|--)/;
+/* Solo se miran estas propiedades visuales, siempre las mismas: cada versión de Chromium lista un
+   conjunto distinto de propiedades «calculadas», y comparar todas hacía que las referencias guardadas
+   en un ordenador fallaran en otro (por ejemplo, en GitHub). Tampoco se miran las medidas que dependen
+   de las fuentes del sistema (ancho y alto). */
+const PROPS_VISUALES = ['display', 'position', 'visibility', 'opacity', 'z-index', 'overflow-x', 'overflow-y',
+    'color', 'background-color', 'background-image', 'box-shadow', 'text-shadow', 'filter', 'transform',
+    'border-top-color', 'border-top-width', 'border-top-style', 'border-right-color', 'border-right-width', 'border-right-style',
+    'border-bottom-color', 'border-bottom-width', 'border-bottom-style', 'border-left-color', 'border-left-width', 'border-left-style',
+    'border-top-left-radius', 'border-top-right-radius', 'border-bottom-left-radius', 'border-bottom-right-radius',
+    'outline-style', 'outline-width', 'outline-color',
+    'font-family', 'font-size', 'font-weight', 'font-style', 'line-height', 'letter-spacing', 'text-transform', 'text-align',
+    'text-decoration-line', 'white-space', 'cursor',
+    'margin-top', 'margin-bottom', 'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
+    'flex-direction', 'flex-wrap', 'align-items', 'justify-content', 'gap', 'grid-template-columns'];
 async function huellas(pg) {
-    return pg.evaluate(([zonas, excl]) => {
-        const re = new RegExp(excl), h = s => { let a = 0xdeadbeef, b = 0x41c6ce57; for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i); a = Math.imul(a ^ c, 2654435761); b = Math.imul(b ^ c, 1597334677); } a = Math.imul(a ^ (a >>> 16), 2246822507) ^ Math.imul(b ^ (b >>> 13), 3266489909); return (a >>> 0).toString(36); };
+    return pg.evaluate(([zonas, props]) => {
+        const h = s => { let a = 0xdeadbeef, b = 0x41c6ce57; for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i); a = Math.imul(a ^ c, 2654435761); b = Math.imul(b ^ c, 1597334677); } a = Math.imul(a ^ (a >>> 16), 2246822507) ^ Math.imul(b ^ (b >>> 13), 3266489909); return (a >>> 0).toString(36); };
         const out = {};
         zonas.forEach(z => {
             const el = document.querySelector(z); if (!el) { out[z] = 'ausente'; return; }
             const todos = [el].concat([...el.querySelectorAll('*')]).filter(e => !['SCRIPT', 'STYLE'].includes(e.tagName));
             let s = '';
-            todos.forEach(e => { const cs = getComputedStyle(e); [...cs].filter(p => !re.test(p)).sort().forEach(p => { s += p + ':' + cs.getPropertyValue(p) + ';'; }); s += '|'; });
+            todos.forEach(e => { const cs = getComputedStyle(e); props.forEach(p => { s += p + ':' + cs.getPropertyValue(p) + ';'; }); s += '|'; });
             out[z] = h(s) + '/' + todos.length;
         });
         return out;
-    }, [ZONAS, PROPS_DE_LAYOUT.source]);
+    }, [ZONAS, PROPS_VISUALES]);
 }
 async function estilos() {
     const nuevo = {}; const gold = leerGolden('estilos.json');
