@@ -179,3 +179,11 @@ body.intento-parcial #send-btn { display: none !important; }
 :root[data-tema="oscuro"] .question-card::before { background: linear-gradient(90deg, var(--gold), var(--navy-mid)) !important; }
 :root[data-tema="oscuro"] .q-header { border-bottom-color: var(--t-line); }
 @media (min-width: 0) { :root[data-tema="oscuro"] .supc1-modal-caja { border-top-color: var(--gold); } }
+
+/* Tipografía · Public Sans en los textos (la barra superior y el cronómetro no cambian) */
+:root { --f-ui: 'Public Sans', 'Segoe UI', Helvetica, Arial, sans-serif; }
+body, .q-text, .option, .statement, .statement p, .block-header h3, .inst-header h1, .statement-title-block h2,
+.feedback, .multi-aviso, .supc1-modal-caja, .stmt-foco { font-family: var(--f-ui); }
+.inst-header h1, .block-header h3, .statement-title-block h2 { font-style: normal; font-weight: 800; }
+.q-text { font-weight: 600; }
+.q-num, .exp-number { font-family: var(--f-ui); font-weight: 800; }

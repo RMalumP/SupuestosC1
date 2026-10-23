@@ -99,3 +99,28 @@ table.results-table thead th:last-child  { border-radius: 0 10px 0 0; }
 :root[data-tema="oscuro"] .category-btn { background: var(--t-surface); color: var(--brown); }
 :root[data-tema="oscuro"] .category-btn.active { background: var(--blue); color: #2b2118; border-color: var(--blue); }
 :root[data-tema="oscuro"] table.results-table tbody td { color: var(--t-ink); }
+
+/* ════════════════════════════════════════════════════════════════
+   TIPOGRAFÍA · Public Sans (sin serif) y tarjetas con el círculo junto al título
+════════════════════════════════════════════════════════════════ */
+:root { --f-ui: 'Public Sans', 'Segoe UI', Helvetica, Arial, sans-serif; }
+body, .hero p, .supuesto-card .desc, .grupo-desc, .filtros input[type="search"], .test-card, .state-msg { font-family: var(--f-ui); }
+.hero h1, .hero h1 strong, .seccion-head h2, .grupo-head h3,
+.supuesto-card h2, .supuesto-card .exp-number, .test-card h3, .results-header h2 { font-family: var(--f-ui); font-style: normal; }
+.logo-subtitle, .supuesto-card .ref, .supuesto-card .go, .grupo-head .contador, .chip, .chips button,
+.grid-title, .category-btn, .refresh-btn, footer, .back-link { font-family: var(--f-ui); font-weight: 600; letter-spacing: 0.08em; }
+.hero h1 { font-weight: 400; }
+.hero h1 strong { font-weight: 800; letter-spacing: -0.01em; }
+.seccion-head h2 { font-weight: 800; font-size: 1.5rem; letter-spacing: -0.005em; }
+.grupo-head h3 { font-weight: 700; font-size: 1.15rem; }
+
+/* Tarjeta: el círculo con las iniciales a la izquierda del título, en la misma fila.
+   El título fluye alrededor del círculo: con una o dos líneas queda a su lado y, si
+   hace falta una tercera, pasa por debajo del círculo. (El círculo mide 2,5 rem y dos
+   líneas del título 2,65 rem, por eso la tercera ya cae fuera del círculo.) */
+.supuesto-card .exp-number {
+    float: left; width: 2.5rem; height: 2.5rem; margin: 0 0.8rem 0 0;
+    font-size: 0.95rem; font-weight: 800; letter-spacing: -0.02em; overflow: hidden;
+}
+.supuesto-card h2 { font-size: 1.02rem; line-height: 1.3; font-weight: 700; margin: 0 0 0.9rem; }
+.supuesto-card .ref { clear: both; display: block; margin: 0 0 0.6rem; padding-top: 0.55rem; }

@@ -78,3 +78,11 @@ table.results-table tbody tr:hover { background: rgba(143,196,217,0.18); }
 :root[data-tema="oscuro"] .results-panel::before { background: linear-gradient(90deg, var(--blue), #5c4033); }
 :root[data-tema="oscuro"] .state-msg.error { color: #f0a090; }
 :root[data-tema="oscuro"] .state-msg a.retry { color: var(--blue-lt); border-color: var(--blue-lt); }
+
+/* Tipografía · Public Sans */
+:root { --f-ui: 'Public Sans', 'Segoe UI', Helvetica, Arial, sans-serif; }
+body, .hero p, .test-card, .state-msg, table.results-table { font-family: var(--f-ui); }
+.hero h1, .hero h1 strong, .test-card h3, .results-header h2, td.name-cell { font-family: var(--f-ui); font-style: normal; }
+.hero h1 { font-weight: 400; } .hero h1 strong { font-weight: 800; }
+.logo-subtitle, .grid-title, .category-btn, .refresh-btn, .back-link, .test-card .meta-row, .results-header .sub,
+table.results-table thead th, td.rank-cell, td.nota-cell, footer { font-family: var(--f-ui); font-weight: 600; }

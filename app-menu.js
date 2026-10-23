@@ -39,7 +39,7 @@
         var a = document.createElement('a');
         a.className = 'supuesto-card'; a.href = 'supuestos/' + it.archivo + '.html';
         a.dataset.estado = e.clave;
-        a.innerHTML = '<div class="exp-number"></div><span class="ref"></span><h2></h2><div class="desc"></div><div class="prog"></div><div class="go"></div>';
+        a.innerHTML = '<div class="exp-number"></div><h2></h2><span class="ref"></span><div class="desc"></div><div class="prog"></div><div class="go"></div>';
         a.querySelector('.exp-number').textContent = it.letra;
         a.querySelector('.ref').textContent = 'REF: ' + it.ref;
         a.querySelector('h2').textContent = it.titulo;

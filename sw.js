@@ -1,4 +1,4 @@
-const VERSION = "v5";
+const VERSION = "v6";
 const CACHE = "supuestos-c1-" + VERSION;
 const PRECACHE = [
   "./",
@@ -25,6 +25,10 @@ const PRECACHE = [
   "fuentes/source-serif-4-italic-300-latin.woff2",
   "fuentes/source-serif-4-normal-300-latin-ext.woff2",
   "fuentes/source-serif-4-normal-300-latin.woff2",
+  "fuentes/public-sans-latin-1.woff2",
+  "fuentes/public-sans-latin-3.woff2",
+  "fuentes/public-sans-latin-ext-0.woff2",
+  "fuentes/public-sans-latin-ext-2.woff2",
   "icons/icon-192.png",
   "icons/icon-512.png",
   "resultados/resultados.html",
