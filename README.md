@@ -20,6 +20,8 @@ El sitio está disponible en:
 - **Seguimiento de resultados** – Consulta tus estadísticas y el historial de supuestos realizados.
 - **Calculadora de examen** – Herramienta para calcular notas transformadas y estimar la puntuación final.
 
+- **App instalable (PWA)** – Se puede instalar en navegadores de escritorio, Android e iOS ("Añadir a pantalla de inicio") y funciona sin conexión tras la primera visita.
+
 ---
 
 ## 🤝 Cómo contribuir
