@@ -18,7 +18,7 @@
         con la suya y, si el archivo se quedó atrás, ofrece ponerlo al día
         al guardar. Subir este número al cambiar el motor.
     -->
-    <meta name="motor-plantilla" content="5">
+    <meta name="motor-plantilla" content="8">
     <title>[TÍTULO DE LA EVALUACIÓN]</title>
     <link rel="stylesheet" href="../fuentes/fuentes.css">
 
@@ -296,6 +296,45 @@
         .fs-l   { font-size: 1.15em; }
         .fs-xl  { font-size: 1.35em; }
         .fs-xxl { font-size: 1.6em; }
+
+        /* ── PÁRRAFOS Y JUSTIFICADO ───────────────────────────────────
+           Los saltos de línea (Enter) que se escriben en el editor se
+           respetan en la página: sin esto el navegador los trata como un
+           espacio y junta todo el texto en un solo párrafo.
+           pre-line conserva los saltos pero sigue colapsando los espacios
+           repetidos, así que el resto del texto se ve igual que antes. */
+        .q-text, .statement p, .feedback-body p, .feedback-body .tip,
+        .tl-item, .ci-q, .ci-law, .ci-tip, .option > span:last-child { white-space: pre-line; }
+
+        /* Justificado: ajusta el párrafo al ancho de la línea. Lo escribe
+           el editor con el botón «Just.»:  <span class="al-j">…</span>
+           (la última línea de cada párrafo queda alineada a la izquierda,
+           como en cualquier procesador de textos). Es un span en bloque y
+           no un div para que sea válido también dentro de un <p>. */
+        .al-j { display: block; text-align: justify; text-justify: inter-word; }
+        /* En la lista de respuestas de la corrección va en línea, para que
+           «A)» no quede solo en una línea y el texto debajo. */
+        .ci-answers .al-j { display: inline; text-align: inherit; }
+
+        /* ── SANGRÍA ──────────────────────────────────────────────────
+           Mete un párrafo más hacia dentro que el anterior, hasta tres
+           niveles. La escribe el editor con los botones «Sang+» y
+           «Sang-» (o con Tab y Mayús+Tab):
+               <span class="sg-1">…</span>   (sg-2, sg-3: más adentro)
+           Puede ir junto al justificado:  class="al-j sg-1" */
+        .sg-1 { display: block; margin-left: 1.5em; }
+        .sg-2 { display: block; margin-left: 3em; }
+        .sg-3 { display: block; margin-left: 4.5em; }
+        .ci-answers .sg-1, .ci-answers .sg-2, .ci-answers .sg-3 { display: inline; margin-left: 0; }
+
+        /* ── TIPOGRAFÍAS ──────────────────────────────────────────────
+           Se eligen en el editor con el menú «Fuente». Las tres últimas
+           ya se cargan arriba desde Google Fonts; cada una lleva una
+           fuente de reserva por si no hubiera conexión. */
+        .ff-sans   { font-family: 'Segoe UI', Helvetica, Arial, sans-serif; }
+        .ff-titulo { font-family: 'Playfair Display', Georgia, serif; }
+        .ff-mono   { font-family: 'JetBrains Mono', Consolas, monospace; font-size: 0.9em; }
+        .ff-mano   { font-family: 'Caveat', 'Segoe Script', cursive; font-size: 1.2em; }
 
         @media print {
             body { background: white !important; color: black !important; }
@@ -617,7 +656,9 @@
                     encabezado (logo y organismo)
        tema       → colores de toda la página (fondos, textos, acentos)
        interfaz   → qué botones se ven y cómo se llaman
-       envio      → dirección del formulario y casilla de cada dato
+       envio      → dirección del formulario y casilla de cada dato;
+                    "total" = casillas del recuento ABSOLUTO (suma de todos
+                    los bloques) y "enviarTotal" = si se manda o no
        envioDetalle → (opcional) segundo formulario, el del detalle
                     pregunta a pregunta que sale solo al corregir. Si no
                     aparece, se usa el del proyecto, que ya viene puesto
@@ -745,7 +786,15 @@
     "examen": "entry.241409513",
     "usuario": "entry.1810433543",
     "tiempoAsignado": "entry.1069013600",
-    "tiempoEmpleado": "entry.815398067"
+    "tiempoEmpleado": "entry.815398067",
+    "total": {
+      "preguntas": "entry.771114786",
+      "aciertos": "entry.1903892811",
+      "fallos": "entry.1155230396",
+      "blancos": "entry.943386498",
+      "puntos": ""
+    },
+    "enviarTotal": true
   },
   "envioDetalle": {
     "url": "https://docs.google.com/forms/d/e/1FAIpQLSfICCUGWcmcJ1zLFtphE1pictGOyfY9epNbSrHtEFfGvvK8HQ/formResponse",
@@ -870,10 +919,10 @@
       "fallo": 0.25,
       "blanco": 0.0,
       "envio": {
-        "preguntas": "entry.771114786",
-        "aciertos": "entry.1903892811",
-        "fallos": "entry.1155230396",
-        "blancos": "entry.943386498",
+        "preguntas": "",
+        "aciertos": "",
+        "fallos": "",
+        "blancos": "",
         "puntos": ""
       }
     }
@@ -3069,11 +3118,11 @@ function showCorrectionPanel() {
         document.getElementById(`feed-${i}`).style.display = 'block';
 
         // Textos de las opciones tal y como han salido en esta tarjeta
-        const optEls   = document.querySelectorAll(`#qcard-${i} .option span:last-child`);
+        const optEls   = document.querySelectorAll(`#qcard-${i} .option > span:last-child`);
         // innerHTML y no textContent: así el formato de la respuesta
         // (negrita, resaltado, tamaño…) también se ve en la corrección.
         const optTexts = [...optEls].map(el => el.innerHTML.trim());
-        const listar   = idx => idx.map(n => `${LETTERS[n]}) ${optTexts[n]}`).join('<br>');
+        const listar   = idx => idx.map(n => `${LETTERS[n]}) ${String(optTexts[n]).replace(/\n/g, '<br>')}`).join('<br>');
         const varias   = correctas.length > 1;
 
         const badgeClass = isSkipped ? 'skip' : isCorrect ? 'ok' : 'err';
@@ -3352,6 +3401,7 @@ function enviarResultados() {
     anota(ENVIO.tiempoEmpleado, tiempoEmpleado);
 
     // Un juego de casillas por cada bloque que haya salido en el intento
+    // (opcional: las casillas vacías no se envían).
     res.bloques.forEach(r => {
         const casillas = r.bloque.envio || {};
         anota(casillas.preguntas, r.total);
@@ -3360,6 +3410,22 @@ function enviarResultados() {
         anota(casillas.blancos,   r.blancos);
         anota(casillas.puntos,    nUm(r.puntos));
     });
+
+    // TOTAL ABSOLUTO: todos los bloques sumados como si fueran uno solo
+    // (preguntas, aciertos, fallos, en blanco y puntos). Se anota DESPUÉS
+    // de los bloques: si una casilla coincidiera con la de algún bloque,
+    // manda el total y no el último bloque que la pisaba.
+    // Archivos antiguos sin apartado "total": se usan las casillas del
+    // primer bloque, que es lo que antes hacía el formulario del proyecto.
+    if (ENVIO.enviarTotal !== false) {
+        const casTot = (ENVIO.total && typeof ENVIO.total === 'object') ? ENVIO.total
+                     : ((BLOCKS_BANK[0] && BLOCKS_BANK[0].envio) || {});
+        anota(casTot.preguntas, res.total);
+        anota(casTot.aciertos,  res.aciertos);
+        anota(casTot.fallos,    res.fallos);
+        anota(casTot.blancos,   res.blancos);
+        anota(casTot.puntos,    nUm(res.puntos));
+    }
 
     if (sendBtn) {
         sendBtn.disabled = true;
