@@ -729,7 +729,7 @@
   web (continuar un intento, repetir falladas, marcar preguntas, tema oscuro…).
   Para que funcionen, el supuesto debe guardarse dentro de la carpeta
   «supuestos/» del proyecto (o en otra del mismo nivel que «Py/»): enlaza a los
-  archivos tema-supuesto.css, app-supuesto.js, prefs.js, pwa.js y fuentes/ que
+  archivos base-supuesto.css, tema-supuesto.css, app-supuesto.js, prefs.js, pwa.js y fuentes/ que
   están UNA CARPETA POR ENCIMA.
 
   ALTA EN EL MENÚ PRINCIPAL

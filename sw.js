@@ -1,4 +1,4 @@
-const VERSION = "v6";
+const VERSION = "v7";
 const CACHE = "supuestos-c1-" + VERSION;
 const PRECACHE = [
   "./",
@@ -6,6 +6,7 @@ const PRECACHE = [
   "manifest.webmanifest",
   "tema-menu.css",
   "tema-resultados.css",
+  "base-supuesto.css",
   "tema-supuesto.css",
   "prefs.js",
   "pwa.js",
