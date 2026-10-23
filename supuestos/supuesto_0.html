@@ -10,7 +10,8 @@
     <link rel="manifest" href="../manifest.webmanifest">
     <link rel="icon" href="../icons/icon-192.png">
     <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
-    <script>if("serviceWorker" in navigator)window.addEventListener("load",function(){navigator.serviceWorker.register("../sw.js").catch(function(){})});</script>
+    <script src="../prefs.js"></script>
+    <script src="../pwa.js" defer></script>
     <!--
         Versión del MOTOR de la plantilla (el código que hace funcionar la
         página, no los datos del supuesto). El editor de Python la compara
@@ -19,7 +20,7 @@
     -->
     <meta name="motor-plantilla" content="4">
     <title>[TÍTULO DE LA EVALUACIÓN]</title>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,600;1,8..60,300&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../fuentes/fuentes.css">
 
     <style>
         /* ════════════════════════════════════════
@@ -3731,5 +3732,6 @@ applyExamConfig();
 init('default');
 </script>
 
+<script src="../app-supuesto.js" defer></script>
 </body>
 </html>

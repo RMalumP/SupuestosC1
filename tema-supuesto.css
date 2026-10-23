@@ -5,12 +5,14 @@
    si el editor cambia los colores, el tema los sigue.
    La barra superior de navegación NO se toca.
 ════════════════════════════════════════════════════════════════ */
-body { background: var(--cream); }
+/* Variables del tema (el modo oscuro las redefine al final del archivo) */
+:root { --t-bg: var(--cream); --t-surface: #fff; --t-ink: #2b2118; --t-soft: #6b5d52; --t-line: rgba(var(--navy-rgb), 0.14); }
+body { background: var(--t-bg); }
 body::before { display: none; }
 
 /* Cabecera del supuesto */
 .inst-header {
-    background: #fff; border: 0; border-radius: 14px; overflow: hidden;
+    background: var(--t-surface); border: 0; border-radius: 14px; overflow: hidden;
     box-shadow: 0 6px 24px rgba(var(--navy-rgb), 0.10);
     text-align: left; padding: 34px 40px;
 }
@@ -22,14 +24,14 @@ body::before { display: none; }
 
 /* Cabecera de bloque */
 .block-header {
-    border-radius: 12px !important; background: #fff !important;
+    border-radius: 12px !important; background: var(--t-surface) !important;
     border-left-width: 6px; border-bottom: 0;
     box-shadow: 0 2px 10px rgba(var(--navy-rgb), 0.08);
 }
 
 /* Tarjetas de pregunta y enunciado */
 .question-card, .statement {
-    background: #fff; border: 0; border-radius: 14px;
+    background: var(--t-surface); border: 0; border-radius: 14px;
     box-shadow: 0 6px 24px rgba(var(--navy-rgb), 0.10);
 }
 .statement::after { display: none; }
@@ -49,7 +51,7 @@ body::before { display: none; }
 .q-tag { color: var(--blue-deep); font-weight: 700; }
 
 /* Opciones apiladas */
-.option { border: 1px solid rgba(var(--navy-rgb), 0.14); border-radius: 12px; background: #fff; padding: 16px 20px; }
+.option { border: 1px solid var(--t-line); border-radius: 12px; background: var(--t-surface); color: var(--t-ink); padding: 16px 20px; }
 .option:hover { background: rgba(var(--gold-rgb), 0.12); border-color: var(--gold); transform: none; }
 .option.selected { background: rgba(var(--gold-rgb), 0.22); border-color: var(--blue-deep); box-shadow: inset 5px 0 0 var(--blue-deep); }
 .opt-letter { background: var(--gold); color: var(--navy); width: 30px; height: 30px; }
@@ -91,7 +93,7 @@ body::before { display: none; }
     .btn-zone {
         position: fixed; left: 0; right: 0; bottom: 0; margin: 0; z-index: 900; gap: 6px;
         padding: 10px 10px calc(10px + env(safe-area-inset-bottom));
-        background: rgba(253, 248, 240, 0.96); backdrop-filter: blur(8px);
+        background: var(--t-bar, rgba(253, 248, 240, 0.96)); backdrop-filter: blur(8px);
         border-top: 1px solid rgba(var(--navy-rgb), 0.12);
     }
     .btn-zone .btn { flex: 1 1 40%; padding: 11px 8px; font-size: 0.68rem; text-align: center; letter-spacing: 0.08em; }
@@ -101,3 +103,79 @@ body::before { display: none; }
     #timer .timer-label { display: none; }
 }
 @media print { .btn-zone { position: static; } }
+
+/* ════════════════════════════════════════════════════════════════
+   FUNCIONES EXTRA (app-supuesto.js)
+════════════════════════════════════════════════════════════════ */
+/* Marcar para revisar */
+.btn-marcar {
+    margin-left: auto; align-self: flex-start; flex-shrink: 0; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.58rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700;
+    color: var(--t-soft); background: transparent; border: 1px solid var(--t-line); border-radius: 99px; padding: 6px 12px;
+}
+.btn-marcar i { font-style: normal; filter: grayscale(1); opacity: .6; }
+.btn-marcar:hover { border-color: #f59e0b; color: #b45309; }
+.btn-marcar.on { background: #fef3c7; color: #92400e; border-color: #f59e0b; }
+.btn-marcar.on i { filter: none; opacity: 1; }
+.nav-box { position: relative; }
+.nav-box.marcada::after {
+    content: ''; position: absolute; top: -3px; right: -3px; width: 9px; height: 9px;
+    border-radius: 50%; background: #f59e0b; border: 1.5px solid var(--navy-mid);
+}
+body.intento-parcial #send-btn { display: none !important; }
+
+/* Aviso «intento sin terminar» */
+.supc1-modal { position: fixed; inset: 0; z-index: 6000; background: rgba(29,21,17,.6); display: flex; align-items: center; justify-content: center; padding: 20px; }
+.supc1-modal-caja { background: var(--t-surface); color: var(--t-ink); border-radius: 16px; padding: 26px 24px; max-width: 420px; width: 100%; box-shadow: 0 20px 50px rgba(0,0,0,.4); border-top: 6px solid var(--navy); }
+.supc1-modal-caja h3 { font-family: 'Playfair Display', serif; font-size: 1.2rem; margin-bottom: 10px; }
+.supc1-modal-caja p { font-size: .95rem; line-height: 1.5; margin-bottom: 18px; }
+.supc1-modal-botones { display: flex; gap: 10px; flex-wrap: wrap; }
+.supc1-modal-botones .btn { flex: 1 1 140px; }
+.supc1-modal-botones .btn:not(.btn-primary) { background: transparent; color: var(--t-ink); border-color: var(--t-line); }
+
+/* Panel ⚙: tamaño de letra */
+.fuente-btns { display: flex; gap: 6px; }
+.fuente-btns button {
+    flex: 1; font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: .8rem; cursor: pointer;
+    padding: 7px 0; color: #fff; background: rgba(255,255,255,.06); border: 1.5px solid rgba(var(--gold-rgb),.35); border-radius: var(--radius);
+}
+.fuente-btns button.on { background: var(--gold); color: var(--ink); border-color: var(--gold); }
+
+/* Tamaño de letra elegido por la persona */
+:root[data-fuente="grande"] .q-text   { font-size: 1.2rem; }
+:root[data-fuente="grande"] .option   { font-size: 1.08rem; }
+:root[data-fuente="grande"] .statement p { font-size: 1.08rem; }
+:root[data-fuente="enorme"] .q-text   { font-size: 1.4rem; }
+:root[data-fuente="enorme"] .option   { font-size: 1.25rem; }
+:root[data-fuente="enorme"] .statement p { font-size: 1.25rem; }
+
+/* ════════════════════════════════════════════════════════════════
+   TEMA OSCURO
+════════════════════════════════════════════════════════════════ */
+:root[data-tema="oscuro"] {
+    color-scheme: dark;
+    --t-bg: #1d1511; --t-surface: #2a1f19; --t-ink: #f1e6da; --t-soft: #c9b8a8; --t-line: rgba(255,255,255,.16); --t-bar: rgba(29,21,17,.96);
+}
+:root[data-tema="oscuro"] body { color: var(--t-ink); }
+:root[data-tema="oscuro"] .inst-header h1,
+:root[data-tema="oscuro"] .q-text,
+:root[data-tema="oscuro"] .block-header h3,
+:root[data-tema="oscuro"] .statement strong,
+:root[data-tema="oscuro"] .statement-title-block h2 { color: var(--t-ink); }
+:root[data-tema="oscuro"] .statement p,
+:root[data-tema="oscuro"] .inst-header .organismo,
+:root[data-tema="oscuro"] .block-header .bh-datos { color: var(--t-soft); }
+:root[data-tema="oscuro"] .meta-pill { background: var(--navy-mid); }
+:root[data-tema="oscuro"] .q-tag, :root[data-tema="oscuro"] .q-body .q-tag { color: var(--gold); }
+:root[data-tema="oscuro"] .option:hover { background: rgba(var(--gold-rgb), .14); }
+:root[data-tema="oscuro"] .option.selected { background: rgba(var(--gold-rgb), .22); border-color: var(--gold); box-shadow: inset 5px 0 0 var(--gold); }
+:root[data-tema="oscuro"] .option.correct { background: rgba(60, 160, 100, .22); color: #8be0b0; border-color: #3ca064; }
+:root[data-tema="oscuro"] .option.wrong { background: rgba(200, 70, 70, .2); color: #fca5a5; border-color: #c84646; }
+:root[data-tema="oscuro"] .fact-block { background: rgba(255,255,255,.05); color: var(--t-ink); }
+:root[data-tema="oscuro"] .btn-marcar.on { background: #5b3d0a; color: #fde68a; }
+:root[data-tema="oscuro"] .btn { }
+:root[data-tema="oscuro"] .btn-primary { background: var(--navy-mid); border-color: var(--navy-mid); }
+:root[data-tema="oscuro"] .question-card::before { background: linear-gradient(90deg, var(--gold), var(--navy-mid)) !important; }
+:root[data-tema="oscuro"] .q-header { border-bottom-color: var(--t-line); }
+@media (min-width: 0) { :root[data-tema="oscuro"] .supc1-modal-caja { border-top-color: var(--gold); } }

@@ -1,4 +1,4 @@
-const VERSION = "v3";
+const VERSION = "v4";
 const CACHE = "supuestos-c1-" + VERSION;
 const PRECACHE = [
   "./",
@@ -7,6 +7,24 @@ const PRECACHE = [
   "tema-menu.css",
   "tema-resultados.css",
   "tema-supuesto.css",
+  "prefs.js",
+  "pwa.js",
+  "app-menu.js",
+  "app-supuesto.js",
+  "supuestos-datos.js",
+  "fuentes/fuentes.css",
+  "fuentes/caveat-normal-500-latin-ext.woff2",
+  "fuentes/caveat-normal-500-latin.woff2",
+  "fuentes/jetbrains-mono-normal-400-latin-ext.woff2",
+  "fuentes/jetbrains-mono-normal-400-latin.woff2",
+  "fuentes/playfair-display-italic-400-latin-ext.woff2",
+  "fuentes/playfair-display-italic-400-latin.woff2",
+  "fuentes/playfair-display-normal-400-latin-ext.woff2",
+  "fuentes/playfair-display-normal-400-latin.woff2",
+  "fuentes/source-serif-4-italic-300-latin-ext.woff2",
+  "fuentes/source-serif-4-italic-300-latin.woff2",
+  "fuentes/source-serif-4-normal-300-latin-ext.woff2",
+  "fuentes/source-serif-4-normal-300-latin.woff2",
   "icons/icon-192.png",
   "icons/icon-512.png",
   "resultados/resultados.html",
@@ -22,7 +40,15 @@ const PRECACHE = [
 ];
 
 self.addEventListener("install", e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(PRECACHE)).then(() => self.skipWaiting()));
+  // Primera instalación: se activa ya. Si había una versión anterior, espera a
+  // que la persona pulse «Actualizar» (ver pwa.js) para no cambiar nada a mitad de un examen.
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(PRECACHE)).then(() => {
+    if (!self.registration.active) self.skipWaiting();
+  }));
+});
+
+self.addEventListener("message", e => {
+  if (e.data === "SKIP_WAITING") self.skipWaiting();
 });
 
 self.addEventListener("activate", e => {
