@@ -86,3 +86,7 @@ body, .hero p, .test-card, .state-msg, table.results-table { font-family: var(--
 .hero h1 { font-weight: 400; } .hero h1 strong { font-weight: 800; }
 .logo-subtitle, .grid-title, .category-btn, .refresh-btn, .back-link, .test-card .meta-row, .results-header .sub,
 table.results-table thead th, td.rank-cell, td.nota-cell, footer { font-family: var(--f-ui); font-weight: 600; }
+
+/* Accesibilidad: el pie tenía poco contraste */
+footer { opacity: 1; color: #6b5d52; }
+:root[data-tema="oscuro"] footer { color: #c9b8a8; }

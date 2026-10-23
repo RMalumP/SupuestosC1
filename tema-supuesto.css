@@ -108,14 +108,18 @@ body::before { display: none; }
    FUNCIONES EXTRA (app-supuesto.js)
 ════════════════════════════════════════════════════════════════ */
 /* Marcar para revisar */
-.btn-marcar {
-    margin-left: auto; align-self: flex-start; flex-shrink: 0; cursor: pointer;
+.btn-marcar, .btn-nota {
+    cursor: pointer;
     display: inline-flex; align-items: center; gap: 6px;
     font-family: 'JetBrains Mono', monospace; font-size: 0.58rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700;
     color: var(--t-soft); background: transparent; border: 1px solid var(--t-line); border-radius: 99px; padding: 6px 12px;
 }
-.btn-marcar i { font-style: normal; filter: grayscale(1); opacity: .6; }
+.q-acciones { margin-left: auto; align-self: flex-start; flex-shrink: 0; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.btn-marcar i, .btn-nota i { font-style: normal; filter: grayscale(1); opacity: .6; }
 .btn-marcar:hover { border-color: #f59e0b; color: #b45309; }
+.btn-nota:hover { border-color: var(--blue-deep); color: var(--blue-deep); }
+.btn-nota.on { background: #e3f1f8; color: #1f5878; border-color: var(--blue-deep); }
+.btn-nota.on i { filter: none; opacity: 1; }
 .btn-marcar.on { background: #fef3c7; color: #92400e; border-color: #f59e0b; }
 .btn-marcar.on i { filter: none; opacity: 1; }
 .nav-box { position: relative; }
@@ -187,3 +191,40 @@ body, .q-text, .option, .statement, .statement p, .block-header h3, .inst-header
 .inst-header h1, .block-header h3, .statement-title-block h2 { font-style: normal; font-weight: 800; }
 .q-text { font-weight: 600; }
 .q-num, .exp-number { font-family: var(--f-ui); font-weight: 800; }
+
+/* ── Notas personales ── */
+.nota-caja {
+    display: block; width: 100%; margin: 0 0 18px; padding: 12px 14px; resize: vertical;
+    font: inherit; font-size: 0.92rem; line-height: 1.5; color: var(--t-ink); background: rgba(var(--gold-rgb), 0.12);
+    border: 1px dashed var(--blue-deep); border-radius: 12px;
+}
+.nota-caja[hidden] { display: none; }
+.nota-caja:focus { outline: 2px solid var(--blue-deep); outline-offset: 1px; }
+@media (max-width: 600px) { .q-acciones { align-self: flex-end; } }
+:root[data-tema="oscuro"] .btn-nota.on { background: rgba(var(--gold-rgb), .2); color: #bfe3f2; }
+:root[data-tema="oscuro"] .nota-caja { background: rgba(255,255,255,.06); }
+
+/* ── Enlaces a la norma ── */
+.enlace-norma { color: #25607f; text-decoration: underline dotted; text-underline-offset: 3px; font-weight: 600; }
+.enlace-norma:hover { text-decoration: underline; }
+kbd { font-family: 'JetBrains Mono', monospace; font-size: 0.8em; background: rgba(var(--navy-rgb), .08); border: 1px solid var(--t-line); border-bottom-width: 2px; border-radius: 5px; padding: 1px 6px; }
+
+/* ── Accesibilidad ── */
+.solo-lectores { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.saltar-contenido {
+    position: absolute; left: 8px; top: -60px; z-index: 7000; background: var(--navy); color: #fff; padding: 10px 16px;
+    border-radius: 0 0 10px 10px; text-decoration: none; font-weight: 700; transition: top .15s;
+}
+.saltar-contenido:focus { top: 0; }
+.option:focus-visible, .nav-box:focus-visible, .btn:focus-visible, .btn-marcar:focus-visible, .btn-nota:focus-visible,
+.home-btn:focus-visible, #settings-toggle:focus-visible, .fuente-btns button:focus-visible, .btn-mini:focus-visible {
+    outline: 3px solid var(--gold); outline-offset: 2px; box-shadow: 0 0 0 5px rgba(var(--navy-rgb), .35);
+}
+.option:focus-visible { border-color: var(--blue-deep); }
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
+}
+
+/* Accesibilidad: etiqueta del tipo de bloque legible (el color del bloque queda en el borde) */
+.block-header .bh-tipo { color: var(--t-ink) !important; }
+:root[data-tema="oscuro"] .enlace-norma { color: #25607f; }

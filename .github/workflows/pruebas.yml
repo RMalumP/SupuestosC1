@@ -1,0 +1,35 @@
+name: Pruebas
+
+# Se ejecuta en cada subida y en cada pull request.
+# Revisa los supuestos y el menú (Py/validar_supuestos.py) y abre las páginas en
+# un navegador para comprobar que cargan, que lo que se envía a Google no cambia,
+# que el aspecto no varía sin querer y que las funciones siguen funcionando.
+on:
+  push:
+  pull_request:
+
+jobs:
+  pruebas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Validar supuestos y menú
+        run: python3 Py/validar_supuestos.py --plantillas
+
+      - name: Instalar el navegador de pruebas
+        run: |
+          npm install
+          npx playwright install --with-deps chromium
+
+      - name: Pruebas en el navegador
+        run: node tests/run.js
+
+      - name: Guardar el informe si algo falla
+        if: failure()
+        run: echo "Mira el registro de «Pruebas en el navegador» para ver qué comprobación falla."

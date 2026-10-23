@@ -4,7 +4,9 @@
      · guarda el resultado de cada intento completo (lo lee el menú)
      · guarda el intento a medias y permite continuarlo
      · «Repetir solo las falladas»
-     · marcar preguntas para revisar (punto naranja en la casilla)
+     · marcar preguntas para revisar (punto naranja en la casilla) y notas personales
+     · banco personal de preguntas falladas / marcadas / con nota (lo lee «Mi estudio»)
+     · historial de intentos para las estadísticas y «?practicar=falladas|marcadas»
      · tamaño de letra y tema oscuro en el panel ⚙
    Si el motor no tiene lo que hace falta, no hace nada. */
 (function () {
@@ -25,7 +27,64 @@
     var yaEvaluado = false;
     var $ = function (id) { return document.getElementById(id); };
 
-    /* ── Marcar para revisar ── */
+    /* ── Banco personal (en este navegador): falladas, marcadas y notas ──
+       Cada pregunta se identifica por «supuesto:huella del enunciado», así que
+       sigue valiendo aunque se reordenen las preguntas del supuesto. */
+    var K_BANCO = 'banco';
+    function huella(t) {
+        var h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+        for (var i = 0; i < t.length; i++) {
+            var c = t.charCodeAt(i);
+            h1 = Math.imul(h1 ^ c, 2654435761); h2 = Math.imul(h2 ^ c, 1597334677);
+        }
+        h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+        h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+        return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+    }
+    function textoPlano(q) { return String(q.q || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim(); }
+    function claveDe(q) { return ID + ':' + huella(textoPlano(q)); }
+    function corto(q) { var t = textoPlano(q); return t.length > 220 ? t.slice(0, 217) + '…' : t; }
+    function banco() {
+        var b = S.get(K_BANCO, null) || {};
+        b.falladas = b.falladas || {}; b.marcadas = b.marcadas || {}; b.notas = b.notas || {};
+        return b;
+    }
+    function guardarBanco(b) { S.set(K_BANCO, b); }
+    function aviso(texto) {
+        var t = document.createElement('div');
+        t.className = 'supc1-toast'; t.setAttribute('role', 'status'); t.textContent = texto;
+        document.body.appendChild(t); setTimeout(function () { t.remove(); }, 4500);
+    }
+
+    /* Resultado de cada pregunta en el banco de falladas: una pregunta entra al
+       fallarla y sale tras acertarla dos veces seguidas. «memo» evita contar dos
+       veces lo mismo dentro de un intento. */
+    var memoBanco = {};
+    function anotarResultado(q, i) {
+        if (sinResponder(i)) return;
+        var k = claveDe(q), est = esAcierto(i) ? 'ok' : 'ko';
+        if (memoBanco[k] === est) return;
+        var b = banco(), f = b.falladas[k];
+        if (est === 'ko') {
+            f = f || { f: ID, h: k.split(':')[1], t: corto(q), n: 0, ok: 0 };
+            f.n++; f.ok = 0; f.ts = Date.now(); b.falladas[k] = f;
+        } else if (f) {
+            f.ok = (f.ok || 0) + 1;
+            if (f.ok >= 2) delete b.falladas[k]; else f.ts = Date.now();
+        }
+        memoBanco[k] = est; guardarBanco(b);
+    }
+    // Con «corregir pregunta a pregunta» el alumno ya ve el resultado: se anota
+    // enseguida, sin esperar a que corrija el examen entero.
+    function anotarReveladas() {
+        if (typeof instantFeedback === 'undefined' || !instantFeedback || evaluated) return;
+        questions.forEach(function (q, i) {
+            var f = $('feed-' + i);
+            if (f && f.style.display === 'block') anotarResultado(q, i);
+        });
+    }
+
+    /* ── Marcar para revisar y notas ── */
     function pintarMarca(i) {
         var on = marcas.has(i);
         var b = document.querySelector('#qcard-' + i + ' .btn-marcar');
@@ -34,18 +93,62 @@
         if (n) n.classList.toggle('marcada', on);
     }
     function alternarMarca(i) {
-        if (marcas.has(i)) marcas.delete(i); else marcas.add(i);
-        pintarMarca(i);
+        var q = questions[i]; if (!q) return;
+        var b = banco(), k = claveDe(q);
+        if (marcas.has(i)) { marcas.delete(i); delete b.marcadas[k]; }
+        else { marcas.add(i); b.marcadas[k] = { f: ID, h: k.split(':')[1], t: corto(q), ts: Date.now() }; }
+        guardarBanco(b); pintarMarca(i);
     }
+    function marcasDelBanco() {
+        var b = banco(); marcas = new Set();
+        questions.forEach(function (q, i) { if (b.marcadas[claveDe(q)]) marcas.add(i); });
+    }
+
+    function pintarNota(i) {
+        var q = questions[i]; if (!q) return;
+        var n = banco().notas[claveDe(q)];
+        var btn = document.querySelector('#qcard-' + i + ' .btn-nota');
+        var caja = document.querySelector('#qcard-' + i + ' .nota-caja');
+        if (btn) { btn.classList.toggle('on', !!n); btn.querySelector('span').textContent = n ? 'Nota' : 'Añadir nota'; }
+        if (caja && n && !caja.value) { caja.value = n.txt; caja.hidden = false; }
+    }
+    function alternarNota(i) {
+        var caja = document.querySelector('#qcard-' + i + ' .nota-caja'); if (!caja) return;
+        caja.hidden = !caja.hidden;
+        if (!caja.hidden) caja.focus();
+    }
+    function guardarNota(i, texto) {
+        var q = questions[i]; if (!q) return;
+        var b = banco(), k = claveDe(q);
+        texto = texto.trim();
+        if (texto) b.notas[k] = { f: ID, h: k.split(':')[1], t: corto(q), txt: texto, ts: Date.now() };
+        else delete b.notas[k];
+        guardarBanco(b); pintarNota(i);
+    }
+
     function decorar() {
         document.querySelectorAll('.question-card').forEach(function (card) {
             var i = parseInt(card.id.replace('qcard-', ''), 10);
             var h = card.querySelector('.q-header');
-            if (isNaN(i) || !h || h.querySelector('.btn-marcar')) return;
+            if (isNaN(i) || !h || h.querySelector('.q-acciones')) return;
+            var caja = document.createElement('div');
+            caja.className = 'q-acciones';
             var b = document.createElement('button');
-            b.type = 'button'; b.className = 'btn-marcar'; b.innerHTML = '<i>🚩</i><span>Marcar para revisar</span>';
+            b.type = 'button'; b.className = 'btn-marcar'; b.innerHTML = '<i aria-hidden="true">🚩</i><span>Marcar para revisar</span>';
             b.addEventListener('click', function (e) { e.stopPropagation(); alternarMarca(i); });
-            h.appendChild(b);
+            var nb = document.createElement('button');
+            nb.type = 'button'; nb.className = 'btn-nota'; nb.innerHTML = '<i aria-hidden="true">📝</i><span>Añadir nota</span>';
+            nb.addEventListener('click', function (e) { e.stopPropagation(); alternarNota(i); });
+            caja.appendChild(b); caja.appendChild(nb); h.appendChild(caja);
+            var ta = document.createElement('textarea');
+            ta.className = 'nota-caja'; ta.hidden = true; ta.rows = 3;
+            ta.placeholder = 'Tu nota personal sobre esta pregunta (solo se guarda en este navegador)';
+            ta.setAttribute('aria-label', 'Nota personal de la pregunta ' + (i + 1));
+            var t = null;
+            ta.addEventListener('input', function () { clearTimeout(t); t = setTimeout(function () { guardarNota(i, ta.value); }, 400); });
+            ta.addEventListener('blur', function () { clearTimeout(t); guardarNota(i, ta.value); });
+            h.parentNode.insertBefore(ta, h.nextSibling);
+            pintarNota(i);
         });
         marcas.forEach(pintarMarca);
     }
@@ -79,7 +182,26 @@
     }
     function intentoCompleto() { limpiarCorreccion(); init('default'); }
 
+    // «supuesto.html?practicar=falladas|marcadas»: intento de práctica solo con esas preguntas
+    function practicarDesdeUrl() {
+        var m = /[?&]practicar=(falladas|marcadas)/.exec(location.search);
+        if (!m) return false;
+        history.replaceState(null, '', location.pathname);
+        var b = banco(), mapa = m[1] === 'falladas' ? b.falladas : b.marcadas;
+        var sub = QUESTIONS_BANK.filter(function (q) { return mapa[claveDe(q)]; });
+        if (!sub.length) { aviso('No te quedan preguntas ' + m[1] + ' en este supuesto.'); return false; }
+        var curso = S.get(K_CURSO, null);
+        if (curso && !curso.parcial && !window.confirm('Tienes un intento sin terminar de este supuesto. Si practicas ahora se sustituirá.\n\n¿Continuar?')) return false;
+        if (timerInt) clearInterval(timerInt);
+        durCambiada = true;
+        examDurationSeconds = Math.max(60, Math.round(durOrig * sub.length / Math.max(1, QUESTIONS_BANK.length)));
+        parcial = true;
+        init('answers', sub);
+        return true;
+    }
+
     function alCorregir() {
+        questions.forEach(anotarResultado);
         if (!parcial) registrar();
         S.del(K_CURSO);
         quitarBotonesExtra();
@@ -93,15 +215,18 @@
         var r; try { r = calcResultados(); } catch (e) { return; }
         var p = S.get(K_PROG, { intentos: 0 });
         var u = { fecha: Date.now(), pct: r.pct, puntos: r.puntos, max: r.max,
-                  aciertos: r.aciertos, fallos: r.fallos, blancos: r.blancos, total: r.total };
+                  aciertos: r.aciertos, fallos: r.fallos, blancos: r.blancos, total: r.total,
+                  seg: Math.max(0, examDurationSeconds - timeLeft) };
         p.intentos = (p.intentos || 0) + 1;
         p.ultima = u;
+        p.hist = (p.hist || []).concat([u]).slice(-40);
         if (!p.mejor || u.pct > p.mejor.pct) p.mejor = u;
         S.set(K_PROG, p);
     }
 
     /* ── Intento a medias ── */
     function guardar() {
+        anotarReveladas();
         if (evaluated || !Object.keys(userAns).length) return;
         var q = questions.map(function (x) { return QUESTIONS_BANK.indexOf(x); });
         if (q.indexOf(-1) !== -1) return;
@@ -134,7 +259,7 @@
         $('timer-display').textContent = formatTime(timeLeft);
         Object.keys(userAns).forEach(function (k) { pintarRespuesta(parseInt(k, 10)); });
         updateProgress();
-        marcas = new Set(st.m || []);
+        marcasDelBanco();
         decorar();
         document.body.classList.toggle('intento-parcial', parcial);
         jump(Math.min(st.cur || 0, questions.length - 1), true);
@@ -196,10 +321,11 @@
             parcial = false;
             if (durCambiada) { examDurationSeconds = durOrig; durCambiada = false; }
         }
-        marcas.clear();
+        marcas.clear(); memoBanco = {};
         yaEvaluado = false;
         quitarBotonesExtra();
         var r = initOrig.apply(this, arguments);
+        marcasDelBanco();
         document.body.classList.toggle('intento-parcial', parcial);
         decorar();
         return r;
@@ -241,8 +367,13 @@
     document.addEventListener('visibilitychange', function () { if (document.hidden) guardar(); });
     window.addEventListener('pagehide', guardar);
 
+    // API para app-uso.js (atajos de teclado, etc.)
+    S.sup = { marcar: alternarMarca, nota: alternarNota, esParcial: function () { return parcial; } };
+
+    marcasDelBanco();
     decorar();
     ajustesVisuales();
+    if (practicarDesdeUrl()) return;
     var st = S.get(K_CURSO, null);
     if (st && st.v === 1 && st.n === QUESTIONS_BANK.length && Date.now() - st.ts < TRES_DIAS &&
         !evaluated && st.q && st.o && st.q.length === st.o.length && st.q.every(function (i) { return QUESTIONS_BANK[i]; })) {

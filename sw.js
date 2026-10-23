@@ -1,4 +1,4 @@
-const VERSION = "v11";
+const VERSION = "v12";
 const CACHE = "supuestos-c1-" + VERSION;
 const PRECACHE = [
   "./",
@@ -11,6 +11,10 @@ const PRECACHE = [
   "prefs.js",
   "telemetria-config.js",
   "app-telemetria.js",
+  "app-uso.js",
+  "app-estudio.js",
+  "normas-datos.js",
+  "mi-estudio.html",
   "pwa.js",
   "app-menu.js",
   "app-supuesto.js",

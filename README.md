@@ -27,6 +27,8 @@ El sitio está disponible en:
 - **Buscador y filtros** en el menú (sin hacer / en curso / hechos).
 - **Tema oscuro y tamaño de letra** ajustables.
 - **Aviso de nueva versión** cuando se actualiza la app instalada.
+- **Mi estudio:** estadísticas personales, banco de preguntas falladas (con «Practicar falladas»), marcadas y notas.
+- **Atajos de teclado** (A–G, flechas, M, N, ?) y deslizar el dedo para cambiar de pregunta; enlaces automáticos al BOE en la motivación de las respuestas.
 
 ---
 
@@ -34,6 +36,7 @@ El sitio está disponible en:
 
 - **Añadir un supuesto al menú:** copia su `.html` a `supuestos/` (parte de `Py/supuesto_plantilla_python.html`, que ya incluye todo lo necesario) y añade un bloque en su sección de `supuestos-datos.js` (o deja que lo haga el editor de Python al guardar). No hay que tocar `index.html`.
 - **Publicar cambios:** sube el número de `VERSION` en `sw.js`; así los usuarios ven el aviso «Hay una versión nueva».
+- **Pruebas y validación:** `python3 Py/validar_supuestos.py` revisa los supuestos y el menú; `npm test` abre las páginas en un navegador y comprueba envíos, aspecto y funciones (ver `tests/LEEME.txt`). En GitHub corren solas en cada subida.
 - **Datos anónimos de intentos a medias:** preparado pero apagado; se activa en `telemetria-config.js` (pasos en `Py/INSTRUCCIONES.txt`).
 - **Estilos:** `base-supuesto.css` (reglas comunes de todos los supuestos), `tema-supuesto.css` (diseño de los supuestos), `tema-menu.css` (menú) y `tema-resultados.css` (resultados). Las funciones comunes están en `app-supuesto.js` y `app-menu.js`.
 

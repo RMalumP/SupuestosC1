@@ -1,0 +1,287 @@
+#!/usr/bin/env node
+/* PRUEBAS AUTOMÁTICAS DE LA WEB
+   Abre las páginas en un navegador real (Chromium, vía Playwright) y comprueba:
+     · carga       todas las páginas cargan sin errores de JavaScript
+     · envios      lo que se manda a los formularios de Google es EXACTAMENTE lo de siempre
+     · estilos     el aspecto no cambia sin querer (huella de los estilos de las zonas clave)
+     · funciones   progreso, continuar, falladas, marcas, notas, atajos, deslizar, «practicar»…
+     · menu        el menú y «Mi estudio» se pintan bien
+
+   Uso:   npm test                      (o: node tests/run.js)
+          node tests/run.js --actualizar   guarda como «correcto» el estado actual
+          node tests/run.js envios         solo un grupo (carga|envios|estilos|funciones|menu)
+
+   Nada se envía a Google de verdad: las peticiones a docs.google.com se interceptan.
+   Variables opcionales: PLAYWRIGHT_PATH (ruta al módulo playwright), CHROMIUM_PATH. */
+'use strict';
+const fs = require('fs');
+const path = require('path');
+const http = require('http');
+
+let pw;
+try { pw = require('playwright'); } catch (e) { pw = require(process.env.PLAYWRIGHT_PATH || '/opt/node-tools/node_modules/playwright'); }
+
+const RAIZ = path.resolve(__dirname, '..');
+const GOLDEN = path.join(__dirname, 'golden');
+const ACTUALIZAR = process.argv.includes('--actualizar');
+const SOLO = process.argv.slice(2).filter(a => !a.startsWith('--'));
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
+               '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.png': 'image/png', '.woff2': 'font/woff2' };
+
+function servidor() {
+    return new Promise(ok => {
+        const s = http.createServer((req, res) => {
+            let p = decodeURIComponent(req.url.split('?')[0]); if (p.endsWith('/')) p += 'index.html';
+            const f = path.join(RAIZ, p);
+            if (!f.startsWith(RAIZ) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.writeHead(404); return res.end('no'); }
+            res.writeHead(200, { 'Content-Type': MIME[path.extname(f)] || 'application/octet-stream' }); fs.createReadStream(f).pipe(res);
+        }).listen(0, '127.0.0.1', () => ok(s));
+    });
+}
+
+const supuestos = fs.readdirSync(path.join(RAIZ, 'supuestos')).filter(f => f.endsWith('.html')).sort();
+const plantillas = fs.readdirSync(path.join(RAIZ, 'Py')).filter(f => /^supuesto_plantilla_.*\.html$/.test(f)).sort();
+let BASE, navegador;
+const resultados = [];
+const registrar = (grupo, nombre, ok, detalle) => { resultados.push({ grupo, nombre, ok, detalle }); console.log((ok ? '  ✔ ' : '  ✘ ') + nombre + (ok || !detalle ? '' : '\n      ' + String(detalle).replace(/\n/g, '\n      '))); };
+const leerGolden = f => { try { return JSON.parse(fs.readFileSync(path.join(GOLDEN, f), 'utf8')); } catch (e) { return null; } };
+const escribirGolden = (f, d) => fs.writeFileSync(path.join(GOLDEN, f), JSON.stringify(d, null, 1) + '\n');
+
+/* Contexto determinista: sin red externa, sin azar, sin animaciones; guarda lo que se manda a Google */
+async function contexto(vp, init) {
+    const ctx = await navegador.newContext({ viewport: vp || { width: 1100, height: 800 }, reducedMotion: 'reduce', hasTouch: true });
+    await ctx.addInitScript(() => { let s = 4242; Math.random = () => { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; }; });
+    if (init) await ctx.addInitScript(init);
+    ctx.google = [];
+    await ctx.route('**/*', async r => {
+        const u = new URL(r.request().url());
+        if (u.hostname === '127.0.0.1' || u.hostname === 'localhost') return r.continue();
+        if (u.hostname === 'docs.google.com' && /formResponse/.test(u.pathname)) { ctx.google.push({ url: u.origin + u.pathname, body: r.request().postData() || '' }); return r.fulfill({ status: 200, body: 'ok' }); }
+        return r.abort();
+    });
+    return ctx;
+}
+async function abrir(ctx, url) {
+    const pg = await ctx.newPage(); pg.errores = [];
+    pg.on('pageerror', e => pg.errores.push(e.message)); pg.on('dialog', d => d.accept('Alumno Prueba'));
+    await pg.goto(BASE + url); await pg.waitForTimeout(700);
+    await pg.addStyleTag({ content: '*{animation:none!important;transition:none!important}' });
+    return pg;
+}
+const salirDePagina = pg => pg.evaluate(() => { Object.defineProperty(document, 'hidden', { value: true, configurable: true }); document.dispatchEvent(new Event('visibilitychange')); });
+const normalizar = t => decodeURIComponent((t || '').replace(/\+/g, ' ')).replace(/\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}(:\d{2})?/g, 'FECHA').replace(/Incorrecta: [^&]*/g, 'Incorrecta');
+
+/* ───────── 1. carga ───────── */
+async function carga() {
+    const paginas = ['index.html', 'mi-estudio.html', 'resultados/resultados.html']
+        .concat(supuestos.map(s => 'supuestos/' + s), plantillas.map(s => 'Py/' + s));
+    const ctx = await contexto();
+    for (const p of paginas) {
+        const pg = await abrir(ctx, p);
+        let msg = pg.errores.join(' | ');
+        if (/supuestos\/|Py\//.test(p)) {
+            const r = await pg.evaluate(() => ({ n: questions.length, m: document.querySelectorAll('.btn-marcar').length, estilo: getComputedStyle(document.querySelector('.question-card')).borderRadius }));
+            if (!r.n) msg += ' sin preguntas';
+            if (r.m !== r.n) msg += ' faltan botones de marcar (' + r.m + '/' + r.n + ')';
+            if (r.estilo !== '14px') msg += ' no se aplica el tema (radio ' + r.estilo + ')';
+        }
+        registrar('carga', 'carga ' + p, !msg, msg);
+        await pg.close();
+    }
+    await ctx.close();
+}
+
+/* ───────── 2. envíos a Google ───────── */
+async function envios() {
+    const nuevo = {};
+    for (const s of supuestos) {
+        const ctx = await contexto(); const pg = await abrir(ctx, 'supuestos/' + s);
+        await pg.evaluate(() => {
+            for (let i = 0; i < Math.min(7, questions.length); i++) {
+                const corr = document.getElementById('qcard-' + i).dataset.correct.split(',').map(Number);
+                if (i < 6) corr.forEach(k => selectAnswer(i, k)); else { let k = 0; while (corr.includes(k)) k++; selectAnswer(i, k); }
+            }
+            window.confirm = () => true; evaluateExam();
+        });
+        await pg.waitForTimeout(1200);
+        await pg.evaluate(() => document.getElementById('send-btn').click()); await pg.waitForTimeout(900);
+        nuevo[s] = ctx.google.map(g => ({ url: g.url, body: normalizar(g.body).split('&') }));
+        const gold = leerGolden('envios.json');
+        if (!ACTUALIZAR) {
+            const ok = gold && JSON.stringify(gold[s]) === JSON.stringify(nuevo[s]);
+            registrar('envios', 'envíos a Google idénticos · ' + s + ' (' + nuevo[s].length + ' peticiones)', !!ok, gold ? 'Cambió lo que se manda al formulario (ver tests/golden/envios.json)' : 'no hay referencia: ejecuta con --actualizar');
+        }
+        await ctx.close();
+    }
+    if (ACTUALIZAR) { escribirGolden('envios.json', nuevo); registrar('envios', 'referencia de envíos guardada', true); }
+}
+
+/* ───────── 3. estilos ───────── */
+const ZONAS = ['body', '#nav-header', '#timer', '.inst-header', '.block-header', '.question-card.active', '.option', '.btn-zone', '.progress-bar-wrap', '#settings-panel'];
+const PROPS_DE_LAYOUT = /^(width|height|block-size|inline-size|perspective-origin|transform-origin|min-width|min-height|--)/;
+async function huellas(pg) {
+    return pg.evaluate(([zonas, excl]) => {
+        const re = new RegExp(excl), h = s => { let a = 0xdeadbeef, b = 0x41c6ce57; for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i); a = Math.imul(a ^ c, 2654435761); b = Math.imul(b ^ c, 1597334677); } a = Math.imul(a ^ (a >>> 16), 2246822507) ^ Math.imul(b ^ (b >>> 13), 3266489909); return (a >>> 0).toString(36); };
+        const out = {};
+        zonas.forEach(z => {
+            const el = document.querySelector(z); if (!el) { out[z] = 'ausente'; return; }
+            const todos = [el].concat([...el.querySelectorAll('*')]).filter(e => !['SCRIPT', 'STYLE'].includes(e.tagName));
+            let s = '';
+            todos.forEach(e => { const cs = getComputedStyle(e); [...cs].filter(p => !re.test(p)).sort().forEach(p => { s += p + ':' + cs.getPropertyValue(p) + ';'; }); s += '|'; });
+            out[z] = h(s) + '/' + todos.length;
+        });
+        return out;
+    }, [ZONAS, PROPS_DE_LAYOUT.source]);
+}
+async function estilos() {
+    const nuevo = {}; const gold = leerGolden('estilos.json');
+    const paginas = ['index.html'].concat(supuestos.map(s => 'supuestos/' + s));
+    for (const [vn, vp] of [['pc', { width: 1100, height: 800 }], ['movil', { width: 390, height: 800 }]]) {
+        const ctx = await contexto(vp);
+        for (const p of paginas) {
+            const pg = await abrir(ctx, p);
+            if (p.startsWith('supuestos/')) await pg.evaluate(() => { selectAnswer(0, 0); });
+            nuevo[vn + ' ' + p] = await huellas(pg); await pg.close();
+        }
+        await ctx.close();
+    }
+    if (ACTUALIZAR) { escribirGolden('estilos.json', nuevo); return registrar('estilos', 'referencia de estilos guardada (' + Object.keys(nuevo).length + ' vistas)', true); }
+    Object.keys(nuevo).forEach(k => {
+        const g = gold && gold[k]; const dif = g ? ZONAS.filter(z => g[z] !== nuevo[k][z]) : ['sin referencia'];
+        registrar('estilos', 'aspecto sin cambios · ' + k, !dif.length, 'cambian estas zonas: ' + dif.join(', ') + '\n(si es intencionado: npm run test:actualizar)');
+    });
+}
+
+/* ───────── 4. funciones ───────── */
+async function funciones() {
+    const T = 'supuestos/supuesto_T2I.html', id = 'supuesto_T2I';
+    const caso = async (nombre, fn) => { try { const r = await fn(); registrar('funciones', nombre, r === true || r === undefined, r === true || r === undefined ? '' : r); } catch (e) { registrar('funciones', nombre, false, e.message.split('\n')[0]); } };
+    const ls = (pg, k) => pg.evaluate(k => SupC1.get(k, null), k);
+
+    await caso('guarda el progreso al corregir y deja el historial', async () => {
+        const ctx = await contexto(); const pg = await abrir(ctx, T);
+        await pg.evaluate(() => { selectAnswer(0, 0); window.confirm = () => true; evaluateExam(); }); await pg.waitForTimeout(1800);
+        const p = await ls(pg, 'prog:' + id); await ctx.close();
+        return (p && p.intentos === 1 && p.hist && p.hist.length === 1 && p.hist[0].seg >= 0) || 'prog = ' + JSON.stringify(p);
+    });
+    await caso('ofrece continuar un intento a medias y restaura respuestas y opciones', async () => {
+        const ctx = await contexto(); const pg = await abrir(ctx, T);
+        await pg.evaluate(() => { selectAnswer(0, 0); selectAnswer(1, 1); }); await pg.waitForTimeout(1800);
+        const antes = await pg.evaluate(() => [...document.querySelectorAll('#qcard-0 .option span:last-child')].map(x => x.textContent));
+        await pg.reload(); await pg.waitForTimeout(900);
+        if (!(await pg.locator('.supc1-modal [data-r="si"]').count())) return 'no sale el aviso';
+        await pg.click('.supc1-modal [data-r="si"]'); await pg.waitForTimeout(300);
+        const r = await pg.evaluate(() => ({ a: JSON.stringify(userAns), o: [...document.querySelectorAll('#qcard-0 .option span:last-child')].map(x => x.textContent) }));
+        await ctx.close();
+        return (r.a === '{"0":[0],"1":[1]}' && JSON.stringify(r.o) === JSON.stringify(antes)) || JSON.stringify(r);
+    });
+    await caso('«repetir solo las falladas» no envía nada a Google', async () => {
+        const ctx = await contexto(); const pg = await abrir(ctx, T);
+        await pg.evaluate(() => { selectAnswer(0, 0); window.confirm = () => true; evaluateExam(); }); await pg.waitForTimeout(1500);
+        const antes = ctx.google.length;
+        await pg.evaluate(() => document.getElementById('falladas-btn').click()); await pg.waitForTimeout(400);
+        await pg.evaluate(() => { selectAnswer(0, 0); evaluateExam(); }); await pg.waitForTimeout(1500);
+        const oculto = await pg.evaluate(() => getComputedStyle(document.getElementById('send-btn')).display === 'none');
+        await pg.evaluate(() => enviarResultados()); await pg.waitForTimeout(500);
+        const n = ctx.google.length - antes; await ctx.close();
+        return (n === 0 && oculto) || ('envíos extra: ' + n + ', botón oculto: ' + oculto);
+    });
+    await caso('con la recogida anónima apagada, salir de la página no envía nada', async () => {
+        const ctx = await contexto(); const pg = await abrir(ctx, T);
+        await pg.evaluate(() => { selectAnswer(0, 0); selectAnswer(1, 0); }); await salirDePagina(pg); await pg.waitForTimeout(500);
+        const n = ctx.google.length; await ctx.close(); return n === 0 || n + ' envíos';
+    });
+    await caso('el banco de falladas: entra al fallar y sale tras acertar dos veces', async () => {
+        const ctx = await contexto(); const pg = await abrir(ctx, T);
+        const fallar = () => pg.evaluate(() => { const c = document.getElementById('qcard-0').dataset.correct.split(',').map(Number); let k = 0; while (c.includes(k)) k++; selectAnswer(0, k); window.confirm = () => true; evaluateExam(); });
+        const acertar = () => pg.evaluate(() => { const c = document.getElementById('qcard-0').dataset.correct.split(',').map(Number); c.forEach(k => selectAnswer(0, k)); window.confirm = () => true; evaluateExam(); });
+        const n = async () => (await ls(pg, 'banco') || { falladas: {} }).falladas ? Object.keys((await ls(pg, 'banco')).falladas).length : 0;
+        await fallar(); await pg.waitForTimeout(1800); const a = await n();
+        await pg.goto(BASE + T); await pg.waitForTimeout(700); await pg.evaluate(() => { const m = document.querySelector('.supc1-modal [data-r="no"]'); if (m) m.click(); });
+        await acertar(); await pg.waitForTimeout(1800); const b = await n();
+        await pg.goto(BASE + T); await pg.waitForTimeout(700); await pg.evaluate(() => { const m = document.querySelector('.supc1-modal [data-r="no"]'); if (m) m.click(); });
+        await acertar(); await pg.waitForTimeout(1800); const c = await n(); await ctx.close();
+        return (a === 1 && b === 1 && c === 0) || 'falladas tras fallar/acertar/acertar: ' + [a, b, c];
+    });
+    await caso('atajos de teclado: responder, moverse, marcar y nota', async () => {
+        const ctx = await contexto(); const pg = await abrir(ctx, T);
+        await pg.keyboard.press('b'); await pg.keyboard.press('ArrowRight'); await pg.keyboard.press('3'); await pg.keyboard.press('ArrowLeft');
+        await pg.keyboard.press('m'); await pg.keyboard.press('n'); await pg.keyboard.type('nota'); await pg.waitForTimeout(700);
+        const r = await pg.evaluate(() => ({ a: JSON.stringify(userAns), cur: current, marc: document.getElementById('nav-0').classList.contains('marcada'),
+            nota: Object.values(SupC1.get('banco', {}).notas || {}).map(x => x.txt).join() }));
+        await ctx.close();
+        return (r.a === '{"0":[1],"1":[2]}' && r.cur === 0 && r.marc && r.nota === 'nota') || JSON.stringify(r);
+    });
+    await caso('deslizar el dedo cambia de pregunta', async () => {
+        const ctx = await contexto(); const pg = await abrir(ctx, T); const cdp = await ctx.newCDPSession(pg);
+        const toque = async (x1, x2) => { await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: x1, y: 400 }] }); await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: (x1 + x2) / 2, y: 400 }] }); await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); await pg.waitForTimeout(250); };
+        await toque(800, 300); const a = await pg.evaluate(() => current); await toque(300, 800); const b = await pg.evaluate(() => current); await ctx.close();
+        return (a === 1 && b === 0) || [a, b];
+    });
+    await caso('?practicar=falladas y ?practicar=marcadas abren un intento parcial', async () => {
+        const ctx = await contexto(); const pg = await abrir(ctx, T);
+        await pg.evaluate(() => { const c = document.getElementById('qcard-0').dataset.correct.split(',').map(Number); let k = 0; while (c.includes(k)) k++; selectAnswer(0, k); window.confirm = () => true; evaluateExam(); }); await pg.waitForTimeout(1800);
+        await pg.goto(BASE + T + '?practicar=falladas'); await pg.waitForTimeout(900);
+        const f = await pg.evaluate(() => ({ n: questions.length, p: document.body.classList.contains('intento-parcial'), u: location.search }));
+        await pg.evaluate(() => { SupC1.sup.marcar(0); }); await pg.goto(BASE + T + '?practicar=marcadas'); await pg.waitForTimeout(900);
+        const m = await pg.evaluate(() => ({ n: questions.length, p: document.body.classList.contains('intento-parcial') })); await ctx.close();
+        return (f.n === 1 && f.p && f.u === '' && m.n === 1 && m.p) || JSON.stringify([f, m]);
+    });
+    await caso('accesibilidad básica: roles, etiquetas y enlaces a la norma', async () => {
+        const ctx = await contexto(); const pg = await abrir(ctx, T);
+        const r = await pg.evaluate(() => ({ radios: document.querySelectorAll('.option[role=radio]').length, opciones: document.querySelectorAll('.option').length,
+            nav: document.querySelectorAll('.nav-box[role=button][aria-label]').length, navs: document.querySelectorAll('.nav-box').length,
+            norma: document.querySelectorAll('.enlace-norma').length, salto: !!document.querySelector('.saltar-contenido') }));
+        await ctx.close();
+        return (r.radios === r.opciones && r.nav === r.navs && r.norma > 0 && r.salto) || JSON.stringify(r);
+    });
+}
+
+/* ───────── 5. menú y «Mi estudio» ───────── */
+async function menu() {
+    const caso = async (nombre, fn) => { try { const r = await fn(); registrar('menu', nombre, r === true, r === true ? '' : r); } catch (e) { registrar('menu', nombre, false, e.message.split('\n')[0]); } };
+    await caso('el menú pinta todas las tarjetas de supuestos-datos.js', async () => {
+        const ctx = await contexto(); const pg = await abrir(ctx, 'index.html');
+        const r = await pg.evaluate(() => { const D = window.SUPUESTOS_DATOS; let n = (D.examenes || []).length; D.secciones.forEach(s => s.grupos.forEach(g => n += g.items.length));
+            return { esperadas: n, pintadas: document.querySelectorAll('#menu-supuestos .supuesto-card, #examenes-grid .supuesto-card').length, secciones: document.querySelectorAll('.seccion').length }; });
+        await ctx.close(); return (r.esperadas === r.pintadas && r.secciones === 2) || JSON.stringify(r);
+    });
+    await caso('buscador y filtros', async () => {
+        const ctx = await contexto(); const pg = await abrir(ctx, 'index.html');
+        await pg.fill('#buscar', 'zzzzzz'); const vacio = await pg.locator('.vacio').isVisible();
+        await pg.fill('#buscar', 'tema 2'); const n = await pg.locator('#menu-supuestos .supuesto-card:visible').count(); await ctx.close();
+        return (vacio && n > 0) || JSON.stringify({ vacio, n });
+    });
+    await caso('el aviso de datos anónimos no aparece con la recogida apagada', async () => {
+        const ctx = await contexto(); const pg = await abrir(ctx, 'index.html'); const n = await pg.locator('.aviso-pie').count(); await ctx.close(); return n === 0 || 'aparece';
+    });
+    await caso('«Mi estudio» muestra estadísticas, falladas y notas', async () => {
+        const ctx = await contexto(null, () => {
+            const r = p => ({ pct: p, puntos: p / 4, max: 25, aciertos: 10, fallos: 3, blancos: 2, total: 25, seg: 900, fecha: 1 });
+            localStorage.setItem('supc1:prog:supuesto_T2I', JSON.stringify({ intentos: 2, mejor: r(70), ultima: r(70), hist: [r(50), r(70)] }));
+            localStorage.setItem('supc1:banco', JSON.stringify({ falladas: { 'supuesto_T2I:a': { f: 'supuesto_T2I', h: 'a', t: 'Pregunta fallada', n: 2, ok: 0 } }, marcadas: {}, notas: { 'supuesto_T2I:b': { f: 'supuesto_T2I', h: 'b', t: 'Otra', txt: 'mi nota', ts: 1 } } }));
+        });
+        const pg = await abrir(ctx, 'mi-estudio.html');
+        const r = await pg.evaluate(() => ({ datos: document.querySelectorAll('.dato').length, evo: document.querySelectorAll('.supuesto-card.evo').length, spark: document.querySelectorAll('.spark').length,
+            falladas: document.querySelectorAll('#estudio-falladas .item').length, notas: document.querySelectorAll('#estudio-marcadas .item-nota').length,
+            enlace: (document.querySelector('.btn-practicar') || {}).getAttribute && document.querySelector('.btn-practicar').getAttribute('href') }));
+        const err = pg.errores.join(); await ctx.close();
+        return (r.datos === 4 && r.evo === 1 && r.spark === 1 && r.falladas === 1 && r.notas === 1 && /practicar=falladas/.test(r.enlace) && !err) || JSON.stringify(r) + err;
+    });
+}
+
+(async () => {
+    const server = await servidor(); BASE = 'http://127.0.0.1:' + server.address().port + '/';
+    const opts = { args: ['--no-sandbox'] }; if (process.env.CHROMIUM_PATH) opts.executablePath = process.env.CHROMIUM_PATH;
+    else if (fs.existsSync('/opt/pw-browsers/chromium-1243/chrome-linux64/chrome') && !process.env.CI) opts.executablePath = '/opt/pw-browsers/chromium-1243/chrome-linux64/chrome';
+    navegador = await pw.chromium.launch(opts);
+    const grupos = { carga, envios, estilos, funciones, menu };
+    for (const [n, f] of Object.entries(grupos)) {
+        if (SOLO.length && !SOLO.includes(n)) continue;
+        console.log('\n▶ ' + n); await f();
+    }
+    await navegador.close(); server.close();
+    const malos = resultados.filter(r => !r.ok);
+    console.log('\n' + resultados.length + ' comprobaciones · ' + malos.length + ' fallos');
+    process.exit(malos.length ? 1 : 0);
+})().catch(e => { console.error(e); process.exit(2); });

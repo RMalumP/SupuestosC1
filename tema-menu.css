@@ -129,3 +129,35 @@ body, .hero p, .supuesto-card .desc, .grupo-desc, .filtros input[type="search"],
 .aviso-pie { display: block; margin-top: 8px; letter-spacing: 0.04em; text-transform: none; }
 .enlace-admin { color: inherit; opacity: .55; text-decoration: none; }
 .enlace-admin:hover { opacity: 1; text-decoration: underline; }
+
+/* ── Mi estudio ── */
+.resumen { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin: 8px 0 8px; }
+.resumen .dato { background: var(--t-surface); border-radius: 14px; box-shadow: 0 4px 18px rgba(61,42,32,.10); padding: 16px 18px; display: flex; flex-direction: column; gap: 4px; }
+.resumen .dato strong { font-size: 1.8rem; font-weight: 800; color: var(--brown-dark); line-height: 1.1; }
+.resumen .dato span { font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--brown-mid); font-weight: 600; }
+.supuesto-card.evo h2 { margin-bottom: 0.4rem; }
+.spark { display: block; width: 100%; max-width: 160px; height: 36px; margin: 0.4rem 0 0.6rem; }
+.spark polyline { fill: none; stroke: #2f6f93; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.spark circle { fill: #2f6f93; }
+.grupo-estudio { background: var(--t-surface); border-radius: 14px; box-shadow: 0 4px 18px rgba(61,42,32,.10); padding: 16px 20px; margin-bottom: 16px; }
+.grupo-estudio-cab { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; margin-bottom: 8px; }
+.grupo-estudio-cab h3 { font-size: 1.02rem; font-weight: 700; margin-right: auto; color: var(--brown-dark); }
+.grupo-estudio-cab .contador { font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--brown-mid); }
+.btn-practicar { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; text-decoration: none; background: var(--brown-dark); color: #fff; padding: 9px 16px; border-radius: 99px; }
+.btn-practicar:hover { background: var(--brown); }
+.item { padding: 12px 0; border-top: 1px solid var(--t-line); }
+.item-texto { font-size: 0.92rem; line-height: 1.5; color: var(--t-ink); margin: 0 0 6px; }
+.item-nota { font-size: 0.88rem; line-height: 1.5; background: rgba(143,196,217,.18); border-left: 4px solid var(--blue); border-radius: 6px; padding: 8px 12px; margin: 0 0 8px; color: var(--t-ink); white-space: pre-wrap; }
+.item-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; }
+.btn-link { font: inherit; font-size: 0.78rem; font-weight: 600; background: none; border: 0; padding: 4px 0; color: #2f6f93; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.btn-link.peligro { color: #a34a3a; margin-top: 4px; }
+:root[data-tema="oscuro"] .spark polyline { stroke: var(--blue); } :root[data-tema="oscuro"] .spark circle { fill: var(--blue); }
+:root[data-tema="oscuro"] .btn-link { color: var(--blue); } :root[data-tema="oscuro"] .btn-practicar { background: var(--blue); color: #2b2118; }
+:root[data-tema="oscuro"] .resumen .dato strong { color: var(--t-ink); }
+:root[data-tema="oscuro"] .item-nota { background: rgba(255,255,255,.06); }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; } }
+:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+
+/* Accesibilidad: el pie tenía poco contraste */
+footer { opacity: 1; color: #6b5d52; }
+:root[data-tema="oscuro"] footer { color: #c9b8a8; }

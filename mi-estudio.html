@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#3d2a20">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Supuestos C1">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <script src="prefs.js"></script>
+    <script src="pwa.js" defer></script>
+    <title>Mi estudio | Comunidad ECAP ASS C1</title>
+    <link rel="stylesheet" href="fuentes/fuentes.css">
+
+    <style>
+        :root {
+            --brown-dark: #3d2a20;
+            --brown:      #5c4033;
+            --brown-mid:  #7a5b47;
+            --tan:        #c9a58a;
+            --blue:       #8fc4d9;
+            --blue-lt:    #b8dceb;
+            --cream:      #fdf8f0;
+            --pink-bg:    #f7ece7;
+            --ink:        #2b2118;
+            --slate:      #6b5d52;
+            --paper:      #fffefb;
+            --shadow:     rgba(61,42,32,0.16);
+            --radius:     4px;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Source Serif 4', Georgia, serif;
+            background: var(--cream);
+            color: var(--ink);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, var(--brown-dark) 0%, var(--brown) 55%, var(--brown-mid) 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute; inset: 0;
+            background:
+                radial-gradient(ellipse at 15% 90%, rgba(143,196,217,0.12) 0%, transparent 45%),
+                radial-gradient(ellipse at 85% 10%, rgba(201,165,138,0.15) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .container { max-width: 900px; margin: 0 auto; padding: 60px 24px 80px; position: relative; z-index: 1; }
+        .hero-inner { max-width: 900px; margin: 0 auto; padding: 56px 24px 64px; position: relative; z-index: 1; text-align: center; }
+
+        .logo-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 40px;
+        }
+        .logo-wrap img {
+            max-height: 90px;
+            width: auto;
+            filter: drop-shadow(0 4px 14px rgba(0,0,0,0.35));
+        }
+        .logo-subtitle {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            letter-spacing: 0.35em;
+            text-transform: uppercase;
+            color: var(--blue-lt);
+            border-top: 1px solid rgba(184,220,235,0.35);
+            padding-top: 12px;
+        }
+
+        .hero h1 {
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+            font-weight: 400;
+            font-size: 2.4rem;
+            color: var(--blue);
+            line-height: 1.25;
+        }
+        .hero h1 strong {
+            display: block;
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+            font-weight: 900;
+            color: var(--paper);
+        }
+        .hero p {
+            margin-top: 18px;
+            font-family: 'Source Serif 4', serif;
+            font-size: 1rem;
+            color: rgba(253,248,240,0.8);
+        }
+
+        /* CUADRÍCULA DE SUPUESTOS */
+        .grid-title {
+            font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; letter-spacing: 0.3em;
+            color: var(--brown-mid); text-align: center; margin-bottom: 24px; opacity: 0.85;
+        }
+        .supuestos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 18px;
+        }
+        .supuesto-card {
+            display: block;
+            background: var(--paper);
+            border: 1.5px solid rgba(92,64,51,0.2);
+            border-radius: var(--radius);
+            padding: 22px 20px;
+            text-decoration: none;
+            position: relative;
+            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+            box-shadow: 0 6px 18px var(--shadow);
+        }
+        .supuesto-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--blue);
+            box-shadow: 0 14px 30px rgba(61,42,32,0.22);
+        }
+        .supuesto-card .exp-number {
+            width: 46px; height: 46px;
+            background: var(--brown); color: var(--blue-lt);
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Playfair Display', serif; font-size: 1.25rem; font-weight: 900;
+            border-radius: var(--radius); margin-bottom: 14px;
+        }
+        .supuesto-card h2 {
+            font-family: 'Playfair Display', serif; font-size: 1.05rem; font-weight: 700;
+            color: var(--brown-dark); line-height: 1.3; margin-bottom: 8px;
+        }
+        .supuesto-card .ref {
+            font-family: 'JetBrains Mono', monospace; font-size: 0.58rem; letter-spacing: 0.15em;
+            color: var(--brown-mid); text-transform: uppercase; display: block; margin-bottom: 10px;
+        }
+        .supuesto-card .desc {
+            font-family: 'Source Serif 4', serif; font-size: 0.85rem; color: var(--slate); line-height: 1.5;
+        }
+        .supuesto-card .go {
+            margin-top: 14px; font-family: 'JetBrains Mono', monospace; font-size: 0.65rem;
+            letter-spacing: 0.15em; color: var(--brown); text-transform: uppercase; font-weight: 700;
+        }
+
+        .supuesto-card.disabled {
+            opacity: 0.5; cursor: not-allowed; pointer-events: none;
+        }
+
+
+        /* SUBSECCIONES (Iniciales / Avanzados) */
+        .grupo { margin-bottom: 44px; }
+        .grupo:last-child { margin-bottom: 0; }
+        .grupo-head {
+            display: flex; align-items: center; gap: 14px;
+            margin-bottom: 18px;
+        }
+        .grupo-head h3 {
+            font-family: 'Playfair Display', serif; font-style: italic; font-weight: 700;
+            font-size: 1.35rem; color: var(--brown-dark); white-space: nowrap;
+        }
+        .grupo-head .linea {
+            flex: 1; height: 1.5px;
+            background: linear-gradient(90deg, var(--tan), transparent);
+        }
+        .grupo-head .contador {
+            font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; letter-spacing: 0.15em;
+            color: var(--brown-mid); text-transform: uppercase; white-space: nowrap;
+        }
+        .grupo-desc {
+            font-family: 'Source Serif 4', serif; font-size: 0.85rem; color: var(--slate);
+            margin: -8px 0 18px; font-style: italic;
+        }
+        .grupo.avanzados .exp-number { background: var(--brown-dark); }
+        .grupo.iniciales .supuesto-card { border-left: 4px solid var(--blue); }
+        .grupo.avanzados .supuesto-card { border-left: 4px solid var(--tan); }
+
+
+        /* TÍTULOS DE SECCIÓN (mismo estilo visual en toda la página) */
+        .seccion-head {
+            display: flex; align-items: center; gap: 16px;
+            margin: 64px 0 26px;
+        }
+        .seccion-head h2 {
+            font-family: 'Playfair Display', serif; font-style: italic; font-weight: 900;
+            font-size: 2rem; line-height: 1.15; color: var(--brown-dark); white-space: nowrap;
+            text-transform: uppercase; letter-spacing: 0.02em;
+        }
+        .seccion-head .linea {
+            flex: 1; height: 2px;
+            background: linear-gradient(90deg, var(--blue), transparent);
+        }
+        .container > .seccion-head:first-child { margin-top: 20px; }
+        @media (max-width: 480px) {
+            .seccion-head h2 { font-size: 1.5rem; white-space: normal; }
+        }
+
+        footer {
+            text-align: center; margin-top: 50px;
+            font-family: 'JetBrains Mono', monospace; font-size: 0.6rem;
+            letter-spacing: 0.2em; color: var(--brown-mid);
+            opacity: 0.6;
+        }
+
+        @media (max-width: 480px) {
+            .hero h1 { font-size: 1.7rem; }
+            .supuestos-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+    <link rel="stylesheet" href="tema-menu.css">
+</head>
+<body>
+
+<div class="hero">
+    <div class="hero-inner">
+        <h1>Mi estudio<strong>progreso y repaso</strong></h1>
+        <p>Tus estadísticas, tus preguntas falladas y marcadas y tus notas. Todo se guarda solo en este navegador.</p>
+    </div>
+</div>
+
+<div class="container">
+    <a class="back-link" href="index.html">&larr; Volver al menú de supuestos</a>
+
+    <div id="estudio-resumen" class="resumen"></div>
+
+    <div class="seccion-head"><h2>Mi evolución</h2><span class="linea"></span></div>
+    <div id="estudio-evolucion" class="supuestos-grid"></div>
+
+    <div class="seccion-head"><h2>Mis preguntas falladas</h2><span class="linea"></span></div>
+    <p class="grupo-desc">Una pregunta entra aquí al fallarla y sale cuando la aciertas dos veces seguidas.</p>
+    <div id="estudio-falladas"></div>
+
+    <div class="seccion-head"><h2>Marcadas y notas</h2><span class="linea"></span></div>
+    <div id="estudio-marcadas"></div>
+
+    <footer>TUS DATOS NO SALEN DE ESTE NAVEGADOR · REALIZADO DESDE LA COMUNIDAD DE ECAP · NO RELACIONADO CON LA PLATAFORMA OFICIAL</footer>
+</div>
+
+<script src="supuestos-datos.js"></script>
+<script src="app-menu.js" defer></script>
+<script src="app-estudio.js" defer></script>
+</body>
+</html>

@@ -833,3 +833,41 @@
      protege nada (el código de la web es público); lo que protege los datos es
      que el panel pida tu cuenta de Google.
 
+────────────────────────────────────────────────────────────────────────────────
+ FUNCIONES NUEVAS PARA EL ALUMNO
+────────────────────────────────────────────────────────────────────────────────
+
+  · MI ESTUDIO (mi-estudio.html, tarjeta en el menú): estadísticas por supuesto
+    (evolución, mejor y última nota, media, segundos por pregunta), banco de
+    preguntas falladas (entran al fallarlas y salen tras acertarlas dos veces
+    seguidas; «Practicar falladas» abre el supuesto solo con esas preguntas),
+    preguntas marcadas y notas personales. Todo queda en el navegador del alumno.
+  · MARCAR Y NOTAS: en cada pregunta, «Marcar para revisar» y «Añadir nota».
+    Las marcas y las notas se conservan entre intentos.
+  · ATAJOS: A–G o 1–7 responden · ← → cambian de pregunta · M marca · N nota ·
+    ? ayuda. En el móvil, deslizar el dedo a izquierda o derecha cambia de
+    pregunta (se puede desactivar en el panel ⚙).
+  · ENLACES A LA NORMA: las citas tipo «art. 12 de la LGSS» de la motivación se
+    enlazan al artículo en el BOE. Las normas y sus códigos están en
+    normas-datos.js; para añadir otra, añade una línea con sus siglas y su «BOE-A-…».
+  · ACCESIBILIDAD: manejo completo con teclado, etiquetas para lectores de pantalla,
+    enlace «Saltar a las preguntas», foco visible y respeto a «reducir movimiento».
+
+────────────────────────────────────────────────────────────────────────────────
+ VALIDAR Y PROBAR ANTES DE SUBIR
+────────────────────────────────────────────────────────────────────────────────
+
+  VALIDADOR (no necesita instalar nada):
+        python Py/validar_supuestos.py
+    Revisa cada supuesto (opciones vacías o repetidas, respuestas correctas que no
+    existen, enunciados y bloques inexistentes, enlaces a archivos…), que el menú
+    coincide con los supuestos (preguntas y minutos de cada tarjeta) y que la lista
+    de archivos de la app instalada (sw.js) está completa. «ERROR» = arreglar antes
+    de publicar; «AVISO» = conviene mirarlo.
+
+  PRUEBAS EN EL NAVEGADOR (requiere Node.js; ver tests/LEEME.txt):
+        npm install        (una vez)
+        npm test
+    Comprueban que todo carga, que lo que se envía a Google no cambia y que las
+    funciones siguen funcionando. En GitHub se ejecutan solas en cada subida.
+
