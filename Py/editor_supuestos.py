@@ -1158,9 +1158,15 @@ def escribir_html(ruta_destino, html_base, datos, modo):
 # Al guardar un supuesto dentro de «supuestos/», el programa ofrece darlo de
 # alta en ese archivo para no tener que tocarlo a mano.
 ARCHIVO_MENU = "supuestos-datos.js"
-GRUPOS_MENU = (("iniciales", "Iniciales"),
-               ("avanzados", "Avanzados"),
-               ("examenes", "Exámenes y simulacros"))
+# Cada destino del menú se identifica con «sección/grupo» (p. ej. «temas/iniciales»);
+# «examenes» es la lista de exámenes y simulacros.
+GRUPOS_MENU = (("temas/iniciales",    "Supuestos por temas · Iniciales"),
+               ("temas/avanzados",    "Supuestos por temas · Avanzados"),
+               ("generales/iniciales", "Supuestos generales · Iniciales"),
+               ("generales/avanzados", "Supuestos generales · Avanzados"),
+               ("examenes",           "Exámenes y simulacros"))
+TITULOS_SECCION = {"temas": "Supuestos por temas", "generales": "Supuestos generales"}
+TITULOS_GRUPO = {"iniciales": "Iniciales", "avanzados": "Avanzados"}
 RE_DATOS_MENU = re.compile(r"(window\.SUPUESTOS_DATOS\s*=\s*)(\{.*\})\s*;", re.S)
 
 
@@ -1183,13 +1189,35 @@ def leer_menu(ruta_menu):
     return texto, json.loads(m.group(2))
 
 
+def listas_del_menu(menu):
+    """Recorre todas las listas del menú: (clave «sección/grupo», lista)."""
+    for sec in menu.get("secciones", []):
+        for g in sec.get("grupos", []):
+            yield "%s/%s" % (sec.get("id"), g.get("id")), g.setdefault("items", [])
+    yield "examenes", menu.setdefault("examenes", [])
+
+
 def grupo_en_menu(menu, archivo):
-    """Grupo en el que ya está el supuesto, o None."""
-    for clave, _ in GRUPOS_MENU:
-        for it in menu.get(clave, []):
-            if it.get("archivo") == archivo:
-                return clave
+    """Clave del grupo en el que ya está el supuesto, o None."""
+    for clave, lista in listas_del_menu(menu):
+        if any(it.get("archivo") == archivo for it in lista):
+            return clave
     return None
+
+
+def lista_de_grupo(menu, clave):
+    """Lista de supuestos del grupo indicado (se crea si no existe)."""
+    for c, lista in listas_del_menu(menu):
+        if c == clave:
+            return lista
+    seccion_id, grupo_id = clave.split("/", 1)
+    sec = next((x for x in menu.setdefault("secciones", []) if x.get("id") == seccion_id), None)
+    if sec is None:
+        sec = {"id": seccion_id, "titulo": TITULOS_SECCION.get(seccion_id, seccion_id.title()), "grupos": []}
+        menu["secciones"].append(sec)
+    g = {"id": grupo_id, "titulo": TITULOS_GRUPO.get(grupo_id, grupo_id.title()), "items": []}
+    sec["grupos"].append(g)
+    return g["items"]
 
 
 def ficha_menu(archivo, datos, letra=None):
@@ -4750,7 +4778,7 @@ class EditorApp(tk.Tk):
             archivo = self.ruta.stem
             grupo = grupo_en_menu(menu, archivo)
             if grupo:
-                for it in menu[grupo]:
+                for it in lista_de_grupo(menu, grupo):
                     if it.get("archivo") == archivo:
                         it.update({k: v for k, v in ficha_menu(archivo, self.datos).items()
                                    if k != "letra"})
@@ -4762,7 +4790,7 @@ class EditorApp(tk.Tk):
                 self.estado(self.lbl_estado.cget("text") + "   ·   sin añadir al menú")
                 return
             clave, letra = elegido
-            menu.setdefault(clave, []).append(ficha_menu(archivo, self.datos, letra))
+            lista_de_grupo(menu, clave).append(ficha_menu(archivo, self.datos, letra))
             escribir_menu(ruta_menu, texto, menu)
             self.estado(self.lbl_estado.cget("text") + "   ·   añadido al menú (%s)" % clave)
         except (OSError, ValueError) as err:
@@ -4783,8 +4811,8 @@ class EditorApp(tk.Tk):
         marco.pack(fill="both", expand=True)
         ttk.Label(marco, wraplength=380, justify="left",
                   text="«%s» todavía no está en el menú principal de la web.\n"
-                       "¿En qué grupo lo pongo?" % archivo).pack(anchor="w", pady=(0, 8))
-        grupo = tk.StringVar(value=GRUPOS_MENU[1][0])
+                       "¿En qué sección y grupo lo pongo?" % archivo).pack(anchor="w", pady=(0, 8))
+        grupo = tk.StringVar(value=GRUPOS_MENU[3][0])
         for clave, etiqueta in GRUPOS_MENU:
             ttk.Radiobutton(marco, text=etiqueta, value=clave, variable=grupo).pack(anchor="w")
         fila = ttk.Frame(marco)

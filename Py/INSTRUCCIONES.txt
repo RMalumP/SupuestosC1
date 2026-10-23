@@ -737,8 +737,9 @@
      «supuestos-datos.js» en la carpeta de arriba (es la lista que pinta el menú):
        · Si el supuesto ya está en la lista, actualiza su título, referencia y
          descripción (preguntas y minutos).
-       · Si es nuevo, pregunta en qué grupo ponerlo (Iniciales, Avanzados o
-         Exámenes y simulacros) y qué texto lleva el círculo de la tarjeta.
+       · Si es nuevo, pregunta dónde ponerlo: «Supuestos por temas» o «Supuestos
+         generales» (cada uno con sus grupos Iniciales y Avanzados) o «Exámenes y
+         simulacros», y qué texto lleva el círculo de la tarjeta.
      Así ya no hay que tocar index.html ni copiar tarjetas a mano.
 
   TOTAL ABSOLUTO EN EL ENVÍO

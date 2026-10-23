@@ -1,4 +1,4 @@
-const VERSION = "v4";
+const VERSION = "v5";
 const CACHE = "supuestos-c1-" + VERSION;
 const PRECACHE = [
   "./",

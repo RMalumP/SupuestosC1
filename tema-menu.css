@@ -60,7 +60,7 @@ table.results-table thead th:last-child  { border-radius: 0 10px 0 0; }
 .chip { font-family: 'JetBrains Mono', monospace; font-size: 0.58rem; letter-spacing: 0.06em; background: rgba(61,42,32,.08); color: var(--brown); padding: 4px 9px; border-radius: 99px; }
 .chip.ok { background: #dcf3e4; color: #1f6b3a; }
 .chip.curso { background: #fef3c7; color: #92400e; }
-.supuesto-card[hidden], .grupo[hidden], .supuestos-grid[hidden], .seccion-head[hidden] { display: none; }
+.supuesto-card[hidden], .grupo[hidden], .supuestos-grid[hidden], .seccion-head[hidden], .seccion[hidden] { display: none; }
 .filtros { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 4px 0 8px; }
 .filtros input[type="search"] {
     flex: 1 1 260px; min-width: 0; font: inherit; font-size: 0.95rem; color: var(--t-ink);

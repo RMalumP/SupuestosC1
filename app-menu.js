@@ -68,8 +68,19 @@
     }
 
     var cont = $('menu-supuestos');
-    cont.appendChild(grupo('iniciales', 'Iniciales', D.iniciales || [], 'iniciales'));
-    cont.appendChild(grupo('avanzados', 'Avanzados', D.avanzados || [], 'avanzados'));
+    (D.secciones || []).forEach(function (sec) {
+        var cab = document.createElement('div');
+        cab.className = 'seccion-head'; cab.dataset.seccion = sec.id;
+        cab.innerHTML = '<h2></h2><span class="linea"></span>';
+        cab.querySelector('h2').textContent = sec.titulo;
+        var caja = document.createElement('div');
+        caja.className = 'seccion'; caja.dataset.seccion = sec.id;
+        caja.appendChild(cab);
+        (sec.grupos || []).forEach(function (g) {
+            caja.appendChild(grupo(sec.id + '-' + g.id, g.titulo, g.items || [], g.id));
+        });
+        cont.appendChild(caja);
+    });
     var exa = $('examenes-grid');
     (D.examenes || []).forEach(function (it) { exa.appendChild(tarjeta(it)); });
 
@@ -101,11 +112,15 @@
             return (filtro === 'todos' || c.dataset.estado === filtro) &&
                    (!texto || c.textContent.toLowerCase().indexOf(texto) !== -1);
         }
-        document.querySelectorAll('.grupo').forEach(function (sec) {
-            var cards = sec.querySelectorAll('.supuesto-card'), n = 0;
-            cards.forEach(function (c) { var ok = pasa(c); c.hidden = !ok; if (ok) n++; });
-            sec.hidden = n === 0; totalVisibles += n;
-            sec.querySelector('.contador').textContent = n + (n === 1 ? ' supuesto' : ' supuestos');
+        document.querySelectorAll('.seccion').forEach(function (caja) {
+            var visibles = 0;
+            caja.querySelectorAll('.grupo').forEach(function (sec) {
+                var n = 0;
+                sec.querySelectorAll('.supuesto-card').forEach(function (c) { var ok = pasa(c); c.hidden = !ok; if (ok) n++; });
+                sec.hidden = n === 0; visibles += n;
+                sec.querySelector('.contador').textContent = n + (n === 1 ? ' supuesto' : ' supuestos');
+            });
+            caja.hidden = visibles === 0; totalVisibles += visibles;
         });
         var nEx = 0;
         exa.querySelectorAll('.supuesto-card').forEach(function (c) { var ok = pasa(c); c.hidden = !ok; if (ok) nEx++; });
