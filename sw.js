@@ -1,4 +1,4 @@
-const VERSION = "v14";
+const VERSION = "v17";
 const CACHE = "supuestos-c1-" + VERSION;
 const PRECACHE = [
   "./",
@@ -13,6 +13,8 @@ const PRECACHE = [
   "app-telemetria.js",
   "app-uso.js",
   "app-estudio.js",
+  "app-sync.js",
+  "sync-config.js",
   "normas-datos.js",
   "mi-estudio.html",
   "pwa.js",
@@ -74,6 +76,9 @@ self.addEventListener("activate", e => {
 self.addEventListener("fetch", e => {
   const req = e.request;
   if (req.method !== "GET" || !req.url.startsWith("http")) return;
+  // Datos en vivo de otros sitios (API de Google Drive, hoja de resultados…): siempre de la red,
+  // nunca de la caché, para no servir copias antiguas. Solo se guardan las imágenes externas (logotipo).
+  if (new URL(req.url).origin !== self.location.origin && req.destination !== "image") return;
   e.respondWith(
     caches.open(CACHE).then(cache =>
       cache.match(req, { ignoreSearch: true }).then(hit => {

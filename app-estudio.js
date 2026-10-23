@@ -78,14 +78,14 @@
                 var m = el('div', 'item-meta');
                 m.appendChild(el('span', 'chip', 'fallada ' + par[1].n + (par[1].n === 1 ? ' vez' : ' veces')));
                 var q = el('button', 'btn-link', 'Quitar'); q.type = 'button';
-                q.addEventListener('click', function () { var b = S.get('banco', {}); delete b.falladas[par[0]]; S.set('banco', b); pintar(); });
+                q.addEventListener('click', function () { var b = S.get('banco', {}); b.borradas = b.borradas || {}; delete b.falladas[par[0]]; b.borradas['f:' + par[0]] = Date.now(); S.set('banco', b); pintar(); });
                 m.appendChild(q); li.appendChild(m); g.appendChild(li);
             });
             fa.appendChild(g);
         });
         if (Object.keys(falladas).length) {
             var v = el('button', 'btn-link peligro', 'Vaciar todas las falladas'); v.type = 'button';
-            v.addEventListener('click', function () { if (confirm('¿Borrar todas las preguntas falladas de este navegador?')) { var b = S.get('banco', {}); b.falladas = {}; S.set('banco', b); pintar(); } });
+            v.addEventListener('click', function () { if (confirm('¿Borrar todas las preguntas falladas de este navegador?')) { var b = S.get('banco', {}); b.borradas = b.borradas || {}; Object.keys(b.falladas || {}).forEach(function (k) { b.borradas['f:' + k] = Date.now(); }); b.falladas = {}; S.set('banco', b); pintar(); } });
             fa.appendChild(v);
         }
 
@@ -103,8 +103,8 @@
                 li.appendChild(el('p', 'item-texto', (marcadas[k] ? '🚩 ' : '') + base.t));
                 if (notas[k]) li.appendChild(el('p', 'item-nota', '📝 ' + notas[k].txt));
                 var m = el('div', 'item-meta');
-                if (marcadas[k]) { var q = el('button', 'btn-link', 'Quitar marca'); q.type = 'button'; q.addEventListener('click', function () { var b = S.get('banco', {}); delete b.marcadas[k]; S.set('banco', b); pintar(); }); m.appendChild(q); }
-                if (notas[k]) { var n = el('button', 'btn-link', 'Borrar nota'); n.type = 'button'; n.addEventListener('click', function () { if (confirm('¿Borrar esta nota?')) { var b = S.get('banco', {}); delete b.notas[k]; S.set('banco', b); pintar(); } }); m.appendChild(n); }
+                if (marcadas[k]) { var q = el('button', 'btn-link', 'Quitar marca'); q.type = 'button'; q.addEventListener('click', function () { var b = S.get('banco', {}); b.borradas = b.borradas || {}; delete b.marcadas[k]; b.borradas['m:' + k] = Date.now(); S.set('banco', b); pintar(); }); m.appendChild(q); }
+                if (notas[k]) { var n = el('button', 'btn-link', 'Borrar nota'); n.type = 'button'; n.addEventListener('click', function () { if (confirm('¿Borrar esta nota?')) { var b = S.get('banco', {}); b.borradas = b.borradas || {}; delete b.notas[k]; b.borradas['n:' + k] = Date.now(); S.set('banco', b); pintar(); } }); m.appendChild(n); }
                 li.appendChild(m); g.appendChild(li);
             });
             ma.appendChild(g);
@@ -119,5 +119,6 @@
         if (textoBoton) { var a = el('a', 'btn-practicar', textoBoton + ' (' + n + ')'); a.href = href; cab.appendChild(a); }
         g.appendChild(cab); return g;
     }
+    window.SupC1Estudio = { repintar: pintar };
     pintar();
 })();

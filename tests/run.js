@@ -9,7 +9,7 @@
 
    Uso:   npm test                      (o: node tests/run.js)
           node tests/run.js --actualizar   guarda como «correcto» el estado actual
-          node tests/run.js envios         solo un grupo (carga|envios|estilos|funciones|menu)
+          node tests/run.js envios         solo un grupo (carga|envios|estilos|funciones|menu|sync)
 
    Nada se envía a Google de verdad: las peticiones a docs.google.com se interceptan.
    Variables opcionales: PLAYWRIGHT_PATH (ruta al módulo playwright), CHROMIUM_PATH. */
@@ -271,12 +271,137 @@ async function menu() {
     });
 }
 
+
+/* ───────── 6. sincronización con Google Drive (con un Google simulado) ───────── */
+function driveFalso() {
+    const est = { contenido: null }, CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' };
+    const ok = (route, cuerpo, tipo) => (route.fulfill({ status: 200, headers: Object.assign({ 'cache-control': 'no-store' }, CORS), contentType: tipo || 'application/json', body: cuerpo }));
+    return { est, manejar: async route => {
+        const r = route.request(), u = new URL(r.url());
+        if (r.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: CORS });
+        if (u.pathname === '/drive/v3/files' && r.method() === 'GET') return ok(route, JSON.stringify({ files: est.contenido ? [{ id: 'F1', name: 'supc1-sync.json' }] : [] }));
+        if (u.pathname === '/drive/v3/files/F1' && u.searchParams.get('alt') === 'media') return ok(route, est.contenido);
+        if (u.pathname === '/upload/drive/v3/files' && r.method() === 'POST') {
+            const lim = /boundary=(\S+)/.exec(r.headers()['content-type'] || '')[1];
+            est.contenido = (r.postData().split('--' + lim)[2].split('\r\n\r\n')[1] || '').replace(/\r\n$/, ''); return ok(route, '{"id":"F1"}');
+        }
+        if (u.pathname === '/upload/drive/v3/files/F1' && r.method() === 'PATCH') { est.contenido = r.postData(); return ok(route, '{"id":"F1"}'); }
+        return route.fulfill({ status: 404, headers: CORS, body: 'no' });
+    } };
+}
+async function dispositivo(drive, sembrar, opciones) {
+    opciones = opciones || {};
+    const ctx = await contexto({ width: 1000, height: 900 }, sembrar);
+    await ctx.route('**/sync-config.js', r => r.fulfill({ contentType: 'text/javascript', body: opciones.sinId ? 'window.SUPC1_SYNC={clientId:""};' : 'window.SUPC1_SYNC={clientId:"prueba.apps.googleusercontent.com",archivo:"supc1-sync.json"};' }));
+    await ctx.route('https://accounts.google.com/gsi/client', r => r.fulfill({ contentType: 'text/javascript', body:
+        'window.google={accounts:{oauth2:{initTokenClient:function(c){return{requestAccessToken:function(){setTimeout(function(){' +
+        (opciones.deniega ? 'c.error_callback({type:"popup_closed"})' : 'c.callback({access_token:"tok"})') + '},30)}}}}}};' }));
+    await ctx.route('https://www.googleapis.com/**', drive.manejar);
+    return ctx;
+}
+const hay = (pg, sel) => pg.locator(sel).count();
+async function sync() {
+    const caso = async (nombre, fn) => { try { const r = await fn(); registrar('sync', nombre, r === true, r === true ? '' : r); } catch (e) { registrar('sync', nombre, false, e.message.split('\n')[0]); } };
+    const N = require(path.join(RAIZ, 'app-sync.js'));
+    const e = (ts, t) => ({ f: 'supuesto_T2I', h: 'x', t: t || 'p', ts, n: 1, ok: 0 });
+
+    await caso('fusión: une lo de los dos dispositivos y gana lo más reciente', async () => {
+        const A = { falladas: { 'a': e(10) }, marcadas: {}, notas: { 'n': { txt: 'vieja', ts: 5, t: 'p' } }, borradas: {} };
+        const B = { falladas: { 'b': e(20) }, marcadas: {}, notas: { 'n': { txt: 'nueva', ts: 9, t: 'p' } }, borradas: {} };
+        const M = N.mezclarBanco(A, B);
+        return (Object.keys(M.falladas).sort().join() === 'a,b' && M.notas.n.txt === 'nueva') || JSON.stringify(M);
+    });
+    await caso('fusión: lo borrado no resucita y lo vuelto a crear sí', async () => {
+        const A = { falladas: {}, marcadas: {}, notas: {}, borradas: { 'n:n': 50, 'm:m': 10 } };
+        const B = { falladas: {}, marcadas: { 'm': { ts: 30, t: 'p' } }, notas: { 'n': { txt: 'x', ts: 40, t: 'p' } }, borradas: {} };
+        const M = N.mezclarBanco(A, B, 100);
+        return (!M.notas.n && M.marcadas.m && M.borradas['n:n'] === 50) || JSON.stringify(M);
+    });
+    await caso('fusión: es conmutativa e idempotente', async () => {
+        const A = { falladas: { a: e(10) }, marcadas: { m: { ts: 3, t: 'p' } }, notas: {}, borradas: { 'n:z': 7 } };
+        const B = { falladas: { a: e(12), b: e(2) }, marcadas: {}, notas: { n: { txt: 'x', ts: 4, t: 'p' } }, borradas: { 'm:m': 9 } };
+        const ab = JSON.stringify(N.mezclarBanco(A, B, 100)), ba = JSON.stringify(N.mezclarBanco(B, A, 100)), aba = JSON.stringify(N.mezclarBanco(JSON.parse(ab), B, 100));
+        return (ab === ba && ab === aba) || [ab, ba, aba].join('\n');
+    });
+    await caso('fusión de estadísticas: une historiales sin duplicar y recalcula mejor y última', async () => {
+        const r = (p, f) => ({ pct: p, fecha: f, total: 25, seg: 900 });
+        const A = { intentos: 2, mejor: r(70, 2), ultima: r(70, 2), hist: [r(50, 1), r(70, 2)] };
+        const B = { intentos: 2, mejor: r(80, 3), ultima: r(80, 3), hist: [r(70, 2), r(80, 3)] };
+        const M = N.mezclarProg(A, B);
+        return (M.hist.length === 3 && M.mejor.pct === 80 && M.ultima.fecha === 3 && M.intentos === 3) || JSON.stringify(M);
+    });
+
+    const SIEMBRA_A = () => {
+        if (localStorage.getItem('supc1:sembrado')) return; localStorage.setItem('supc1:sembrado', '1');
+        localStorage.setItem('supc1:banco', JSON.stringify({ falladas: { 'supuesto_T2I:a': { f: 'supuesto_T2I', h: 'a', t: 'Pregunta A', n: 2, ok: 0, ts: 1000 } }, marcadas: {}, notas: { 'supuesto_T2I:n1': { f: 'supuesto_T2I', h: 'n1', t: 'P', txt: 'nota del movil', ts: 1000 } } }));
+        localStorage.setItem('supc1:prog:supuesto_T2I', JSON.stringify({ intentos: 1, mejor: { pct: 60, fecha: 1, total: 25 }, ultima: { pct: 60, fecha: 1, total: 25 }, hist: [{ pct: 60, fecha: 1, total: 25 }] }));
+    };
+    const SIEMBRA_B = () => {
+        if (localStorage.getItem('supc1:sembrado')) return; localStorage.setItem('supc1:sembrado', '1');
+        localStorage.setItem('supc1:banco', JSON.stringify({ falladas: {}, marcadas: { 'supuesto_T2I:m': { f: 'supuesto_T2I', h: 'm', t: 'Marcada B', ts: 2000 } }, notas: {} }));
+        localStorage.setItem('supc1:prog:supuesto_T2I', JSON.stringify({ intentos: 1, mejor: { pct: 80, fecha: 2, total: 25 }, ultima: { pct: 80, fecha: 2, total: 25 }, hist: [{ pct: 80, fecha: 2, total: 25 }] }));
+    };
+    const pulsarSync = async pg => { await pg.click('#sync-boton'); };
+    const hecho = async pg => { await pg.waitForSelector('.sync-proceso h3:has-text("Sincronizado")', { timeout: 8000 }); return pg.textContent('.sync-proceso .sync-estado'); };
+    const recargar = async pg => { await pg.reload(); await pg.waitForSelector('#sync-boton'); };
+
+    await caso('sin ID de cliente la opción no aparece en «Mi estudio»', async () => {
+        const drive = driveFalso(), ctx = await dispositivo(drive, SIEMBRA_A, { sinId: true }); const pg = await abrir(ctx, 'mi-estudio.html');
+        const n = await hay(pg, '#sync-boton'); await ctx.close(); return n === 0 || 'aparece';
+    });
+    await caso('antes de sincronizar se abre la explicación con los pasos', async () => {
+        const drive = driveFalso(), ctx = await dispositivo(drive, SIEMBRA_A); const pg = await abrir(ctx, 'mi-estudio.html');
+        await pulsarSync(pg); const t = await pg.textContent('.sync-explicacion'); const antes = drive.est.contenido;
+        await ctx.close();
+        return (/carpeta privada y oculta de tu propio Google Drive/.test(t) && /Pasos/.test(t) && /Continuar/.test(t) && antes === null && (t.match(/\d\./g) || []).length >= 0) || t.slice(0, 200);
+    });
+    await caso('dispositivo A sincroniza; dispositivo B recibe sus datos y conserva los suyos', async () => {
+        const drive = driveFalso();
+        const ca = await dispositivo(drive, SIEMBRA_A); const a = await abrir(ca, 'mi-estudio.html');
+        await pulsarSync(a); await a.click('.sync-explicacion .btn-primary'); const resA = await hecho(a);
+        const guardado = JSON.parse(drive.est.contenido);
+        const cb = await dispositivo(drive, SIEMBRA_B); const b = await abrir(cb, 'mi-estudio.html');
+        await pulsarSync(b); await b.click('.sync-explicacion .btn-primary'); const resB = await hecho(b);
+        const bancoB = await b.evaluate(() => SupC1.get('banco', {})), progB = await b.evaluate(() => SupC1.get('prog:supuesto_T2I', {}));
+        const visible = await b.evaluate(() => document.querySelector('#estudio-falladas').textContent.includes('Pregunta A') && document.querySelector('#estudio-marcadas').textContent.includes('nota del movil'));
+        await ca.close(); await cb.close();
+        return (/Se ha creado tu copia/.test(resA) && guardado.banco.notas['supuesto_T2I:n1'] && /Se han añadido/.test(resB) &&
+                bancoB.falladas['supuesto_T2I:a'] && bancoB.marcadas['supuesto_T2I:m'] && bancoB.notas['supuesto_T2I:n1'] &&
+                progB.hist.length === 2 && progB.mejor.pct === 80 && visible) || JSON.stringify({ resA, resB, bancoB, progB, visible });
+    });
+    await caso('un borrado en un dispositivo se propaga al otro y «No volver a mostrar» salta la explicación', async () => {
+        const drive = driveFalso();
+        const ca = await dispositivo(drive, SIEMBRA_A); const a = await abrir(ca, 'mi-estudio.html');
+        await pulsarSync(a); await a.check('#sync-no-mas'); await a.click('.sync-explicacion .btn-primary'); await hecho(a);
+        await recargar(a);
+        await pulsarSync(a); const sinExplicacion = (await hay(a, '.sync-explicacion')) === 0; await hecho(a);
+        // borro la nota en A y sincronizo; B (con la nota) la pierde
+        const cb = await dispositivo(drive, () => {}); const b = await abrir(cb, 'mi-estudio.html');
+        await pulsarSync(b); await b.click('.sync-explicacion .btn-primary'); await hecho(b);
+        const tenia = await b.evaluate(() => !!SupC1.get('banco', {}).notas['supuesto_T2I:n1']);
+        await a.evaluate(() => { const bk = SupC1.get('banco', {}); delete bk.notas['supuesto_T2I:n1']; bk.borradas = bk.borradas || {}; bk.borradas['n:supuesto_T2I:n1'] = Date.now() + 10; SupC1.set('banco', bk); });
+        await recargar(a);
+        await pulsarSync(a); await hecho(a);
+        await recargar(b);
+        await pulsarSync(b); await b.click('.sync-explicacion .btn-primary'); await hecho(b);
+        const sigue = await b.evaluate(() => !!SupC1.get('banco', {}).notas['supuesto_T2I:n1']);
+        await ca.close(); await cb.close();
+        return (sinExplicacion && tenia && !sigue) || JSON.stringify({ sinExplicacion, tenia, sigue });
+    });
+    await caso('si Google no concede el permiso, el mensaje es claro y no se toca nada', async () => {
+        const drive = driveFalso(), ctx = await dispositivo(drive, SIEMBRA_A, { deniega: true }); const pg = await abrir(ctx, 'mi-estudio.html');
+        await pulsarSync(pg); await pg.click('.sync-explicacion .btn-primary'); await pg.waitForSelector('.sync-proceso h3:has-text("No se ha podido sincronizar")', { timeout: 8000 });
+        const t = await pg.textContent('.sync-proceso .sync-estado'); await ctx.close();
+        return (/No se completó el permiso de Google/.test(t) && drive.est.contenido === null) || t;
+    });
+}
+
 (async () => {
     const server = await servidor(); BASE = 'http://127.0.0.1:' + server.address().port + '/';
     const opts = { args: ['--no-sandbox'] }; if (process.env.CHROMIUM_PATH) opts.executablePath = process.env.CHROMIUM_PATH;
     else if (fs.existsSync('/opt/pw-browsers/chromium-1243/chrome-linux64/chrome') && !process.env.CI) opts.executablePath = '/opt/pw-browsers/chromium-1243/chrome-linux64/chrome';
     navegador = await pw.chromium.launch(opts);
-    const grupos = { carga, envios, estilos, funciones, menu };
+    const grupos = { carga, envios, estilos, funciones, menu, sync };
     for (const [n, f] of Object.entries(grupos)) {
         if (SOLO.length && !SOLO.includes(n)) continue;
         console.log('\n▶ ' + n); await f();

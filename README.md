@@ -36,6 +36,7 @@ El sitio está disponible en:
 
 - **Añadir un supuesto al menú:** copia su `.html` a `supuestos/` (parte de `Py/supuesto_plantilla_python.html`, que ya incluye todo lo necesario) y añade un bloque en su sección de `supuestos-datos.js` (o deja que lo haga el editor de Python al guardar). No hay que tocar `index.html`.
 - **Publicar cambios:** sube el número de `VERSION` en `sw.js`; así los usuarios ven el aviso «Hay una versión nueva».
+- **Sincronizar entre dispositivos (Google Drive, apagado hasta poner el «clientId» en `sync-config.js`):** cada persona guarda su copia en una carpeta oculta de su propio Drive; ventana explicativa antes de empezar. Ver `Py/INSTRUCCIONES.txt`.
 - **Pruebas y validación:** `python3 Py/validar_supuestos.py` revisa los supuestos y el menú; `npm test` abre las páginas en un navegador y comprueba envíos, aspecto y funciones (ver `tests/LEEME.txt`). En GitHub corren solas en cada subida.
 - **Datos anónimos de intentos a medias:** preparado pero apagado; se activa en `telemetria-config.js` (pasos en `Py/INSTRUCCIONES.txt`).
 - **Estilos:** `base-supuesto.css` (reglas comunes de todos los supuestos), `tema-supuesto.css` (diseño de los supuestos), `tema-menu.css` (menú) y `tema-resultados.css` (resultados). Las funciones comunes están en `app-supuesto.js` y `app-menu.js`.

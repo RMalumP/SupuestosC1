@@ -46,7 +46,7 @@
     function corto(q) { var t = textoPlano(q); return t.length > 220 ? t.slice(0, 217) + '…' : t; }
     function banco() {
         var b = S.get(K_BANCO, null) || {};
-        b.falladas = b.falladas || {}; b.marcadas = b.marcadas || {}; b.notas = b.notas || {};
+        b.falladas = b.falladas || {}; b.marcadas = b.marcadas || {}; b.notas = b.notas || {}; b.borradas = b.borradas || {};
         return b;
     }
     function guardarBanco(b) { S.set(K_BANCO, b); }
@@ -67,10 +67,10 @@
         var b = banco(), f = b.falladas[k];
         if (est === 'ko') {
             f = f || { f: ID, h: k.split(':')[1], t: corto(q), n: 0, ok: 0 };
-            f.n++; f.ok = 0; f.ts = Date.now(); b.falladas[k] = f;
+            f.n++; f.ok = 0; f.ts = Date.now(); b.falladas[k] = f; delete b.borradas['f:' + k];
         } else if (f) {
             f.ok = (f.ok || 0) + 1;
-            if (f.ok >= 2) delete b.falladas[k]; else f.ts = Date.now();
+            if (f.ok >= 2) { delete b.falladas[k]; b.borradas['f:' + k] = Date.now(); } else f.ts = Date.now();
         }
         memoBanco[k] = est; guardarBanco(b);
     }
@@ -95,8 +95,8 @@
     function alternarMarca(i) {
         var q = questions[i]; if (!q) return;
         var b = banco(), k = claveDe(q);
-        if (marcas.has(i)) { marcas.delete(i); delete b.marcadas[k]; }
-        else { marcas.add(i); b.marcadas[k] = { f: ID, h: k.split(':')[1], t: corto(q), ts: Date.now() }; }
+        if (marcas.has(i)) { marcas.delete(i); delete b.marcadas[k]; b.borradas['m:' + k] = Date.now(); }
+        else { marcas.add(i); b.marcadas[k] = { f: ID, h: k.split(':')[1], t: corto(q), ts: Date.now() }; delete b.borradas['m:' + k]; }
         guardarBanco(b); pintarMarca(i);
     }
     function marcasDelBanco() {
@@ -121,8 +121,8 @@
         var q = questions[i]; if (!q) return;
         var b = banco(), k = claveDe(q);
         texto = texto.trim();
-        if (texto) b.notas[k] = { f: ID, h: k.split(':')[1], t: corto(q), txt: texto, ts: Date.now() };
-        else delete b.notas[k];
+        if (texto) { b.notas[k] = { f: ID, h: k.split(':')[1], t: corto(q), txt: texto, ts: Date.now() }; delete b.borradas['n:' + k]; }
+        else if (b.notas[k]) { delete b.notas[k]; b.borradas['n:' + k] = Date.now(); }
         guardarBanco(b); pintarNota(i);
     }
 

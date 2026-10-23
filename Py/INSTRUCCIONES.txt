@@ -871,3 +871,38 @@
     Comprueban que todo carga, que lo que se envía a Google no cambia y que las
     funciones siguen funcionando. En GitHub se ejecutan solas en cada subida.
 
+────────────────────────────────────────────────────────────────────────────────
+ SINCRONIZAR ENTRE DISPOSITIVOS CON GOOGLE DRIVE (APAGADO POR DEFECTO)
+────────────────────────────────────────────────────────────────────────────────
+
+  QUÉ HACE
+     En «Mi estudio» aparece el botón «Sincronizar». Cada persona guarda una copia
+     de sus notas, preguntas marcadas, falladas y estadísticas en una carpeta
+     OCULTA de SU PROPIO Google Drive (la «appDataFolder»: la web solo ve esa
+     carpeta, nunca el resto del Drive, y tú no recibes nada). En otro dispositivo
+     pulsa el mismo botón con la misma cuenta y los datos se COMBINAN: se suman las
+     falladas y marcadas, gana la última nota editada, los borrados se respetan y
+     las estadísticas se unen. No se sincronizan los intentos a medias.
+     Antes de empezar se abre una ventana que explica, paso a paso y con palabras
+     sencillas, qué va a pasar (con la casilla «No volver a mostrar»). Si Google
+     falla o la persona cancela, el mensaje es claro y no se toca nada.
+
+  PARA ACTIVARLO (una sola vez, gratis, ~10 minutos) — pasos completos en sync-config.js
+     1. console.cloud.google.com → crear un proyecto → habilitar «Google Drive API».
+     2. Pantalla de consentimiento OAuth: «Externo», permiso SOLO «drive.appdata»,
+        y pulsar «Publicar aplicación» (no hace falta verificación con ese permiso).
+     3. Credenciales → ID de cliente de OAuth → «Aplicación web» → origen de
+        JavaScript autorizado: https://rmalump.github.io
+     4. Copiar el ID de cliente (público, no es un secreto) a «clientId» en
+        sync-config.js y subir VERSION en sw.js.
+     Mientras «clientId» esté vacío, el botón no aparece.
+
+  PRIVACIDAD Y SEGURIDAD
+     · La web no guarda ninguna contraseña ni ningún token: Google da un permiso
+       temporal cada vez que se sincroniza.
+     · La persona puede retirar el permiso en su cuenta de Google → Seguridad →
+       «Conexiones con aplicaciones y servicios de terceros».
+     · El texto de «Mi estudio» ya aclara que los datos son personales y no se
+       comparten con terceros; si se activa la sincronización añade que la copia
+       va a su propio Drive.
+
