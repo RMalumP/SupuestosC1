@@ -785,3 +785,51 @@
   7. Antes de publicar un cambio, sube el número VERSION de sw.js para que quien
      tenga la app instalada reciba el aviso de actualización.
 
+────────────────────────────────────────────────────────────────────────────────
+ DATOS ANÓNIMOS DE INTENTOS A MEDIAS (APAGADO POR DEFECTO)
+────────────────────────────────────────────────────────────────────────────────
+
+  Hoy solo se envía el detalle al CORREGIR. Se ha dejado preparado, apagado, el
+  envío de una instantánea de los intentos que se abandonan (también los de
+  «corregir pregunta a pregunta» que no se llegan a corregir). Se configura en
+  telemetria-config.js, en la carpeta raíz del proyecto.
+
+  QUÉ ENVÍA (sin nombre; solo un identificador aleatorio por navegador)
+     título del supuesto · fecha y hora · estado · modo (normal o pregunta a
+     pregunta) · identificador del intento · identificador anónimo · preguntas
+     respondidas y totales · aciertos, fallos y en blanco · tiempo restante ·
+     y, por pregunta, «Correcta: …», «Incorrecta: …» o «En blanco» (igual que el
+     envío automático). Varias instantáneas del mismo intento comparten
+     identificador, así que en la hoja se agrupan por esa columna.
+
+  CUÁNDO ENVÍA
+     Al salir de la página o cambiar de pestaña, si hay al menos
+     «minRespuestas» preguntas respondidas y algo ha cambiado desde el último
+     envío (como mucho una cada 15 segundos). NO envía: si el intento ya se
+     corrigió (eso lo cubre el envío automático de siempre), en los intentos de
+     «repetir solo las falladas», ni si la persona desmarca «Enviar datos
+     anónimos» (en el menú y en el panel ⚙).
+
+  PARA ACTIVARLO
+     1. Crea un formulario de Google NUEVO con una pregunta de respuesta corta
+        por cada dato que quieras recoger y una de «párrafo» para «respuestas».
+     2. Copia su URL cambiando «viewform» por «formResponse».
+     3. En telemetria-config.js pon esa URL en «url» y, en «campos», el código
+        «entry.…» de cada casilla (menú ⋮ → «Obtener enlace previamente
+        rellenado»). Lo que dejes en "" no se envía.
+        (Opcional: «preguntas» admite una casilla por pregunta, como el envío
+        automático, en vez de la de «respuestas».)
+     4. Pon «activa: true» y sube VERSION en sw.js antes de publicar.
+     Al activarlo, el menú muestra un aviso con una casilla para no
+     participar. Es obligatorio informar: aunque sea anónimo, son datos de uso.
+
+  VER LOS DATOS (MODO ADMINISTRADOR)
+     Los datos solo los ves tú, en la hoja de respuestas del formulario nuevo:
+     la protege tu cuenta de Google. Si quieres un enlace discreto desde la web a
+     tu panel (la hoja o una página de Apps Script restringida a tu cuenta), pon
+     su dirección en «adminUrl» y entra una vez en tu navegador con
+        index.html#admin
+     En el pie del menú aparecerá «· admin» solo en ese navegador. OJO: eso no
+     protege nada (el código de la web es público); lo que protege los datos es
+     que el panel pida tu cuenta de Google.
+

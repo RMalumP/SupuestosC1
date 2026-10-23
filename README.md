@@ -34,6 +34,7 @@ El sitio está disponible en:
 
 - **Añadir un supuesto al menú:** copia su `.html` a `supuestos/` (parte de `Py/supuesto_plantilla_python.html`, que ya incluye todo lo necesario) y añade un bloque en su sección de `supuestos-datos.js` (o deja que lo haga el editor de Python al guardar). No hay que tocar `index.html`.
 - **Publicar cambios:** sube el número de `VERSION` en `sw.js`; así los usuarios ven el aviso «Hay una versión nueva».
+- **Datos anónimos de intentos a medias:** preparado pero apagado; se activa en `telemetria-config.js` (pasos en `Py/INSTRUCCIONES.txt`).
 - **Estilos:** `base-supuesto.css` (reglas comunes de todos los supuestos), `tema-supuesto.css` (diseño de los supuestos), `tema-menu.css` (menú) y `tema-resultados.css` (resultados). Las funciones comunes están en `app-supuesto.js` y `app-menu.js`.
 
 ---

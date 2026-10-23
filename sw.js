@@ -1,4 +1,4 @@
-const VERSION = "v9";
+const VERSION = "v10";
 const CACHE = "supuestos-c1-" + VERSION;
 const PRECACHE = [
   "./",
@@ -9,6 +9,8 @@ const PRECACHE = [
   "base-supuesto.css",
   "tema-supuesto.css",
   "prefs.js",
+  "telemetria-config.js",
+  "app-telemetria.js",
   "pwa.js",
   "app-menu.js",
   "app-supuesto.js",
