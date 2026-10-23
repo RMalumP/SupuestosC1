@@ -205,6 +205,23 @@
         return r;
     };
 
+    // Un intento solo con las falladas es práctica personal: no se manda a los
+    // formularios (ni el envío manual, que se oculta, ni el detalle automático).
+    var detalleOrig = window.enviarDetalleCorreccion;
+    if (typeof detalleOrig === 'function') {
+        window.enviarDetalleCorreccion = function () {
+            if (parcial) return;
+            return detalleOrig.apply(this, arguments);
+        };
+    }
+    var enviarOrig = window.enviarResultados;
+    if (typeof enviarOrig === 'function') {
+        window.enviarResultados = function () {
+            if (parcial) return;
+            return enviarOrig.apply(this, arguments);
+        };
+    }
+
     var goHomeOrig = window.goHome;
     if (typeof goHomeOrig === 'function') {
         window.goHome = function () {
