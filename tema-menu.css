@@ -161,3 +161,23 @@ body, .hero p, .supuesto-card .desc, .grupo-desc, .filtros input[type="search"],
 /* Accesibilidad: el pie tenía poco contraste */
 footer { opacity: 1; color: #6b5d52; }
 :root[data-tema="oscuro"] footer { color: #c9b8a8; }
+
+/* ── Botón de volver (más visible) y aviso de privacidad en «Mi estudio» ── */
+.back-link.boton {
+    display: inline-flex; align-items: center; gap: 8px; opacity: 1; margin: 0 0 18px;
+    font-size: 0.9rem; font-weight: 700; letter-spacing: 0.02em; text-transform: none;
+    color: #fff; background: var(--brown-dark); padding: 12px 22px; border-radius: 99px;
+    box-shadow: 0 4px 14px rgba(61,42,32,.25); transition: background .2s, transform .2s;
+}
+.back-link.boton { text-decoration: none; }
+.back-link.boton:hover { background: var(--brown); transform: translateX(-2px); }
+.back-link.boton:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
+.container > .back-link.boton:last-of-type { margin: 26px 0 0; }
+:root[data-tema="oscuro"] .back-link.boton { background: var(--blue); color: #2b2118; }
+:root[data-tema="oscuro"] .back-link.boton:hover { background: var(--blue-lt); }
+.aviso-privado {
+    display: flex; flex-direction: column; gap: 4px; margin: 0 0 20px; padding: 14px 18px;
+    background: var(--t-surface); border: 1px solid var(--t-line); border-left: 5px solid #2f6f93; border-radius: 12px;
+    font-size: 0.88rem; line-height: 1.55; color: var(--t-ink);
+}
+.aviso-privado strong { font-size: 0.95rem; }
