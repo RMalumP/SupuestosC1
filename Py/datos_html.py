@@ -1087,8 +1087,9 @@ def datos_a_js(datos):
 MARCA_FIN = "FIN DE LA ZONA EDITABLE"
 
 
-def escribir_html(ruta_destino, html_base, datos, modo):
-    """Inserta los datos en el HTML y lo guarda en ruta_destino."""
+def escribir_html(ruta_destino, html_base, datos, modo, copia=True):
+    """Inserta los datos en el HTML y lo guarda en ruta_destino.
+    copia=False no deja la copia de seguridad .bak (la usa sincronizar_local.py)."""
     if modo == "json" and RE_BLOQUE_JSON.search(html_base):
         nuevo = RE_BLOQUE_JSON.sub(
             lambda m: m.group(1) + "\n" + datos_a_json(datos) + "\n" + m.group(3),
@@ -1120,7 +1121,7 @@ def escribir_html(ruta_destino, html_base, datos, modo):
         nuevo = html_base[:ini] + datos_a_js(datos) + "\n\n" + html_base[fin:]
 
     destino = Path(ruta_destino)
-    if destino.exists():                       # copia de seguridad .bak
+    if copia and destino.exists():             # copia de seguridad .bak
         try:
             destino.with_suffix(destino.suffix + ".bak").write_text(
                 destino.read_text(encoding="utf-8"), encoding="utf-8")

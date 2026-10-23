@@ -2,3 +2,5 @@ node_modules/
 package-lock.json
 *.bak
 __pycache__/
+.estado_local.json
+PARA_SUBIR/

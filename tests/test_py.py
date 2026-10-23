@@ -17,6 +17,7 @@ sys.path.insert(0, str(RAIZ / "tests" / "stub_tkinter"))   # tkinter falso solo 
 
 import menu_datos          # noqa: E402
 import datos_html          # noqa: E402
+import sincronizar_local as sl  # noqa: E402
 
 
 def copia_del_proyecto():
@@ -127,6 +128,69 @@ class DatosHtml(unittest.TestCase):
                 self.assertEqual(datos2, datos, p.name)
             finally:
                 shutil.rmtree(d, ignore_errors=True)
+
+
+class SincronizarLocal(unittest.TestCase):
+    def test_flujo_completo_hasta_para_subir(self):
+        d = copia_del_proyecto()
+        try:
+            self.assertTrue(sl.asegurar_base(d))
+            self.assertFalse(sl.asegurar_base(d))
+            self.assertEqual(sl.diferencias(d), ([], [], []))
+            # un supuesto con motor antiguo (como recién bajado de GitHub)
+            f = d / "supuestos" / "supuesto_2.html"
+            f.write_text(f.read_text(encoding="utf-8").replace('name="motor-plantilla" content="8"', 'name="motor-plantilla" content="6"'), encoding="utf-8")
+            sl.marcar_subido(d)
+            antes = datos_html.leer_html(f)[0]
+            hechos, saltados = sl.poner_al_dia(d)
+            self.assertEqual([h[0] for h in hechos], ["supuesto_2.html"])
+            self.assertEqual(datos_html.leer_html(f)[0], antes, "las preguntas no deben cambiar")
+            self.assertEqual(sl.poner_al_dia(d), ([], []))
+            self.assertFalse(list((d / "supuestos").glob("*.bak")))
+            # un cambio más: archivo nuevo y menú
+            shutil.copy(d / "supuestos" / "supuesto_0.html", d / "supuestos" / "supuesto_88.html")
+            (d / "supuestos-datos.js").write_text((d / "supuestos-datos.js").read_text(encoding="utf-8") + "\n// x\n", encoding="utf-8")
+            nuevos, modif, borrados = sl.preparar_para_subir(d)
+            self.assertEqual(nuevos, ["supuestos/supuesto_88.html"])
+            self.assertEqual(modif, ["supuestos-datos.js", "supuestos/supuesto_2.html"])
+            self.assertTrue((d / "PARA_SUBIR" / "supuestos" / "supuesto_88.html").is_file())
+            self.assertIn("supuestos/supuesto_88.html", (d / "PARA_SUBIR" / "LEEME_SUBIR.txt").read_text(encoding="utf-8"))
+            self.assertFalse((d / "PARA_SUBIR" / "index.html").exists())
+            (d / "supuestos" / "supuesto_88.html").unlink()
+            self.assertEqual(sl.diferencias(d)[2], [])
+            sl.marcar_subido(d)
+            self.assertFalse((d / "PARA_SUBIR").exists())
+            self.assertEqual(sl.diferencias(d), ([], [], []))
+        finally:
+            shutil.rmtree(d, ignore_errors=True)
+
+    def test_borrados_y_carpeta_no_se_cuenta_a_si_misma(self):
+        d = copia_del_proyecto()
+        try:
+            sl.asegurar_base(d)
+            (d / "supuestos" / "supuesto_1.html").unlink()
+            n, m, b = sl.preparar_para_subir(d)
+            self.assertEqual(b, ["supuestos/supuesto_1.html"])
+            self.assertIn("BORRADOS", (d / "PARA_SUBIR" / "LEEME_SUBIR.txt").read_text(encoding="utf-8"))
+            self.assertEqual(sl.diferencias(d)[2], ["supuestos/supuesto_1.html"])   # PARA_SUBIR no cuenta
+        finally:
+            shutil.rmtree(d, ignore_errors=True)
+
+    def test_desde_la_linea_de_ordenes(self):
+        d = copia_del_proyecto()
+        try:
+            f = d / "supuestos" / "supuesto_3.html"
+            f.write_text(f.read_text(encoding="utf-8").replace('name="motor-plantilla" content="8"', 'name="motor-plantilla" content="5"'), encoding="utf-8")
+            cod, sal = ejecutar(d, "Py/editor_supuestos.py", "--actualizar")
+            self.assertEqual(cod, 0, sal)
+            self.assertIn("Primera vez", sal)
+            self.assertIn("supuesto_3.html: motor 5 → 8", sal)
+            self.assertIn("1 archivo para subir", sal)
+            self.assertTrue((d / "PARA_SUBIR" / "supuestos" / "supuesto_3.html").is_file())
+            cod, sal = ejecutar(d, "Py/editor_supuestos.py", "--subido")
+            self.assertFalse((d / "PARA_SUBIR").exists())
+        finally:
+            shutil.rmtree(d, ignore_errors=True)
 
 
 class Editor(unittest.TestCase):

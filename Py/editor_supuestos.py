@@ -36,13 +36,22 @@ from pathlib import Path
 # Los módulos del editor (menu_datos, datos_html, alta_menu…) están junto a este archivo.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-# Modo sin ventana: «python editor_supuestos.py --alta» da de alta en el menú los
-# supuestos que falten (ver alta_menu.py). Se decide antes de cargar tkinter.
-if __name__ == "__main__" and "--alta" in sys.argv:
-    import alta_menu
-    sys.exit(alta_menu.main([a for a in sys.argv[1:] if a != "--alta"]))
+# Modos sin ventana (se deciden antes de cargar tkinter). El lanzador es siempre este archivo:
+#   --alta [--auto]      da de alta en el menú los supuestos que falten        (alta_menu.py)
+#   --actualizar         pone todo al día y prepara la carpeta PARA_SUBIR      (sincronizar_local.py)
+#   --para-subir         solo prepara la carpeta PARA_SUBIR
+#   --subido             marca lo actual como ya subido a GitHub
+if __name__ == "__main__":
+    if "--alta" in sys.argv:
+        import alta_menu
+        sys.exit(alta_menu.main([a for a in sys.argv[1:] if a != "--alta"]))
+    if any(a in sys.argv for a in ("--actualizar", "--para-subir", "--subido")):
+        import sincronizar_local
+        sys.exit(sincronizar_local.main(sys.argv[1:]))
 
 import menu_datos            # lista del menú
+import sincronizar_local     # poner al día y carpeta PARA_SUBIR
+import ventana_subir         # ventana «Para subir a GitHub»
 
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, colorchooser
@@ -911,6 +920,9 @@ class EditorApp(tk.Tk):
         ttk.Separator(barra, orient="vertical").pack(side="left", fill="y", padx=10)
         ttk.Button(barra, text="🌐  Ver en el navegador", command=self.ver_navegador).pack(side="left")
         ttk.Button(barra, text="✔  Comprobar", command=self.comprobar).pack(side="left", padx=(6, 0))
+        ttk.Separator(barra, orient="vertical").pack(side="left", fill="y", padx=10)
+        ttk.Button(barra, text="📦  Para subir a GitHub…",
+                   command=lambda: ventana_subir.abrir(self)).pack(side="left")
 
         self.lbl_archivo = ttk.Label(barra, text="(ningún archivo abierto)",
                                      style="Tec.TLabel")
@@ -3568,7 +3580,14 @@ class EditorApp(tk.Tk):
         self.estado("Guardado en %s   (%d preguntas)"
                     % (self.ruta, len(self.datos["preguntas"])))
         self._alta_en_menu()
+        self.refrescar_para_subir()
         return True
+
+    def refrescar_para_subir(self):
+        """Tras guardar: deja la carpeta PARA_SUBIR al día con lo que se ha cambiado."""
+        res = sincronizar_local.refrescar_silencioso(self.ruta) if self.ruta else None
+        if res:
+            self.estado(self.lbl_estado.cget("text") + "   ·   " + sincronizar_local.resumen(*res))
 
     def _alta_en_menu(self):
         """Mantiene al día la tarjeta del supuesto en el menú principal
@@ -3668,6 +3687,11 @@ class EditorApp(tk.Tk):
 # ══════════════════════════════════════════════════════════════════════
 
 def main():
+    try:                       # la primera vez, lo que hay ahora cuenta como «lo descargado de GitHub»
+        if sincronizar_local.es_proyecto(sincronizar_local.RAIZ_DEFECTO):
+            sincronizar_local.asegurar_base(sincronizar_local.RAIZ_DEFECTO)
+    except OSError:
+        pass
     app = EditorApp()
     app.mainloop()
 
