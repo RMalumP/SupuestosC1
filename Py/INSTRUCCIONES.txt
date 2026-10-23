@@ -750,3 +750,38 @@
   AL PUBLICAR
      Sube el número VERSION de sw.js (en la raíz del proyecto) para que quien
      tenga la app instalada reciba el aviso «Hay una versión nueva».
+
+────────────────────────────────────────────────────────────────────────────────
+ PROBAR LOS SUPUESTOS EN LOCAL (SIN SUBIRLOS A LA WEB)
+────────────────────────────────────────────────────────────────────────────────
+
+  1. Descarga el repositorio ENTERO: en GitHub, botón «Code» → «Download ZIP»
+     (o con Git: git clone), y descomprímelo. Mantén todas las carpetas juntas:
+     los supuestos enlazan con archivos de la carpeta de arriba (el diseño, las
+     funciones extra y las fuentes). No muevas supuestos sueltos a otro sitio.
+
+  2. Qué puedes abrir con doble clic:
+       · index.html                       el menú principal completo
+       · supuestos/supuesto_XX.html       cualquier supuesto, con su diseño
+     y desde el editor, «Ver en el navegador» hace lo mismo.
+
+  3. Lo que sí funciona en local: el diseño, el tema oscuro, el tamaño de letra,
+     marcar preguntas, guardar el progreso, continuar un intento y repetir
+     solo las falladas (todo se guarda en el navegador de ese ordenador).
+
+  4. Lo que solo funciona en la web publicada: instalarla como app, usarla sin
+     conexión y el aviso de «Hay una versión nueva». Para probarlo también en
+     local, abre una terminal en la carpeta del proyecto y ejecuta:
+           python -m http.server
+     y entra en http://localhost:8000
+
+  5. Si un supuesto se ve con el diseño antiguo o sin las funciones nuevas,
+     casi seguro está fuera de su sitio: debe estar dentro de «supuestos/» (o de
+     otra carpeta que cuelgue de la raíz del proyecto, como «Py/»).
+
+  6. Las notas y el progreso del navegador son independientes entre la copia
+     local y la web publicada: no se mezclan.
+
+  7. Antes de publicar un cambio, sube el número VERSION de sw.js para que quien
+     tenga la app instalada reciba el aviso de actualización.
+
