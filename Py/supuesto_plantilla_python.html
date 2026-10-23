@@ -18,7 +18,7 @@
         con la suya y, si el archivo se quedó atrás, ofrece ponerlo al día
         al guardar. Subir este número al cambiar el motor.
     -->
-    <meta name="motor-plantilla" content="7">
+    <meta name="motor-plantilla" content="8">
     <title>[TÍTULO DE LA EVALUACIÓN]</title>
     <link rel="stylesheet" href="../fuentes/fuentes.css">
 
@@ -1018,7 +1018,9 @@
                     encabezado (logo y organismo)
        tema       → colores de toda la página (fondos, textos, acentos)
        interfaz   → qué botones se ven y cómo se llaman
-       envio      → dirección del formulario y casilla de cada dato
+       envio      → dirección del formulario y casilla de cada dato;
+                    "total" = casillas del recuento ABSOLUTO (suma de todos
+                    los bloques) y "enviarTotal" = si se manda o no
        envioDetalle → (opcional) segundo formulario, el del detalle
                     pregunta a pregunta que sale solo al corregir. Si no
                     aparece, se usa el del proyecto, que ya viene puesto
@@ -1146,7 +1148,15 @@
     "examen": "entry.241409513",
     "usuario": "entry.1810433543",
     "tiempoAsignado": "entry.1069013600",
-    "tiempoEmpleado": "entry.815398067"
+    "tiempoEmpleado": "entry.815398067",
+    "enviarTotal": true,
+    "total": {
+      "preguntas": "entry.771114786",
+      "aciertos": "entry.1903892811",
+      "fallos": "entry.1155230396",
+      "blancos": "entry.943386498",
+      "puntos": ""
+    }
   },
   "bloques": [
     {
@@ -1162,10 +1172,10 @@
       "fallo": 0.33,
       "blanco": 0.0,
       "envio": {
-        "preguntas": "entry.771114786",
-        "aciertos": "entry.1903892811",
-        "fallos": "entry.1155230396",
-        "blancos": "entry.943386498",
+        "preguntas": "",
+        "aciertos": "",
+        "fallos": "",
+        "blancos": "",
         "puntos": ""
       }
     },
@@ -3313,6 +3323,7 @@ function enviarResultados() {
     anota(ENVIO.tiempoEmpleado, tiempoEmpleado);
 
     // Un juego de casillas por cada bloque que haya salido en el intento
+    // (opcional: las casillas vacías no se envían).
     res.bloques.forEach(r => {
         const casillas = r.bloque.envio || {};
         anota(casillas.preguntas, r.total);
@@ -3321,6 +3332,22 @@ function enviarResultados() {
         anota(casillas.blancos,   r.blancos);
         anota(casillas.puntos,    nUm(r.puntos));
     });
+
+    // TOTAL ABSOLUTO: todos los bloques sumados como si fueran uno solo
+    // (preguntas, aciertos, fallos, en blanco y puntos). Se anota DESPUÉS
+    // de los bloques: si una casilla coincidiera con la de algún bloque,
+    // manda el total y no el último bloque que la pisaba.
+    // Archivos antiguos sin apartado "total": se usan las casillas del
+    // primer bloque, que es lo que antes hacía el formulario del proyecto.
+    if (ENVIO.enviarTotal !== false) {
+        const casTot = (ENVIO.total && typeof ENVIO.total === 'object') ? ENVIO.total
+                     : ((BLOCKS_BANK[0] && BLOCKS_BANK[0].envio) || {});
+        anota(casTot.preguntas, res.total);
+        anota(casTot.aciertos,  res.aciertos);
+        anota(casTot.fallos,    res.fallos);
+        anota(casTot.blancos,   res.blancos);
+        anota(casTot.puntos,    nUm(res.puntos));
+    }
 
     if (sendBtn) {
         sendBtn.disabled = true;

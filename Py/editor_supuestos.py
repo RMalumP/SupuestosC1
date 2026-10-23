@@ -234,9 +234,18 @@ CAMPOS_BOTONERA = [
 ]
 
 # ── ENVÍO DE RESULTADOS A UN FORMULARIO DE GOOGLE ────────────────────────
-# Los datos generales del intento. Los recuentos (preguntas, aciertos,
-# fallos, en blanco y puntos) NO van aquí: cada bloque tiene los suyos, y
-# con un solo bloque ese bloque es el examen entero.
+# Los datos generales del intento, más el recuento ABSOLUTO («total»: todos
+# los bloques sumados como uno) y, opcionalmente, un recuento por bloque
+# (cada bloque tiene sus casillas, en blanco por defecto).
+# Casillas del recuento ABSOLUTO: todos los bloques sumados como uno solo.
+ENVIO_TOTAL_DEFECTO = {
+    "preguntas": "entry.771114786",
+    "aciertos":  "entry.1903892811",
+    "fallos":    "entry.1155230396",
+    "blancos":   "entry.943386498",
+    "puntos":    "",
+}
+
 ENVIO_DEFECTO = {
     "url": ("https://docs.google.com/forms/d/e/"
             "1FAIpQLSd9h52UH7XzaRDRSIxSevScmqKZC28Fvtfnp39drKtC5SiwGA/formResponse"),
@@ -244,7 +253,19 @@ ENVIO_DEFECTO = {
     "usuario": "entry.1810433543",
     "tiempoAsignado": "entry.1069013600",
     "tiempoEmpleado": "entry.815398067",
+    "enviarTotal": True,                       # mandar el total absoluto
+    "total": dict(ENVIO_TOTAL_DEFECTO),
 }
+
+# Claves de texto sueltas del envío (las demás son «enviarTotal» y «total»)
+CLAVES_ENVIO_TEXTO = ("url", "examen", "usuario", "tiempoAsignado", "tiempoEmpleado")
+
+
+def envio_defecto():
+    """Copia independiente de ENVIO_DEFECTO (con su «total» anidado)."""
+    cfg = dict(ENVIO_DEFECTO)
+    cfg["total"] = dict(ENVIO_TOTAL_DEFECTO)
+    return cfg
 
 # (clave, nombre visible, qué valor se manda)
 CAMPOS_ENVIO = [
@@ -257,9 +278,10 @@ CAMPOS_ENVIO = [
 ENVIO_BLOQUE_DEFECTO = {"preguntas": "", "aciertos": "", "fallos": "",
                         "blancos": "", "puntos": ""}
 
-# Casillas que ya usaba el formulario del proyecto: se asignan al primer
-# bloque, que con un único bloque equivale al examen completo.
-ENVIO_BLOQUE_PRIMERO = {
+# Casillas que en versiones anteriores se asignaban al PRIMER bloque. Ya no
+# se usan por defecto (ahora van al «total» y las de bloque quedan en
+# blanco); se conservan para reconocer archivos antiguos y migrarlos.
+ENVIO_BLOQUE_PRIMERO_ANTIGUO = {
     "preguntas": "entry.771114786",
     "aciertos":  "entry.1903892811",
     "fallos":    "entry.1155230396",
@@ -399,9 +421,9 @@ def datos_vacios():
         },
         "tema": dict(TEMA_DEFECTO),
         "interfaz": {k: dict(v) for k, v in INTERFAZ_DEFECTO.items()},
-        "envio": dict(ENVIO_DEFECTO),
+        "envio": envio_defecto(),
         "envioDetalle": envio_detalle_por_defecto(),
-        "bloques": [bloque_vacio("supuesto", "B1", primero=True)],
+        "bloques": [bloque_vacio("supuesto", "B1")],
         "enunciados": [],
         "preguntas": [],
     }
@@ -423,7 +445,7 @@ def bloque_vacio(tipo="supuesto", sugerencia_id="B1", primero=False):
         "acierto": 1.0,
         "fallo": 0.0,
         "blanco": 0.0,
-        "envio": dict(ENVIO_BLOQUE_PRIMERO if primero else ENVIO_BLOQUE_DEFECTO),
+        "envio": dict(ENVIO_BLOQUE_DEFECTO),     # por bloque: en blanco
     }
 
 
@@ -529,9 +551,16 @@ def normalizar(datos):
     # respeta tal cual, incluso con casillas vacías a propósito.
     sin_configurar = ("envio" not in datos and
                       not any((b or {}).get("envio") for b in (datos.get("bloques") or [])))
-    envio_bruto = datos.get("envio") or (dict(ENVIO_DEFECTO) if sin_configurar else {})
+    envio_bruto = datos.get("envio") or (envio_defecto() if sin_configurar else {})
     envio = {clave: str(envio_bruto.get(clave, "") or "").strip()
-             for clave in ENVIO_DEFECTO}
+             for clave in CLAVES_ENVIO_TEXTO}
+    # Total absoluto (todos los bloques sumados): casillas y casilla de activar
+    total_bruto = envio_bruto.get("total")
+    tiene_total = isinstance(total_bruto, dict)
+    total_dic = total_bruto if tiene_total else {}   # en archivos muy antiguos «total» era un texto
+    envio["total"] = {clave: str(total_dic.get(clave, "") or "").strip()
+                      for clave in ENVIO_BLOQUE_DEFECTO}
+    envio["enviarTotal"] = bool(envio_bruto.get("enviarTotal", True))
     # Casillas de recuento que en versiones anteriores iban sueltas
     heredadas = {destino: str(envio_bruto.get(origen, "") or "").strip()
                  for origen, destino in EQUIVALENCIA_ENVIO_ANTIGUO.items()}
@@ -573,19 +602,28 @@ def normalizar(datos):
         env_bruto = b.get("envio") or {}
         nb["envio"] = {clave: str(env_bruto.get(clave, "") or "").strip()
                        for clave in ENVIO_BLOQUE_DEFECTO}
-        if i == 0:      # el primer bloque hereda las casillas sueltas antiguas
-            for clave, valor in heredadas.items():
-                if valor and not nb["envio"].get(clave):
-                    nb["envio"][clave] = valor
-            if sin_configurar:
-                nb["envio"] = dict(ENVIO_BLOQUE_PRIMERO)
         nb["acierto"] = numero(b.get("acierto"), 1.0)
         nb["fallo"] = abs(numero(b.get("fallo"), 0.0))
         nb["blanco"] = abs(numero(b.get("blanco"), 0.0))
         bloques.append(nb)
     if not bloques:
         # Sin bloques declarados: uno solo, que es el examen entero
-        bloques = [bloque_vacio("supuesto", "B1", primero=sin_configurar)]
+        bloques = [bloque_vacio("supuesto", "B1")]
+    # Archivo de una versión anterior (sin «total»): las casillas que antes
+    # llevaba el primer bloque eran, en realidad, las del examen entero. Se
+    # trasladan al total absoluto y el bloque queda en blanco; así con varios
+    # bloques ya no se manda solo el primero.
+    if not tiene_total:
+        primero_env = bloques[0]["envio"]
+        if any(heredadas.values()):
+            envio["total"] = {c: (heredadas.get(c) or "") for c in ENVIO_BLOQUE_DEFECTO}
+        if primero_env == ENVIO_BLOQUE_PRIMERO_ANTIGUO:
+            envio["total"] = dict(ENVIO_BLOQUE_PRIMERO_ANTIGUO)
+            bloques[0]["envio"] = dict(ENVIO_BLOQUE_DEFECTO)
+        elif any(heredadas.values()):
+            for c in ENVIO_BLOQUE_DEFECTO:
+                if primero_env.get(c) == envio["total"].get(c):
+                    primero_env[c] = ""
     ids_bloque = [b["id"] for b in bloques]
     tipos = {b["id"]: b["tipo"] for b in bloques}
 
@@ -1110,6 +1148,75 @@ def escribir_html(ruta_destino, html_base, datos, modo):
             pass
     destino.write_text(nuevo, encoding="utf-8")
     return nuevo
+
+
+# ──────────────────────────────────────────────────────────────────────
+#  Alta en el menú principal (supuestos-datos.js)
+# ──────────────────────────────────────────────────────────────────────
+# El menú de la web se pinta desde «supuestos-datos.js», que está en la
+# carpeta raíz del proyecto (la que contiene «supuestos/», «index.html»…).
+# Al guardar un supuesto dentro de «supuestos/», el programa ofrece darlo de
+# alta en ese archivo para no tener que tocarlo a mano.
+ARCHIVO_MENU = "supuestos-datos.js"
+GRUPOS_MENU = (("iniciales", "Iniciales"),
+               ("avanzados", "Avanzados"),
+               ("examenes", "Exámenes y simulacros"))
+RE_DATOS_MENU = re.compile(r"(window\.SUPUESTOS_DATOS\s*=\s*)(\{.*\})\s*;", re.S)
+
+
+def ruta_menu_de(destino):
+    """supuestos-datos.js del proyecto al que pertenece un supuesto, o None.
+    Solo vale si el archivo está dentro de una carpeta «supuestos/»."""
+    destino = Path(destino).resolve()
+    if destino.parent.name.lower() != "supuestos":
+        return None
+    cand = destino.parent.parent / ARCHIVO_MENU
+    return cand if cand.is_file() else None
+
+
+def leer_menu(ruta_menu):
+    """(texto_completo, datos) del archivo del menú."""
+    texto = Path(ruta_menu).read_text(encoding="utf-8")
+    m = RE_DATOS_MENU.search(texto)
+    if not m:
+        raise ValueError("No reconozco el formato de %s." % ARCHIVO_MENU)
+    return texto, json.loads(m.group(2))
+
+
+def grupo_en_menu(menu, archivo):
+    """Grupo en el que ya está el supuesto, o None."""
+    for clave, _ in GRUPOS_MENU:
+        for it in menu.get(clave, []):
+            if it.get("archivo") == archivo:
+                return clave
+    return None
+
+
+def ficha_menu(archivo, datos, letra=None):
+    """Tarjeta del menú a partir de los datos del supuesto."""
+    cfg = datos.get("config") or {}
+    n = len(datos.get("preguntas") or [])
+    minutos = cfg.get("minutos")
+    partes = ["%d preguntas" % n]
+    if minutos:
+        partes.append("%s minutos" % minutos)
+    if cfg.get("ambito"):
+        partes.append(str(cfg["ambito"]))
+    ref = str(cfg.get("referencia") or archivo).strip()
+    return {"archivo": archivo,
+            "letra": letra or archivo.replace("supuesto_", "").upper()[:4],
+            "ref": ref,
+            "titulo": str(cfg.get("titulo") or archivo).strip(),
+            "desc": " · ".join(partes)}
+
+
+def escribir_menu(ruta_menu, texto, menu):
+    """Reescribe supuestos-datos.js conservando el comentario de cabecera."""
+    m = RE_DATOS_MENU.search(texto)
+    nuevo = (texto[:m.start(2)]
+             + json.dumps(menu, ensure_ascii=False, indent=2)
+             + texto[m.end(2):])
+    Path(ruta_menu).write_text(nuevo, encoding="utf-8")
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -3853,14 +3960,42 @@ class EditorApp(tk.Tk):
             ttk.Label(rejilla, text="envio.%s   ·   %s" % (clave, que), style="Tec.TLabel"
                       ).grid(row=fila, column=2, sticky="w")
 
-        ttk.Label(caja, text="Casillas de cada bloque", style="Campo.TLabel"
+        # ── Total absoluto: todos los bloques sumados como uno solo ──
+        self.var_enviar_total = tk.BooleanVar(value=True)
+        ttk.Checkbutton(
+            caja, variable=self.var_enviar_total, command=self._tocado,
+            text="Enviar el TOTAL de todos los bloques (recuento absoluto)"
+            ).pack(anchor="w", padx=10, pady=(14, 0))
+        ttk.Label(caja, style="Tec.TLabel",
+                  text="envio.enviarTotal  ·  envio.total{}   ·   suma las preguntas, "
+                       "aciertos, fallos, en blanco y puntos de TODOS los bloques del "
+                       "intento").pack(anchor="w", padx=10)
+        ttk.Label(caja, style="Ayuda.TLabel", wraplength=860, justify="left",
+                  text="Es lo normal cuando el examen tiene varios bloques pero un solo "
+                       "formulario: se manda una única cifra para todo el examen. Si una "
+                       "casilla de aquí coincidiera con la de algún bloque, manda el total."
+                  ).pack(anchor="w", padx=10, pady=(0, 4))
+        rejilla_total = ttk.Frame(caja, style="Panel.TFrame")
+        rejilla_total.pack(fill="x", padx=10, pady=(0, 6))
+        self.w_envio_total = {}
+        for col, (clave, etiqueta) in enumerate(CAMPOS_ENVIO_BLOQUE):
+            ttk.Label(rejilla_total, text=etiqueta, style="Tec.TLabel"
+                      ).grid(row=0, column=col, sticky="w", padx=(0 if col == 0 else 6, 0))
+            var = tk.StringVar()
+            ent = ttk.Entry(rejilla_total, textvariable=var, font=("Consolas", 9), width=16)
+            ent.grid(row=1, column=col, sticky="w", padx=(0 if col == 0 else 6, 0), pady=2)
+            self._vigilar(ent)
+            self.w_envio_total[clave] = var
+
+        ttk.Label(caja, text="Casillas de cada bloque (opcional)", style="Campo.TLabel"
                   ).pack(anchor="w", padx=10, pady=(14, 0))
         ttk.Label(caja, style="Tec.TLabel",
                   text="bloques[].envio   ·   se envían solo los bloques que hayan salido "
                        "en ese intento").pack(anchor="w", padx=10)
         ttk.Label(caja, style="Ayuda.TLabel", wraplength=860, justify="left",
                   text="Un juego de casillas por bloque, para llevar al formulario cuántas "
-                       "preguntas tuvo cada sección y cómo fue en ella."
+                       "preguntas tuvo cada sección y cómo fue en ella. Vienen en blanco: "
+                       "úsalas solo si el formulario tiene casillas para cada bloque."
                   ).pack(anchor="w", padx=10, pady=(0, 6))
         self.marco_envio_bloques = ttk.Frame(caja, style="Panel.TFrame")
         self.marco_envio_bloques.pack(fill="x", padx=10, pady=(0, 14))
@@ -4046,6 +4181,10 @@ class EditorApp(tk.Tk):
         self.var_envio_url.set(envio.get("url", ""))
         for clave, var in self.w_envio.items():
             var.set(envio.get(clave, ""))
+        self.var_enviar_total.set(bool(envio.get("enviarTotal", True)))
+        total = envio.get("total") if isinstance(envio.get("total"), dict) else {}
+        for clave, var in self.w_envio_total.items():
+            var.set(total.get(clave, ""))
         self.refrescar_envio_bloques()
 
         detalle = self.datos.get("envioDetalle") or envio_detalle_por_defecto()
@@ -4074,6 +4213,9 @@ class EditorApp(tk.Tk):
         envio = {"url": self.var_envio_url.get().strip()}
         for clave, var in self.w_envio.items():
             envio[clave] = var.get().strip()
+        envio["enviarTotal"] = bool(self.var_enviar_total.get())
+        envio["total"] = {clave: var.get().strip()
+                          for clave, var in self.w_envio_total.items()}
         self.datos["envio"] = envio
         self.volcar_envio_bloques()
 
@@ -4413,7 +4555,7 @@ class EditorApp(tk.Tk):
         self.datos, self.modo, self.html_base = leer_html(base)
         self.datos["preguntas"] = []
         self.datos["enunciados"] = []
-        self.datos["bloques"] = [bloque_vacio("supuesto", "B1", primero=True)]
+        self.datos["bloques"] = [bloque_vacio("supuesto", "B1")]
         self.datos["config"] = datos_vacios()["config"]
         self.ruta = None
         self.hay_cambios = False
@@ -4592,7 +4734,77 @@ class EditorApp(tk.Tk):
         self._pintar_titulo()
         self.estado("Guardado en %s   (%d preguntas)"
                     % (self.ruta, len(self.datos["preguntas"])))
+        self._alta_en_menu()
         return True
+
+    def _alta_en_menu(self):
+        """Mantiene al día la tarjeta del supuesto en el menú principal
+        (supuestos-datos.js). Si el supuesto ya estaba, solo actualiza su
+        título, referencia y descripción; si es nuevo, pregunta en qué grupo
+        ponerlo. No hace nada si el archivo no está en «supuestos/»."""
+        try:
+            ruta_menu = ruta_menu_de(self.ruta)
+            if ruta_menu is None:
+                return
+            texto, menu = leer_menu(ruta_menu)
+            archivo = self.ruta.stem
+            grupo = grupo_en_menu(menu, archivo)
+            if grupo:
+                for it in menu[grupo]:
+                    if it.get("archivo") == archivo:
+                        it.update({k: v for k, v in ficha_menu(archivo, self.datos).items()
+                                   if k != "letra"})
+                escribir_menu(ruta_menu, texto, menu)
+                self.estado(self.lbl_estado.cget("text") + "   ·   menú actualizado")
+                return
+            elegido = self._pedir_grupo_menu(archivo)
+            if not elegido:
+                self.estado(self.lbl_estado.cget("text") + "   ·   sin añadir al menú")
+                return
+            clave, letra = elegido
+            menu.setdefault(clave, []).append(ficha_menu(archivo, self.datos, letra))
+            escribir_menu(ruta_menu, texto, menu)
+            self.estado(self.lbl_estado.cget("text") + "   ·   añadido al menú (%s)" % clave)
+        except (OSError, ValueError) as err:
+            messagebox.showwarning(
+                "Menú principal",
+                "El supuesto se ha guardado, pero no he podido tocar %s:\n\n%s\n\n"
+                "Añade su tarjeta a mano (las instrucciones están al principio de ese archivo)."
+                % (ARCHIVO_MENU, err), parent=self)
+
+    def _pedir_grupo_menu(self, archivo):
+        """Pequeño diálogo: ¿en qué grupo del menú va este supuesto?
+        Devuelve (grupo, letra) o None si se cancela."""
+        ventana = tk.Toplevel(self)
+        ventana.title("Añadir al menú principal")
+        ventana.transient(self)
+        ventana.resizable(False, False)
+        marco = ttk.Frame(ventana, padding=16)
+        marco.pack(fill="both", expand=True)
+        ttk.Label(marco, wraplength=380, justify="left",
+                  text="«%s» todavía no está en el menú principal de la web.\n"
+                       "¿En qué grupo lo pongo?" % archivo).pack(anchor="w", pady=(0, 8))
+        grupo = tk.StringVar(value=GRUPOS_MENU[1][0])
+        for clave, etiqueta in GRUPOS_MENU:
+            ttk.Radiobutton(marco, text=etiqueta, value=clave, variable=grupo).pack(anchor="w")
+        fila = ttk.Frame(marco)
+        fila.pack(fill="x", pady=(10, 0))
+        ttk.Label(fila, text="Texto del círculo (1-4 caracteres):").pack(side="left")
+        letra = tk.StringVar(value=archivo.replace("supuesto_", "").upper()[:4])
+        ttk.Entry(fila, textvariable=letra, width=6).pack(side="left", padx=6)
+        resultado = []
+
+        def aceptar():
+            resultado.append((grupo.get(), (letra.get().strip() or "?")[:4]))
+            ventana.destroy()
+
+        botones = ttk.Frame(marco)
+        botones.pack(fill="x", pady=(14, 0))
+        ttk.Button(botones, text="Añadir al menú", command=aceptar).pack(side="right")
+        ttk.Button(botones, text="Ahora no", command=ventana.destroy).pack(side="right", padx=(0, 6))
+        ventana.grab_set()
+        self.wait_window(ventana)
+        return resultado[0] if resultado else None
 
     def ver_navegador(self):
         if self.ruta is None or self.hay_cambios:

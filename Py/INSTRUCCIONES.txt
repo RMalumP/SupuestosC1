@@ -719,3 +719,33 @@
       .bak que se genera en cada guardado.
 
 ════════════════════════════════════════════════════════════════════════════════
+
+
+────────────────────────────────────────────────────────────────────────────────
+ NUEVO · DISEÑO, FUNCIONES EXTRA Y MENÚ PRINCIPAL
+────────────────────────────────────────────────────────────────────────────────
+
+  La plantilla (motor 8) ya incluye el diseño nuevo y las funciones extra de la
+  web (continuar un intento, repetir falladas, marcar preguntas, tema oscuro…).
+  Para que funcionen, el supuesto debe guardarse dentro de la carpeta
+  «supuestos/» del proyecto (o en otra del mismo nivel que «Py/»): enlaza a los
+  archivos tema-supuesto.css, app-supuesto.js, prefs.js, pwa.js y fuentes/ que
+  están UNA CARPETA POR ENCIMA.
+
+  ALTA EN EL MENÚ PRINCIPAL
+     Al guardar un supuesto dentro de «supuestos/», el programa mira si existe
+     «supuestos-datos.js» en la carpeta de arriba (es la lista que pinta el menú):
+       · Si el supuesto ya está en la lista, actualiza su título, referencia y
+         descripción (preguntas y minutos).
+       · Si es nuevo, pregunta en qué grupo ponerlo (Iniciales, Avanzados o
+         Exámenes y simulacros) y qué texto lleva el círculo de la tarjeta.
+     Así ya no hay que tocar index.html ni copiar tarjetas a mano.
+
+  TOTAL ABSOLUTO EN EL ENVÍO
+     En la pestaña de envío hay un apartado «Enviar el TOTAL de todos los
+     bloques» con las casillas del recuento global (preguntas, aciertos, fallos,
+     en blanco y puntos). Las casillas por bloque son opcionales.
+
+  AL PUBLICAR
+     Sube el número VERSION de sw.js (en la raíz del proyecto) para que quien
+     tenga la app instalada reciba el aviso «Hay una versión nueva».
