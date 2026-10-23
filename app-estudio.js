@@ -10,6 +10,7 @@
     var info = {};
     (D.secciones || []).forEach(function (s) { (s.grupos || []).forEach(function (g) { (g.items || []).forEach(function (it) { info[it.archivo] = it; }); }); });
     (D.examenes || []).forEach(function (it) { info[it.archivo] = it; });
+    (D.lista || []).forEach(function (it) { info[it.archivo] = it; });
     var nombre = function (a) { return info[a] ? info[a].titulo : a; };
 
     function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }

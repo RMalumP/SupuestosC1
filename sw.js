@@ -1,6 +1,10 @@
-const VERSION = "v17";
+// La lista de supuestos se lee de supuestos-datos.js (el mismo archivo que pinta el menú):
+// dar de alta un supuesto ahí basta para que funcione sin conexión. Si ese archivo cambia,
+// el navegador detecta una versión nueva de este service worker por sí solo.
+importScripts("supuestos-datos.js");
+const VERSION = "v18";
 const CACHE = "supuestos-c1-" + VERSION;
-const PRECACHE = [
+const PRECACHE_BASE = [
   "./",
   "index.html",
   "manifest.webmanifest",
@@ -40,17 +44,11 @@ const PRECACHE = [
   "fuentes/public-sans-latin-ext-2.woff2",
   "icons/icon-192.png",
   "icons/icon-512.png",
-  "resultados/resultados.html",
-  "supuestos/supuesto_0.html",
-  "supuestos/supuesto_1.html",
-  "supuestos/supuesto_1I.html",
-  "supuestos/supuesto_2.html",
-  "supuestos/supuesto_2I.html",
-  "supuestos/supuesto_3.html",
-  "supuestos/supuesto_EX03E.html",
-  "supuestos/supuesto_T2.html",
-  "supuestos/supuesto_T2I.html"
+  "resultados/resultados.html"
 ];
+const PRECACHE = PRECACHE_BASE.concat(
+  (self.SUPUESTOS_DATOS && self.SUPUESTOS_DATOS.lista || []).map(it => "supuestos/" + it.archivo + ".html")
+);
 
 self.addEventListener("install", e => {
   // Primera instalación: se activa ya. Si había una versión anterior, espera a

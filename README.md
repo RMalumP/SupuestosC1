@@ -34,7 +34,7 @@ El sitio está disponible en:
 
 ## 🛠️ Para quien mantiene el repositorio
 
-- **Añadir un supuesto al menú:** copia su `.html` a `supuestos/` (parte de `Py/supuesto_plantilla_python.html`, que ya incluye todo lo necesario) y añade un bloque en su sección de `supuestos-datos.js` (o deja que lo haga el editor de Python al guardar). No hay que tocar `index.html`.
+- **Añadir un supuesto al menú:** copia su `.html` a `supuestos/` y ejecuta `python Py/editor_supuestos.py --alta` (te pregunta dónde ponerlo y rellena título, preguntas y minutos solo), o deja que lo haga el editor al guardar. También puedes copiar a mano una línea de `supuestos-datos.js` (hay una por supuesto). El modo sin conexión (`sw.js`) lee esa misma lista: no hay que tocar nada más. Comprueba con `python Py/validar_supuestos.py`.
 - **Publicar cambios:** sube el número de `VERSION` en `sw.js`; así los usuarios ven el aviso «Hay una versión nueva».
 - **Sincronizar entre dispositivos (Google Drive, apagado hasta poner el «clientId» en `sync-config.js`):** cada persona guarda su copia en una carpeta oculta de su propio Drive; ventana explicativa antes de empezar. Ver `Py/INSTRUCCIONES.txt`.
 - **Pruebas y validación:** `python3 Py/validar_supuestos.py` revisa los supuestos y el menú; `npm test` abre las páginas en un navegador y comprueba envíos, aspecto y funciones (ver `tests/LEEME.txt`). En GitHub corren solas en cada subida.

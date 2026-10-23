@@ -18,10 +18,11 @@ from collections import Counter
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import menu_datos  # noqa: E402  (va junto a este archivo)
 RE_JSON = re.compile(r'<script\b[^>]*\bid=["\']datos-supuesto["\'][^>]*>(.*?)</script>', re.S | re.I)
 RE_MOTOR = re.compile(r'<meta\s+name=["\']motor-plantilla["\']\s+content=["\'](\d+)["\']', re.I)
 RE_REFS = re.compile(r'(?:href|src)=["\']([^"\']+)["\']', re.I)
-RE_MENU = re.compile(r'window\.SUPUESTOS_DATOS\s*=\s*(\{.*\})\s*;', re.S)
 # Archivos que todo supuesto debe enlazar (en este orden relativo)
 OBLIGATORIOS = ["base-supuesto.css", "tema-supuesto.css", "prefs.js", "pwa.js", "normas-datos.js",
                 "telemetria-config.js", "app-supuesto.js", "app-uso.js", "app-telemetria.js"]
@@ -156,20 +157,13 @@ def validar_menu(supuestos):
     if not ruta.exists():
         err("supuestos-datos.js", "no existe")
         return
-    m = RE_MENU.search(ruta.read_text(encoding="utf-8"))
-    if not m:
-        err("supuestos-datos.js", "no tiene el formato esperado (window.SUPUESTOS_DATOS = {...};)")
-        return
     try:
-        menu = json.loads(m.group(1))
+        menu = menu_datos.leer(ruta.read_text(encoding="utf-8"))
     except ValueError as e:
-        err("supuestos-datos.js", "no es JSON válido (%s)" % e)
+        err("supuestos-datos.js", str(e))
         return
-    fichas = []
-    for s in menu.get("secciones", []):
-        for g in s.get("grupos", []):
-            fichas += [(it, "%s/%s" % (s.get("id"), g.get("id"))) for it in g.get("items", [])]
-    fichas += [(it, "examenes") for it in menu.get("examenes", [])]
+    fichas = [(it, "examenes" if it["seccion"] == "examenes" else "%s/%s" % (it["seccion"], it["grupo"]))
+              for it in menu_datos.aplanar(menu)]
     archivos = Counter(f["archivo"] for f, _ in fichas)
     refs = Counter(f.get("ref") for f, _ in fichas)
     for f, donde in fichas:
@@ -177,7 +171,7 @@ def validar_menu(supuestos):
         p = "menú, %s (%s)" % (a, donde)
         for campo in ("archivo", "letra", "ref", "titulo", "desc"):
             if not str(f.get(campo, "")).strip():
-                err(p, "falta «%s»" % campo)
+                err(p, "falta «%s» (ábrelo en supuestos-datos.js, busca «%s» y rellena ese campo)" % (campo, a or "la línea sin archivo"))
         if archivos[a] > 1:
             err(p, "aparece más de una vez en el menú")
         if refs[f.get("ref")] > 1:
@@ -185,7 +179,7 @@ def validar_menu(supuestos):
         if len(str(f.get("letra", ""))) > 4:
             aviso(p, "el texto del círculo («%s») tiene más de 4 caracteres" % f.get("letra"))
         if not (RAIZ / "supuestos" / (a + ".html")).exists():
-            err(p, "no existe supuestos/%s.html" % a)
+            err(p, "no existe supuestos/%s.html: o el nombre de «archivo» en supuestos-datos.js está mal escrito o falta subir ese .html a la carpeta supuestos/" % a)
         elif a in supuestos:
             d = supuestos[a][0]
             n = len(d.get("preguntas") or [])
@@ -199,7 +193,7 @@ def validar_menu(supuestos):
     en_menu = set(archivos)
     for a in sorted(supuestos):
         if a not in en_menu and (RAIZ / "supuestos" / (a + ".html")).exists():
-            aviso(a + ".html", "no está en el menú (supuestos-datos.js)")
+            aviso(a + ".html", "no está en el menú: ejecuta «python Py/editor_supuestos.py --alta» para darlo de alta, o copia una línea en supuestos-datos.js")
 
 
 def validar_sw():
@@ -208,18 +202,25 @@ def validar_sw():
         err("sw.js", "no existe")
         return
     t = ruta.read_text(encoding="utf-8")
-    m = re.search(r"const PRECACHE = \[(.*?)\];", t, re.S)
+    m = re.search(r"const PRECACHE_BASE = \[(.*?)\];", t, re.S)
     if not m:
-        err("sw.js", "no encuentro la lista PRECACHE")
+        err("sw.js", "no encuentro la lista PRECACHE_BASE")
         return
     lista = re.findall(r'"([^"]+)"', m.group(1))
+    if "importScripts" not in t or "supuestos-datos.js" not in t:
+        err("sw.js", "debe cargar supuestos-datos.js con importScripts para guardar los supuestos sin conexión")
     for r in lista:
         if r != "./" and not (RAIZ / r).exists():
             err("sw.js", "PRECACHE incluye «%s», que no existe (la app no se instalaría)" % r)
-    for p in sorted((RAIZ / "supuestos").glob("*.html")) + [RAIZ / "index.html", RAIZ / "mi-estudio.html", RAIZ / "resultados" / "resultados.html"]:
-        rel = p.relative_to(RAIZ).as_posix()
-        if p.exists() and rel not in lista:
+    ya = {"supuestos/" + a + ".html" for a in menu_datos.archivos_del_menu(menu_datos.leer(
+        (RAIZ / "supuestos-datos.js").read_text(encoding="utf-8")))} if (RAIZ / "supuestos-datos.js").exists() else set()
+    for rel in ["index.html", "mi-estudio.html", "resultados/resultados.html"]:
+        if (RAIZ / rel).exists() and rel not in lista:
             aviso("sw.js", "PRECACHE no incluye %s (no estará disponible sin conexión hasta visitarlo)" % rel)
+    for p in sorted((RAIZ / "supuestos").glob("*.html")):
+        rel = p.relative_to(RAIZ).as_posix()
+        if rel not in ya:
+            aviso("sw.js", "%s no está en el menú, así que tampoco se guarda sin conexión" % rel)
     for p in ["base-supuesto.css", "tema-supuesto.css", "tema-menu.css", "tema-resultados.css", "prefs.js", "pwa.js",
               "app-supuesto.js", "app-uso.js", "app-menu.js", "app-estudio.js", "app-telemetria.js", "normas-datos.js",
               "telemetria-config.js", "supuestos-datos.js"]:

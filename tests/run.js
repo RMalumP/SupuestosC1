@@ -265,6 +265,18 @@ async function menu() {
         await pg.fill('#buscar', 'tema 2'); const n = await pg.locator('#menu-supuestos .supuesto-card:visible').count(); await ctx.close();
         return (vacio && n > 0) || JSON.stringify({ vacio, n });
     });
+    await caso('el service worker guarda sin conexión todos los supuestos del menú (aunque no estén en sw.js)', async () => {
+        const ctx = await contexto(); const pg = await abrir(ctx, 'index.html');
+        const r = await pg.evaluate(async () => {
+            await navigator.serviceWorker.ready;
+            const claves = await caches.keys(); const c = await caches.open(claves.filter(k => k.startsWith('supuestos-c1-'))[0]);
+            const guardados = (await c.keys()).map(q => new URL(q.url).pathname);
+            return { esperados: SUPUESTOS_DATOS.lista.map(i => '/supuestos/' + i.archivo + '.html'), guardados };
+        });
+        await ctx.close();
+        const faltan = r.esperados.filter(e => !r.guardados.includes(e));
+        return (r.esperados.length === 9 && faltan.length === 0) || 'faltan ' + faltan.join();
+    });
     await caso('el aviso de datos anónimos no aparece con la recogida apagada', async () => {
         const ctx = await contexto(); const pg = await abrir(ctx, 'index.html'); const n = await pg.locator('.aviso-pie').count(); await ctx.close(); return n === 0 || 'aparece';
     });
