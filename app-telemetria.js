@@ -1,7 +1,7 @@
 /* Instantánea anónima de los intentos que se dejan a medias.
    Apagado por defecto: lo activa telemetria-config.js. Se carga con «defer»
-   después de app-supuesto.js. No hace nada si no está activo o si la persona
-   ha desmarcado «Enviar datos anónimos». */
+   después de app-supuesto.js. No hace nada si no está activo. (Quien ya hubiera
+   marcado «no participar» en una versión anterior sigue sin enviar nada.) */
 (function () {
     'use strict';
     var C = window.SUPC1_TELEMETRIA;
@@ -99,15 +99,4 @@
 
     document.addEventListener('visibilitychange', function () { if (document.hidden) instantanea(); });
     window.addEventListener('pagehide', instantanea);
-
-    /* Casilla para no participar, en el panel ⚙ */
-    var panel = $('settings-panel');
-    if (panel && !$('row-telemetria')) {
-        var fila = document.createElement('div');
-        fila.className = 'settings-row settings-check'; fila.id = 'row-telemetria';
-        fila.innerHTML = '<label><input type="checkbox" id="telemetria-toggle"><span>Enviar datos anónimos de mis intentos</span></label>';
-        panel.appendChild(fila);
-        var t = $('telemetria-toggle'); t.checked = permitido();
-        t.addEventListener('change', function () { S.set('telemetria-no', !t.checked); });
-    }
 })();

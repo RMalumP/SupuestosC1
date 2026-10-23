@@ -15,9 +15,9 @@
         (menú ⋮ del formulario → «Obtener enlace previamente rellenado»).
      4. Pon «activa: true». Los campos que dejes en "" no se envían.
 
-   AVISO A LOS ALUMNOS (obligado: se recogen datos aunque sean anónimos)
-     El menú muestra el texto de «aviso» con una casilla para no participar
-     mientras «activa» sea true. Cámbialo si quieres, pero déjalo visible.
+   AVISO
+     Mientras «activa» sea true, el texto de «aviso» aparece como última línea
+     del menú principal (sin botones). Cámbialo si quieres.
 ════════════════════════════════════════════════════════════════ */
 window.SUPC1_TELEMETRIA = {
     activa: false,

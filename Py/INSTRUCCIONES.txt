@@ -806,9 +806,8 @@
      Al salir de la página o cambiar de pestaña, si hay al menos
      «minRespuestas» preguntas respondidas y algo ha cambiado desde el último
      envío (como mucho una cada 15 segundos). NO envía: si el intento ya se
-     corrigió (eso lo cubre el envío automático de siempre), en los intentos de
-     «repetir solo las falladas», ni si la persona desmarca «Enviar datos
-     anónimos» (en el menú y en el panel ⚙).
+     corrigió (eso lo cubre el envío automático de siempre) ni en los intentos de
+     «repetir solo las falladas».
 
   PARA ACTIVARLO
      1. Crea un formulario de Google NUEVO con una pregunta de respuesta corta
@@ -820,8 +819,9 @@
         (Opcional: «preguntas» admite una casilla por pregunta, como el envío
         automático, en vez de la de «respuestas».)
      4. Pon «activa: true» y sube VERSION en sw.js antes de publicar.
-     Al activarlo, el menú muestra un aviso con una casilla para no
-     participar. Es obligatorio informar: aunque sea anónimo, son datos de uso.
+     Al activarlo, el texto de «aviso» aparece como última línea del menú
+     principal (sin botones: se da por aceptada la participación, que ya se
+     pidió por el formulario anterior).
 
   VER LOS DATOS (MODO ADMINISTRADOR)
      Los datos solo los ves tú, en la hoja de respuestas del formulario nuevo:

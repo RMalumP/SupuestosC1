@@ -23,16 +23,15 @@
     }
     botonTema();
 
-    /* ── Aviso de datos anónimos y acceso de administración (solo si está activado) ── */
+    /* ── Aviso de datos anónimos: una línea al final del menú (solo si está activado) ── */
     var T = window.SUPC1_TELEMETRIA;
-    if (T && T.activa && T.url && $('menu-filtros')) {
-        var aviso = document.createElement('div');
-        aviso.className = 'aviso-datos';
-        aviso.innerHTML = '<p></p><label><input type="checkbox" id="tel-toggle"><span>Enviar datos anónimos de mis intentos</span></label>';
-        aviso.querySelector('p').textContent = T.aviso || '';
-        $('menu-filtros').parentNode.insertBefore(aviso, $('menu-filtros'));
-        var tt = $('tel-toggle'); tt.checked = !S.get('telemetria-no', false);
-        tt.addEventListener('change', function () { S.set('telemetria-no', !tt.checked); });
+    if (T && T.activa && T.url && T.aviso) {
+        var pieAviso = document.querySelector('footer');
+        if (pieAviso) {
+            var linea = document.createElement('span');
+            linea.className = 'aviso-pie'; linea.textContent = T.aviso;
+            pieAviso.appendChild(linea);
+        }
     }
     // Entrar una vez con «index.html#admin» deja visible, solo en ese navegador, un
     // enlace discreto al panel privado. No es una protección (el código es público):
