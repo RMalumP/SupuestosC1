@@ -155,6 +155,8 @@
             !(t.closest && t.closest('#nav-header, input, textarea, select, .table-scroll, .timeline, #settings-panel, .supc1-modal, #overlay'));
         desliza = !!ok;
         if (ok) { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; t0 = Date.now(); }
+        // Los bordes de la pantalla los reserva el sistema para «volver»: no se usan
+        if (ok && (x0 < 28 || x0 > window.innerWidth - 28)) desliza = false;
     }, { passive: true });
     document.addEventListener('touchend', function (e) {
         if (!desliza) return; desliza = false;

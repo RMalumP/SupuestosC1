@@ -228,3 +228,6 @@ kbd { font-family: 'JetBrains Mono', monospace; font-size: 0.8em; background: rg
 /* Accesibilidad: etiqueta del tipo de bloque legible (el color del bloque queda en el borde) */
 .block-header .bh-tipo { color: var(--t-ink) !important; }
 :root[data-tema="oscuro"] .enlace-norma { color: #25607f; }
+
+/* Deslizar para cambiar de pregunta: evita que el navegador lo tome por «atrás / adelante» */
+html, body { overscroll-behavior-x: none; }
