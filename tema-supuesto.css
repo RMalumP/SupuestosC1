@@ -1,0 +1,103 @@
+/* ════════════════════════════════════════════════════════════════
+   TEMA «CLARO INSTITUCIONAL» · supuestos y exámenes
+   Se carga después del <style> de cada página y solo redefine el
+   aspecto. Usa las variables de la paleta (--navy, --gold…), así que
+   si el editor cambia los colores, el tema los sigue.
+   La barra superior de navegación NO se toca.
+════════════════════════════════════════════════════════════════ */
+body { background: var(--cream); }
+body::before { display: none; }
+
+/* Cabecera del supuesto */
+.inst-header {
+    background: #fff; border: 0; border-radius: 14px; overflow: hidden;
+    box-shadow: 0 6px 24px rgba(var(--navy-rgb), 0.10);
+    text-align: left; padding: 34px 40px;
+}
+.inst-header::before { display: block; height: 8px; background: linear-gradient(90deg, var(--gold), #c9a58a); }
+.inst-header h1 { color: var(--navy); font-weight: 900; font-size: 1.45rem; text-transform: uppercase; letter-spacing: 0.03em; }
+.inst-header .organismo { color: var(--navy-mid); border-top: 1px solid rgba(var(--navy-rgb), 0.12); opacity: 1; }
+.inst-header .meta-strip { justify-content: flex-start; }
+.meta-pill { background: var(--navy); color: var(--cream); border: 0; border-radius: 99px; padding: 6px 16px; }
+
+/* Cabecera de bloque */
+.block-header {
+    border-radius: 12px !important; background: #fff !important;
+    border-left-width: 6px; border-bottom: 0;
+    box-shadow: 0 2px 10px rgba(var(--navy-rgb), 0.08);
+}
+
+/* Tarjetas de pregunta y enunciado */
+.question-card, .statement {
+    background: #fff; border: 0; border-radius: 14px;
+    box-shadow: 0 6px 24px rgba(var(--navy-rgb), 0.10);
+}
+.statement::after { display: none; }
+.question-card::before {
+    display: block; top: 0; left: 0; width: 100%; height: 6px !important;
+    background: linear-gradient(90deg, var(--navy), var(--navy-mid)) !important;
+}
+/* La tarjeta activa en modo «cadena» se resalta con sombra, sin aro de color:
+   el aro azul quedaba pegado a la línea marrón superior. */
+.question-card.encadenada.active,
+.question-card[class*="blq-"].encadenada.active { box-shadow: 0 10px 32px rgba(var(--navy-rgb), 0.20) !important; }
+
+.q-num {
+    background: var(--navy); color: var(--gold) !important; font-size: 1.5rem;
+    padding: 10px; min-width: 58px; text-align: center; border-radius: 12px;
+}
+.q-tag { color: var(--blue-deep); font-weight: 700; }
+
+/* Opciones apiladas */
+.option { border: 1px solid rgba(var(--navy-rgb), 0.14); border-radius: 12px; background: #fff; padding: 16px 20px; }
+.option:hover { background: rgba(var(--gold-rgb), 0.12); border-color: var(--gold); transform: none; }
+.option.selected { background: rgba(var(--gold-rgb), 0.22); border-color: var(--blue-deep); box-shadow: inset 5px 0 0 var(--blue-deep); }
+.opt-letter { background: var(--gold); color: var(--navy); width: 30px; height: 30px; }
+
+/* Botones: texto siempre claro sobre fondo oscuro */
+.btn { border-radius: 99px; }
+.btn-primary { background: var(--navy);      color: #fff; border-color: var(--navy); }
+.btn-primary:hover { background: var(--navy-mid); }
+.btn-danger  { background: var(--crimson);   color: #fff; border-color: var(--crimson); }
+.btn-success { background: var(--forest);    color: #fff; border-color: var(--forest); }
+.btn-info    { background: var(--navy-mid);  color: #fff; border-color: var(--navy-mid); }
+.btn-send    { background: var(--blue-deep); color: #fff; border-color: var(--blue-deep); }
+
+@media (min-width: 1000px) { .container { max-width: 1000px; } }
+
+/* ── Móvil ── */
+@media (max-width: 600px) {
+    .container { padding: 10px 6px 110px; }
+    .inst-header { padding: 18px 16px 16px; margin-bottom: 6px; }
+    .inst-header .logo-img { max-height: 36px; margin-bottom: 6px; }
+    .inst-header .organismo { font-size: 0.5rem; letter-spacing: 0.2em; }
+    .inst-header h1 { font-size: 1rem; line-height: 1.25; margin: 8px 0 2px; }
+    .inst-header .meta-strip { gap: 5px; margin-top: 10px; }
+    .meta-pill { font-size: 0.54rem; padding: 4px 9px; letter-spacing: 0.06em; }
+    .block-header { padding: 10px 14px !important; flex-wrap: wrap; gap: 4px 10px; }
+    .block-header h3 { font-size: 1rem; }
+    .block-header .bh-datos { width: 100%; text-align: left !important; }
+    .question-card, .statement { padding: 18px 14px 20px; margin-bottom: 14px; }
+    .q-header { flex-direction: column; gap: 8px; margin-bottom: 14px; padding-bottom: 12px; }
+    .q-num { align-self: flex-start; font-size: 0.95rem; min-width: 0; padding: 4px 12px; }
+    .q-tag { margin-bottom: 4px; }
+    .q-text { font-size: 1rem; line-height: 1.5; }
+    .options-grid { gap: 9px; margin-top: 14px; }
+    .option { padding: 13px 12px; gap: 12px; font-size: 0.95rem; min-height: 54px; align-items: center; }
+    .option:hover { transform: none; }
+    .opt-letter { width: 32px; height: 32px; margin-top: 0; }
+
+    /* Botonera fija abajo: Anterior/Siguiente al alcance del pulgar */
+    .btn-zone {
+        position: fixed; left: 0; right: 0; bottom: 0; margin: 0; z-index: 900; gap: 6px;
+        padding: 10px 10px calc(10px + env(safe-area-inset-bottom));
+        background: rgba(253, 248, 240, 0.96); backdrop-filter: blur(8px);
+        border-top: 1px solid rgba(var(--navy-rgb), 0.12);
+    }
+    .btn-zone .btn { flex: 1 1 40%; padding: 11px 8px; font-size: 0.68rem; text-align: center; letter-spacing: 0.08em; }
+    #check-btn, #print-btn, #restart-btn, #send-btn, #home-btn-bottom { flex: 1 1 100%; padding: 9px; font-size: 0.62rem; }
+
+    #timer { right: 8px; top: calc(var(--nav-h, 64px) + 6px); padding: 5px 10px; min-width: 0; font-size: 1.05rem; opacity: 0.95; box-shadow: 0 4px 14px rgba(0,0,0,0.25); }
+    #timer .timer-label { display: none; }
+}
+@media print { .btn-zone { position: static; } }

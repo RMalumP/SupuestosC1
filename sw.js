@@ -1,9 +1,11 @@
-const VERSION = "v1";
+const VERSION = "v2";
 const CACHE = "supuestos-c1-" + VERSION;
 const PRECACHE = [
   "./",
   "index.html",
   "manifest.webmanifest",
+  "tema-menu.css",
+  "tema-supuesto.css",
   "icons/icon-192.png",
   "icons/icon-512.png",
   "resultados/resultados.html",
