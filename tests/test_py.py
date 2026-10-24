@@ -27,11 +27,9 @@ def copia_del_proyecto():
     shutil.copytree(RAIZ / "supuestos", d / "supuestos")
     for f in ("supuestos-datos.js", "sw.js", "index.html", "mi-estudio.html"):
         shutil.copy(RAIZ / f, d / f)
-    for f in ["base-supuesto.css", "tema-supuesto.css", "tema-menu.css", "tema-resultados.css", "prefs.js", "pwa.js",
-              "app-supuesto.js", "app-uso.js", "app-menu.js", "app-estudio.js", "app-telemetria.js", "app-sync.js",
-              "sync-config.js", "normas-datos.js", "telemetria-config.js", "manifest.webmanifest"]:
-        if (RAIZ / f).exists():
-            shutil.copy(RAIZ / f, d / f)
+    for f in list(RAIZ.glob("*.js")) + list(RAIZ.glob("*.css")) + [RAIZ / "manifest.webmanifest"]:
+        if f.is_file():
+            shutil.copy(f, d / f.name)
     shutil.copytree(RAIZ / "fuentes", d / "fuentes")
     shutil.copytree(RAIZ / "icons", d / "icons")
     shutil.copytree(RAIZ / "resultados", d / "resultados")
@@ -194,7 +192,7 @@ class SincronizarLocal(unittest.TestCase):
             self.assertEqual(sl.diferencias(d), ([], [], []))
             # un supuesto con motor antiguo (como recién bajado de GitHub)
             f = d / "supuestos" / "supuesto_2.html"
-            f.write_text(f.read_text(encoding="utf-8").replace('name="motor-plantilla" content="8"', 'name="motor-plantilla" content="6"'), encoding="utf-8")
+            f.write_text(f.read_text(encoding="utf-8").replace('name="motor-plantilla" content="9"', 'name="motor-plantilla" content="6"'), encoding="utf-8")
             sl.marcar_subido(d)
             antes = datos_html.leer_html(f)[0]
             hechos, saltados = sl.poner_al_dia(d)
@@ -235,11 +233,11 @@ class SincronizarLocal(unittest.TestCase):
         d = copia_del_proyecto()
         try:
             f = d / "supuestos" / "supuesto_3.html"
-            f.write_text(f.read_text(encoding="utf-8").replace('name="motor-plantilla" content="8"', 'name="motor-plantilla" content="5"'), encoding="utf-8")
+            f.write_text(f.read_text(encoding="utf-8").replace('name="motor-plantilla" content="9"', 'name="motor-plantilla" content="5"'), encoding="utf-8")
             cod, sal = ejecutar(d, "Py/editor_supuestos.py", "--actualizar")
             self.assertEqual(cod, 0, sal)
             self.assertIn("Primera vez", sal)
-            self.assertIn("supuesto_3.html: motor 5 → 8", sal)
+            self.assertIn("supuesto_3.html: motor 5 → 9", sal)
             self.assertIn("1 archivo para subir", sal)
             self.assertTrue((d / "PARA_SUBIR" / "supuestos" / "supuesto_3.html").is_file())
             cod, sal = ejecutar(d, "Py/editor_supuestos.py", "--subido")
@@ -248,11 +246,18 @@ class SincronizarLocal(unittest.TestCase):
             shutil.rmtree(d, ignore_errors=True)
 
 
+class Corazon(unittest.TestCase):
+    def test_config_corazon_por_defecto_y_se_respeta(self):
+        self.assertIs(datos_html.normalizar({"config": {}})["config"]["corazon"], True)
+        self.assertIs(datos_html.normalizar({"config": {"corazon": False}})["config"]["corazon"], False)
+        self.assertIs(datos_html.datos_vacios()["config"]["corazon"], True)
+
+
 class Editor(unittest.TestCase):
     def test_el_editor_se_importa_con_un_tkinter_falso(self):
         import editor_supuestos as e
         self.assertTrue(callable(e.leer_html) and callable(e.escribir_menu))
-        self.assertEqual(e.version_motor('<meta name="motor-plantilla" content="8">'), 8)
+        self.assertEqual(e.version_motor('<meta name="motor-plantilla" content="9">'), 9)
         import ventana_menu, ventana_subir          # las ventanas también deben cargar
         self.assertTrue(callable(ventana_menu.abrir) and callable(ventana_subir.abrir))
 

@@ -225,6 +225,90 @@ async function funciones() {
         await ctx.close();
         return (r.a === '{"0":[1],"1":[2]}' && r.cur === 0 && r.marc && r.nota === 'nota') || JSON.stringify(r);
     });
+    await caso('corazón de favoritas: guarda, aparece en «Mi estudio», se practica y se puede desactivar', async () => {
+        const ctx = await contexto(); const pg = await abrir(ctx, T);
+        const hay = await pg.evaluate(() => document.querySelectorAll('.btn-corazon').length === questions.length);
+        await pg.click('#qcard-0 .btn-corazon'); await pg.keyboard.press('ArrowRight'); await pg.keyboard.press('h');
+        const fav = await pg.evaluate(() => Object.keys(SupC1.get('banco', {}).favoritas || {}).length);
+        await pg.keyboard.press('h');
+        const tras = await pg.evaluate(() => ({ n: Object.keys(SupC1.get('banco', {}).favoritas).length, lap: Object.keys(SupC1.get('banco', {}).borradas) }));
+        const et = await pg.evaluate(() => document.querySelector('#qcard-0 .btn-marcar span').textContent);
+        const est = await ctx.newPage(); await est.goto(BASE + 'mi-estudio.html'); await est.waitForTimeout(500);
+        const mi = await est.evaluate(() => ({ items: document.querySelectorAll('#estudio-favoritas .item').length, href: (document.querySelector('#estudio-favoritas .btn-practicar') || {}).href || '' }));
+        await pg.goto(BASE + T + '?practicar=favoritas'); await pg.waitForTimeout(900);
+        const pr = await pg.evaluate(() => ({ n: questions.length, p: document.body.classList.contains('intento-parcial') }));
+        await pg.evaluate(() => SupC1.set('corazon', false)); await pg.goto(BASE + T); await pg.waitForTimeout(700);
+        const oculto = await pg.evaluate(() => getComputedStyle(document.querySelector('#qcard-0 .btn-corazon')).display === 'none');
+        await pg.keyboard.press('h'); const sigue = await pg.evaluate(() => Object.keys(SupC1.get('banco', {}).favoritas).length);
+        await ctx.close();
+        return (hay && fav === 2 && tras.n === 1 && tras.lap.length === 1 && /^v:/.test(tras.lap[0]) && /Marcar para más tarde/.test(et) &&
+                mi.items === 1 && /practicar=favoritas/.test(mi.href) && pr.n === 1 && pr.p && oculto && sigue === 1) || JSON.stringify({ hay, fav, tras, et, mi, pr, oculto, sigue });
+    });
+    await caso('corazón desactivado desde el supuesto (config.corazon:false)', async () => {
+        const ctx = await contexto();
+        await ctx.route('**/supuestos/supuesto_T2I.html', async r => { const res = await r.fetch(); r.fulfill({ response: res, body: (await res.text()).replace('"referencia"', '"corazon": false, "referencia"') }); });
+        const pg = await abrir(ctx, T);
+        const r = await pg.evaluate(() => ({ cfg: EXAM_CONFIG.corazon, n: document.querySelectorAll('.btn-corazon').length, fila: !!document.getElementById('corazon-toggle') }));
+        await ctx.close();
+        return (r.cfg === false && r.n === 0 && !r.fila) || JSON.stringify(r);
+    });
+    const seleccionar = (pg, sel, ini, fin) => pg.evaluate(([sel, ini, fin]) => {
+        document.querySelector(sel).scrollIntoView({ block: 'center' });
+        const n = document.querySelector(sel).firstChild, r = document.createRange(); r.setStart(n, ini); r.setEnd(n, fin);
+        const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+    }, [sel, ini, fin]);
+    await caso('subrayar: elegir color, se guarda, sobrevive a recargar, se recolorea y se quita', async () => {
+        const ctx = await contexto(); const pg = await abrir(ctx, T);
+        await seleccionar(pg, '#qcard-0 .q-text', 3, 20); await pg.waitForSelector('.subr-pop', { timeout: 3000 });
+        await pg.click('.subr-pop .subr-punto.subr-c2'); await pg.waitForTimeout(200);
+        const a = await pg.evaluate(() => ({ marcas: [...document.querySelectorAll('#qcard-0 .q-text mark.subr')].map(m => m.className + '|' + m.textContent).join(), n: Object.keys(SupC1.get('banco', {}).subrayados).length, pop: !!document.querySelector('.subr-pop') }));
+        await seleccionar(pg, '#qcard-0 .options-grid .option span:last-child', 3, 15); await pg.waitForSelector('.subr-pop'); await pg.click('.subr-pop .subr-punto.subr-c3'); await pg.waitForTimeout(200);
+        const resp = await pg.evaluate(() => ({ n: Object.keys(SupC1.get('banco', {}).subrayados).length, ans: JSON.stringify(userAns), m: document.querySelectorAll('#qcard-0 .option mark.subr').length }));
+        await pg.reload(); await pg.waitForTimeout(900); const modal = await pg.locator('.supc1-modal [data-r="no"]').count(); if (modal) await pg.click('.supc1-modal [data-r="no"]');
+        await pg.waitForTimeout(300);
+        const tras = await pg.evaluate(() => document.querySelectorAll('mark.subr').length);
+        await pg.click('#qcard-0 .q-text mark.subr'); await pg.waitForSelector('.subr-pop'); await pg.click('.subr-pop .subr-punto.subr-c0'); await pg.waitForTimeout(150);
+        const color = await pg.evaluate(() => document.querySelector('#qcard-0 .q-text mark.subr').className);
+        await pg.click('#qcard-0 .q-text mark.subr'); await pg.waitForSelector('.subr-pop .subr-quitar'); await pg.click('.subr-pop .subr-quitar'); await pg.waitForTimeout(150);
+        const fin = await pg.evaluate(() => ({ n: Object.keys(SupC1.get('banco', {}).subrayados).length, lap: Object.keys(SupC1.get('banco', {}).borradas).filter(k => /^u:/.test(k)).length, m: document.querySelectorAll('#qcard-0 .q-text mark.subr').length }));
+        await ctx.close();
+        return (/subr-c2\|/.test(a.marcas) && a.n === 1 && !a.pop && resp.n === 2 && resp.ans === '{}' && resp.m === 1 && tras === 2 && /subr-c0/.test(color) && fin.n === 1 && fin.lap === 1 && fin.m === 0) || JSON.stringify({ a, resp, tras, color, fin });
+    });
+    await caso('subrayar: lo nuevo sustituye a lo solapado y arrastrar para seleccionar no responde', async () => {
+        const ctx = await contexto(); const pg = await abrir(ctx, T);
+        await seleccionar(pg, '#qcard-0 .q-text', 3, 20); await pg.waitForSelector('.subr-pop'); await pg.click('.subr-pop .subr-punto.subr-c0'); await pg.waitForTimeout(150);
+        await seleccionar(pg, '#qcard-0 .q-text mark.subr', 2, 8); await pg.waitForSelector('.subr-pop .subr-quitar');
+        await pg.click('.subr-pop .subr-punto.subr-c1'); await pg.waitForTimeout(150);
+        const r = await pg.evaluate(() => ({ n: Object.keys(SupC1.get('banco', {}).subrayados).length, c: [...document.querySelectorAll('#qcard-0 .q-text mark.subr')].map(m => m.className).join() }));
+        await seleccionar(pg, '#qcard-0 .options-grid .option span:last-child', 0, 6); await pg.waitForTimeout(100);
+        await pg.evaluate(() => document.querySelector('#qcard-0 .option').click());
+        const resp = await pg.evaluate(() => JSON.stringify(userAns)); await ctx.close();
+        return (r.n === 1 && /subr-c1/.test(r.c) && resp === '{}') || JSON.stringify({ r, resp });
+    });
+    await caso('subrayar se puede apagar (en el panel ⚙ y desde el supuesto)', async () => {
+        const ctx = await contexto(); const pg = await abrir(ctx, T);
+        await pg.evaluate(() => SupC1.set('subrayar', false)); await pg.reload(); await pg.waitForTimeout(800);
+        await seleccionar(pg, '#qcard-0 .q-text', 3, 20); await pg.waitForTimeout(500);
+        const pop = await pg.locator('.subr-pop').count(); const fila = await pg.locator('#subrayar-toggle').isChecked();
+        await ctx.close();
+        const c2 = await contexto();
+        await c2.route('**/supuestos/supuesto_T2I.html', async r => { const res = await r.fetch(); r.fulfill({ response: res, body: (await res.text()).replace('"referencia"', '"subrayar": false, "referencia"') }); });
+        const p2 = await abrir(c2, T); await seleccionar(p2, '#qcard-0 .q-text', 3, 20); await p2.waitForTimeout(500);
+        const r2 = { pop: await p2.locator('.subr-pop').count(), fila: await p2.locator('#subrayar-toggle').count() }; await c2.close();
+        return (pop === 0 && fila === false && r2.pop === 0 && r2.fila === 0) || JSON.stringify({ pop, fila, r2 });
+    });
+    await caso('subrayar en «Mi estudio»: en las preguntas guardadas y en el listado de subrayados', async () => {
+        const ctx = await contexto(null, () => { if (localStorage.getItem('supc1:sembrado')) return; localStorage.setItem('supc1:sembrado', '1');
+            localStorage.setItem('supc1:banco', JSON.stringify({ falladas: { 'supuesto_T2I:a': { f: 'supuesto_T2I', h: 'a', t: 'Pregunta fallada de prueba para subrayar', n: 2, ok: 0 } }, marcadas: {}, notas: {} })); });
+        const pg = await abrir(ctx, 'mi-estudio.html');
+        await seleccionar(pg, '#estudio-falladas .item-zona', 9, 16); await pg.waitForSelector('.subr-pop'); await pg.click('.subr-pop .subr-punto.subr-c4'); await pg.waitForTimeout(500);
+        const r = await pg.evaluate(() => ({ en: document.querySelectorAll('#estudio-falladas mark.subr').length, lista: document.querySelectorAll('#estudio-subrayados .item mark.subr').length, n: Object.keys(SupC1.get('banco', {}).subrayados).length, txt: document.querySelector('#estudio-falladas .item-zona').textContent }));
+        await pg.reload(); await pg.waitForTimeout(700); const tras = await pg.evaluate(() => document.querySelectorAll('#estudio-falladas mark.subr').length);
+        await pg.click('#estudio-subrayados .btn-link'); await pg.waitForTimeout(400);
+        const fin = await pg.evaluate(() => ({ lista: document.querySelectorAll('#estudio-subrayados .item').length, marcas: document.querySelectorAll('mark.subr').length }));
+        await ctx.close();
+        return (r.en === 1 && r.lista === 1 && r.n === 1 && r.txt === 'Pregunta fallada de prueba para subrayar' && tras === 1 && fin.lista === 0 && fin.marcas === 0) || JSON.stringify({ r, tras, fin });
+    });
     await caso('deslizar el dedo cambia de pregunta', async () => {
         const ctx = await contexto(); const pg = await abrir(ctx, T); const cdp = await ctx.newCDPSession(pg);
         const toque = async (x1, x2) => { await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: x1, y: 400 }] }); await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: (x1 + x2) / 2, y: 400 }] }); await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); await pg.waitForTimeout(250); };
@@ -341,6 +425,18 @@ async function sync() {
         const B = { falladas: {}, marcadas: { 'm': { ts: 30, t: 'p' } }, notas: { 'n': { txt: 'x', ts: 40, t: 'p' } }, borradas: {} };
         const M = N.mezclarBanco(A, B, 100);
         return (!M.notas.n && M.marcadas.m && M.borradas['n:n'] === 50) || JSON.stringify(M);
+    });
+    await caso('fusión: las favoritas se unen y un quitar corazón posterior gana', async () => {
+        const A = { favoritas: { f1: { ts: 10, t: 'a' }, f2: { ts: 10, t: 'b' } }, borradas: {} };
+        const B = { favoritas: { f1: { ts: 5, t: 'a' } }, borradas: { 'v:f2': 20 } };
+        const M = N.mezclarBanco(A, B, 100);
+        return (M.favoritas.f1 && !M.favoritas.f2 && M.borradas['v:f2'] === 20) || JSON.stringify(M);
+    });
+    await caso('fusión: los subrayados se unen y quitar uno gana si es más reciente', async () => {
+        const A = { subrayados: { u1: { ts: 10, x: 'a' }, u2: { ts: 10, x: 'b' } }, borradas: {} };
+        const B = { subrayados: { u3: { ts: 12, x: 'c' } }, borradas: { 'u:u2': 20 } };
+        const M = N.mezclarBanco(A, B, 100);
+        return (M.subrayados.u1 && M.subrayados.u3 && !M.subrayados.u2 && M.borradas['u:u2'] === 20) || JSON.stringify(M);
     });
     await caso('fusión: es conmutativa e idempotente', async () => {
         const A = { falladas: { a: e(10) }, marcadas: { m: { ts: 3, t: 'p' } }, notas: {}, borradas: { 'n:z': 7 } };

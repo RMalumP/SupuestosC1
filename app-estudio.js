@@ -32,7 +32,7 @@
     }
 
     function pintar() {
-        var banco = S.get('banco', null) || {}, falladas = banco.falladas || {}, marcadas = banco.marcadas || {}, notas = banco.notas || {};
+        var banco = S.get('banco', null) || {}, falladas = banco.falladas || {}, marcadas = banco.marcadas || {}, notas = banco.notas || {}, favoritas = banco.favoritas || {}, subrayados = banco.subrayados || {};
 
         /* ── Evolución ── */
         var prog = [];
@@ -75,7 +75,7 @@
             var g = grupoCabecera(a, porArch[a].length, 'Practicar falladas', 'supuestos/' + a + '.html?practicar=falladas');
             porArch[a].sort(function (x, y) { return y[1].n - x[1].n; }).forEach(function (par) {
                 var li = el('div', 'item');
-                li.appendChild(el('p', 'item-texto', par[1].t));
+                li.appendChild(textoPregunta('', par[1].t, par[0], par[1].f));
                 var m = el('div', 'item-meta');
                 m.appendChild(el('span', 'chip', 'fallada ' + par[1].n + (par[1].n === 1 ? ' vez' : ' veces')));
                 var q = el('button', 'btn-link', 'Quitar'); q.type = 'button';
@@ -90,18 +90,56 @@
             fa.appendChild(v);
         }
 
-        /* ── Marcadas y notas ── */
+        /* ── Subrayados ── */
+        var su = $('estudio-subrayados'); vaciar(su);
+        var ps = {};
+        Object.keys(subrayados).forEach(function (k) { var h = subrayados[k]; (ps[h.f] = ps[h.f] || []).push(k); });
+        if (!Object.keys(ps).length) su.appendChild(el('p', 'grupo-desc vacio', 'Aún no has subrayado nada. En un supuesto (o aquí mismo, en tus preguntas guardadas), selecciona un trozo de texto y elige un color.'));
+        Object.keys(ps).forEach(function (a) {
+            var g = grupoCabecera(a, ps[a].length, null, '');
+            ps[a].sort(function (x, y) { return (subrayados[y].ts || 0) - (subrayados[x].ts || 0); }).forEach(function (k) {
+                var h = subrayados[k], li = el('div', 'item');
+                var p = el('p', 'item-texto'); var m = el('mark', 'subr subr-' + (h.c || 'c0'), h.x); p.appendChild(m); li.appendChild(p);
+                var donde = /#q$/.test(h.z) ? 'Pregunta' : /#o:/.test(h.z) ? 'Respuesta' : 'Enunciado';
+                li.appendChild(el('p', 'item-nota', donde + (h.qt ? ': ' + h.qt + (h.qt.length >= 90 ? '…' : '') : '')));
+                var mt = el('div', 'item-meta');
+                var q = el('button', 'btn-link', 'Quitar subrayado'); q.type = 'button';
+                q.addEventListener('click', function () { if (window.SupC1Subrayado) window.SupC1Subrayado.quitar(k); else { var b = S.get('banco', {}); b.borradas = b.borradas || {}; delete b.subrayados[k]; b.borradas['u:' + k] = Date.now(); S.set('banco', b); pintar(); } });
+                mt.appendChild(q); li.appendChild(mt); g.appendChild(li);
+            });
+            su.appendChild(g);
+        });
+
+        /* ── Favoritas ── */
+        var fv = $('estudio-favoritas'); vaciar(fv);
+        var pf = {};
+        Object.keys(favoritas).forEach(function (k) { var f = favoritas[k]; (pf[f.f] = pf[f.f] || []).push(k); });
+        if (!Object.keys(pf).length) fv.appendChild(el('p', 'grupo-desc vacio', 'Aún no tienes favoritas. En un supuesto, pulsa el corazón ♡ de la esquina de una pregunta (o la tecla H).'));
+        Object.keys(pf).forEach(function (a) {
+            var g = grupoCabecera(a, pf[a].length, 'Practicar favoritas', 'supuestos/' + a + '.html?practicar=favoritas');
+            pf[a].forEach(function (k) {
+                var li = el('div', 'item');
+                li.appendChild(textoPregunta('♥ ', favoritas[k].t, k, favoritas[k].f));
+                var m = el('div', 'item-meta');
+                var q = el('button', 'btn-link', 'Quitar de favoritas'); q.type = 'button';
+                q.addEventListener('click', function () { var b = S.get('banco', {}); b.borradas = b.borradas || {}; delete b.favoritas[k]; b.borradas['v:' + k] = Date.now(); S.set('banco', b); pintar(); });
+                m.appendChild(q); li.appendChild(m); g.appendChild(li);
+            });
+            fv.appendChild(g);
+        });
+
+        /* ── Marcadas (para más tarde) y notas ── */
         var ma = $('estudio-marcadas'); vaciar(ma);
         var claves = {}; Object.keys(marcadas).concat(Object.keys(notas)).forEach(function (k) { claves[k] = 1; });
         var pa = {};
         Object.keys(claves).forEach(function (k) { var base = marcadas[k] || notas[k]; (pa[base.f] = pa[base.f] || []).push(k); });
-        if (!Object.keys(pa).length) ma.appendChild(el('p', 'grupo-desc vacio', 'Aún no has marcado preguntas ni escrito notas. En un supuesto, usa «Marcar para revisar» (o la tecla M) y «Añadir nota» (tecla N).'));
+        if (!Object.keys(pa).length) ma.appendChild(el('p', 'grupo-desc vacio', 'Aún no has marcado preguntas ni escrito notas. En un supuesto, usa «Marcar para más tarde» (o la tecla M) y «Añadir nota» (tecla N).'));
         Object.keys(pa).forEach(function (a) {
             var nMarc = pa[a].filter(function (k) { return marcadas[k]; }).length;
             var g = grupoCabecera(a, pa[a].length, nMarc ? 'Practicar marcadas' : null, 'supuestos/' + a + '.html?practicar=marcadas');
             pa[a].forEach(function (k) {
                 var base = marcadas[k] || notas[k], li = el('div', 'item');
-                li.appendChild(el('p', 'item-texto', (marcadas[k] ? '🚩 ' : '') + base.t));
+                li.appendChild(textoPregunta(marcadas[k] ? '🚩 ' : '', base.t, k, base.f));
                 if (notas[k]) li.appendChild(el('p', 'item-nota', '📝 ' + notas[k].txt));
                 var m = el('div', 'item-meta');
                 if (marcadas[k]) { var q = el('button', 'btn-link', 'Quitar marca'); q.type = 'button'; q.addEventListener('click', function () { var b = S.get('banco', {}); b.borradas = b.borradas || {}; delete b.marcadas[k]; b.borradas['m:' + k] = Date.now(); S.set('banco', b); pintar(); }); m.appendChild(q); }
@@ -110,6 +148,15 @@
             });
             ma.appendChild(g);
         });
+    }
+
+    // Texto de una pregunta guardada. Es una «zona» que se puede subrayar (ver app-subrayado.js).
+    function textoPregunta(icono, texto, clave, archivo) {
+        var p = el('p', 'item-texto');
+        if (icono) p.appendChild(el('span', 'item-ico', icono));
+        var z = el('span', 'item-zona', texto);
+        z.dataset.sz = clave + '#q'; z.dataset.sf = archivo; z.dataset.sqt = texto.slice(0, 90);
+        p.appendChild(z); return p;
     }
 
     function grupoCabecera(arch, n, textoBoton, href) {

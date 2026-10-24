@@ -725,7 +725,7 @@
  NUEVO · DISEÑO, FUNCIONES EXTRA Y MENÚ PRINCIPAL
 ────────────────────────────────────────────────────────────────────────────────
 
-  La plantilla (motor 8) ya incluye el diseño nuevo y las funciones extra de la
+  La plantilla (motor 9) ya incluye el diseño nuevo y las funciones extra de la
   web (continuar un intento, repetir falladas, marcar preguntas, tema oscuro…).
   Para que funcionen, el supuesto debe guardarse dentro de la carpeta
   «supuestos/» del proyecto (o en otra del mismo nivel que «Py/»): enlaza a los
@@ -741,6 +741,50 @@
          generales» (cada uno con sus grupos Iniciales y Avanzados) o «Exámenes y
          simulacros», y qué texto lleva el círculo de la tarjeta.
      Así ya no hay que tocar index.html ni copiar tarjetas a mano.
+
+  EL EDITOR EN VARIOS ARCHIVOS, UN SOLO LANZADOR
+     El programa está repartido en módulos que viven junto a él en la carpeta Py/
+     (menu_datos.py, datos_html.py, sincronizar_local.py, alta_menu.py,
+     ventana_menu.py, ventana_subir.py). NO tienes que abrirlos: se lanza siempre
+     editor_supuestos.py (con Thonny y F5, como siempre). Si copias el editor a otra
+     carpeta, copia con él todos los .py de Py/ o fallará al arrancar.
+
+     Sin ventana (desde una terminal, en la carpeta del proyecto):
+       python Py/editor_supuestos.py --alta [--auto]   da de alta en el menú los supuestos
+                                                       de supuestos/ que falten
+       python Py/editor_supuestos.py --actualizar      pone al día los supuestos y prepara PARA_SUBIR
+       python Py/editor_supuestos.py --para-subir      solo prepara PARA_SUBIR
+       python Py/editor_supuestos.py --subido          marca todo como ya subido
+
+  AÑADIR UN SUPUESTO AL MENÚ A MANO
+     supuestos-datos.js tiene UNA LÍNEA por supuesto. Copia una línea, cámbiale el
+     archivo, la letra, la referencia, el título y la descripción, y respeta la coma
+     del final (la última línea no lleva coma). «seccion» y «grupo» dicen dónde sale.
+     Con "oculto": true desaparece del menú sin borrarse. El modo sin conexión (sw.js)
+     lee esta misma lista: no hay que tocar nada más. Si te equivocas, el validador
+     (python Py/validar_supuestos.py) dice la línea.
+
+  MENÚ DE INICIO (botón «🗂 Menú de inicio…»)
+     Ventana para ordenar el menú de la web: subir y bajar supuestos, moverlos de
+     sección o grupo, editar su título, referencia, descripción y texto del círculo,
+     ocultarlos, quitarlos (el .html NO se borra), añadir los que falten y crear,
+     renombrar, ordenar o borrar (si están vacíos) secciones y grupos. Nada se escribe
+     hasta pulsar «Guardar menú».
+
+  CARPETA «PARA_SUBIR» (botón «📦 Para subir a GitHub…»)
+     Para trabajar en local y subir luego a la web de GitHub sin dudas:
+       1. Descarga el repositorio y abre el editor: lo que hay en ese momento cuenta
+          como «lo descargado» (se recuerda en .estado_local.json; no se sube).
+       2. Trabaja con normalidad. «Poner todo al día» rehace con la plantilla actual la
+          página de los supuestos que se quedaron con un motor antiguo (no cambia ni una
+          pregunta).
+       3. Cada vez que guardas, la carpeta PARA_SUBIR se rehace con SOLO los archivos
+          nuevos o modificados, con la misma estructura de carpetas, y un
+          LEEME_SUBIR.txt con la lista (y los que borraste en local).
+       4. En GitHub (web): «Add file» → «Upload files», arrastra el contenido de
+          PARA_SUBIR y confirma.
+       5. Pulsa «Marcar como subido» para empezar de cero.
+     Tus copias .bak y la carpeta PARA_SUBIR no cuentan como cambios.
 
   TOTAL ABSOLUTO EN EL ENVÍO
      En la pestaña de envío hay un apartado «Enviar el TOTAL de todos los
@@ -842,10 +886,18 @@
     preguntas falladas (entran al fallarlas y salen tras acertarlas dos veces
     seguidas; «Practicar falladas» abre el supuesto solo con esas preguntas),
     preguntas marcadas y notas personales. Todo queda en el navegador del alumno.
-  · MARCAR Y NOTAS: en cada pregunta, «Marcar para revisar» y «Añadir nota».
-    Las marcas y las notas se conservan entre intentos.
-  · ATAJOS: A–G o 1–7 responden · ← → cambian de pregunta · M marca · N nota ·
-    ? ayuda. En el móvil, deslizar el dedo a izquierda o derecha cambia de
+  · MARCAR (PARA MÁS TARDE) Y NOTAS: en cada pregunta, «Marcar para más tarde» y
+    «Añadir nota». Las marcadas aparecen en «Mi estudio» y se pueden practicar.
+  · FAVORITAS ♥: un corazón pequeño en la esquina de cada pregunta (tecla H). Aparecen
+    en «Mi estudio» con «Practicar favoritas». Se puede apagar en un supuesto desde el
+    editor (pestaña 1, «Corazón de favoritas») o cada persona desde el panel ⚙.
+  · SUBRAYAR: al seleccionar un trozo del enunciado, de la pregunta o de una respuesta
+    sale una ventanita con 5 colores (y «Quitar»). Los subrayados se guardan en el
+    navegador, salen en «Mi estudio» (donde también se pueden subrayar las preguntas
+    guardadas) y se sincronizan con Drive. Se apaga en un supuesto desde el editor
+    (pestaña 1, «Subrayar con colores») o desde el panel ⚙.
+  · ATAJOS: A–G o 1–7 responden · ← → cambian de pregunta · M marca · H favorita ·
+    N nota · ? ayuda. En el móvil, deslizar el dedo a izquierda o derecha cambia de
     pregunta (se puede desactivar en el panel ⚙).
   · ENLACES A LA NORMA: las citas tipo «art. 12 de la LGSS» de la motivación se
     enlazan al artículo en el BOE. Las normas y sus códigos están en

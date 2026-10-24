@@ -125,7 +125,7 @@
         var f = document.createElement('div'); f.className = 'supc1-modal ayuda';
         f.innerHTML = '<div class="supc1-modal-caja" role="dialog" aria-modal="true" aria-label="Atajos de teclado"><h3>Atajos de teclado</h3>' +
             '<p><kbd>A</kbd>–<kbd>G</kbd> o <kbd>1</kbd>–<kbd>7</kbd> responder · <kbd>←</kbd> <kbd>→</kbd> pregunta anterior / siguiente<br>' +
-            '<kbd>M</kbd> marcar para revisar · <kbd>N</kbd> nota · <kbd>?</kbd> esta ayuda · <kbd>Esc</kbd> cerrar</p>' +
+            '<kbd>M</kbd> marcar para más tarde · <kbd>H</kbd> favorita ♥ · <kbd>N</kbd> nota · <kbd>?</kbd> esta ayuda · <kbd>Esc</kbd> cerrar</p>' +
             '<div class="supc1-modal-botones"><button class="btn btn-primary" data-r="x">Entendido</button></div></div>';
         f.addEventListener('click', function (e) { if (e.target === f || (e.target.getAttribute && e.target.getAttribute('data-r'))) f.remove(); });
         document.body.appendChild(f); f.querySelector('button').focus();
@@ -144,6 +144,7 @@
         if (k === 'ArrowRight') { e.preventDefault(); move(1); anunciar('Pregunta ' + (current + 1) + ' de ' + questions.length); }
         else if (k === 'ArrowLeft') { e.preventDefault(); move(-1); anunciar('Pregunta ' + (current + 1) + ' de ' + questions.length); }
         else if (k === 'm' && S.sup) { e.preventDefault(); S.sup.marcar(current); }
+        else if (k === 'h' && S.sup && S.sup.corazonDisponible() && S.get('corazon', true) !== false) { e.preventDefault(); S.sup.favorita(current); }
         else if (k === 'n' && S.sup) { e.preventDefault(); S.sup.nota(current); }
         else if (k === '?') { e.preventDefault(); ayuda(); }
     });
@@ -173,10 +174,13 @@
         var fila = document.createElement('div');
         fila.className = 'settings-row'; fila.id = 'row-uso';
         fila.innerHTML = '<div class="settings-check"><label><input type="checkbox" id="deslizar-toggle"><span>Deslizar para cambiar de pregunta</span></label></div>' +
+            (S.sup && S.sup.corazonDisponible() ? '<div class="settings-check" style="margin-top:8px"><label><input type="checkbox" id="corazon-toggle"><span>Mostrar el corazón de favoritas ♥</span></label></div>' : '') +
             '<div style="margin-top:8px"><button type="button" class="btn-mini" id="atajos-btn">Atajos de teclado (?)</button></div>';
         panel.appendChild(fila);
         var d = $('deslizar-toggle'); d.checked = S.get('deslizar', true);
         d.addEventListener('change', function () { S.set('deslizar', d.checked); });
+        var cz = $('corazon-toggle');
+        if (cz) { cz.checked = S.get('corazon', true) !== false; cz.addEventListener('change', function () { S.set('corazon', cz.checked); S.sup.aplicarCorazon(); }); }
         $('atajos-btn').addEventListener('click', ayuda);
     }
 

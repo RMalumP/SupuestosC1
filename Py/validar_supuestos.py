@@ -25,7 +25,7 @@ RE_MOTOR = re.compile(r'<meta\s+name=["\']motor-plantilla["\']\s+content=["\'](\
 RE_REFS = re.compile(r'(?:href|src)=["\']([^"\']+)["\']', re.I)
 # Archivos que todo supuesto debe enlazar (en este orden relativo)
 OBLIGATORIOS = ["base-supuesto.css", "tema-supuesto.css", "prefs.js", "pwa.js", "normas-datos.js",
-                "telemetria-config.js", "app-supuesto.js", "app-uso.js", "app-telemetria.js"]
+                "telemetria-config.js", "app-supuesto.js", "app-uso.js", "app-subrayado.js", "subrayado.css", "app-telemetria.js"]
 
 errores, avisos = [], []
 
@@ -222,7 +222,7 @@ def validar_sw():
         if rel not in ya:
             aviso("sw.js", "%s no está en el menú, así que tampoco se guarda sin conexión" % rel)
     for p in ["base-supuesto.css", "tema-supuesto.css", "tema-menu.css", "tema-resultados.css", "prefs.js", "pwa.js",
-              "app-supuesto.js", "app-uso.js", "app-menu.js", "app-estudio.js", "app-telemetria.js", "normas-datos.js",
+              "app-supuesto.js", "app-uso.js", "app-subrayado.js", "subrayado.css", "app-menu.js", "app-estudio.js", "app-telemetria.js", "normas-datos.js",
               "telemetria-config.js", "supuestos-datos.js"]:
         if (RAIZ / p).exists() and p not in lista:
             aviso("sw.js", "PRECACHE no incluye %s" % p)

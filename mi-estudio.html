@@ -216,13 +216,14 @@
         }
     </style>
     <link rel="stylesheet" href="tema-menu.css">
+    <link rel="stylesheet" href="subrayado.css">
 </head>
 <body>
 
 <div class="hero">
     <div class="hero-inner">
         <h1>Mi estudio<strong>progreso y repaso</strong></h1>
-        <p>Tus estadísticas, tus preguntas falladas y marcadas y tus notas. Todo se guarda solo en este navegador.</p>
+        <p>Tus estadísticas, tus preguntas falladas, favoritas y marcadas, tus subrayados y tus notas. Todo se guarda solo en este navegador.</p>
     </div>
 </div>
 
@@ -231,7 +232,7 @@
 
     <div class="aviso-privado" role="note">
         <strong>🔒 Estos datos son solo tuyos.</strong>
-        <span>Lo que ves aquí (estadísticas, preguntas falladas, marcadas y notas) se guarda únicamente en este navegador y en este dispositivo.
+        <span>Lo que ves aquí (estadísticas, preguntas falladas, favoritas, marcadas y notas) se guarda únicamente en este navegador y en este dispositivo.
         Tus notas, marcas y estadísticas personales no se envían a ningún sitio ni se comparten con terceros.
         Tampoco son estadísticas globales: no se mezclan con las de otras personas (la clasificación general está en «Resultados»).</span>
     </div>
@@ -247,7 +248,15 @@
     <p class="grupo-desc">Una pregunta entra aquí al fallarla y sale cuando la aciertas dos veces seguidas.</p>
     <div id="estudio-falladas"></div>
 
-    <div class="seccion-head"><h2>Marcadas y notas</h2><span class="linea"></span></div>
+    <div class="seccion-head"><h2>Mis subrayados</h2><span class="linea"></span></div>
+    <p class="grupo-desc">Lo que has subrayado en los supuestos y en tus preguntas guardadas. También puedes subrayar aquí: selecciona un trozo de texto y elige un color.</p>
+    <div id="estudio-subrayados"></div>
+
+    <div class="seccion-head"><h2>Favoritas ♥</h2><span class="linea"></span></div>
+    <p class="grupo-desc">Las preguntas que guardaste con el corazón de la esquina.</p>
+    <div id="estudio-favoritas"></div>
+
+    <div class="seccion-head"><h2>Marcadas (para más tarde) y notas</h2><span class="linea"></span></div>
     <div id="estudio-marcadas"></div>
 
     <a class="back-link boton" href="index.html">&larr; Volver al menú de supuestos</a>
@@ -259,6 +268,7 @@
 <script src="app-menu.js" defer></script>
 <script src="sync-config.js"></script>
 <script src="app-estudio.js" defer></script>
+<script src="app-subrayado.js" defer></script>
 <script src="app-sync.js" defer></script>
 </body>
 </html>

@@ -12,17 +12,18 @@
        «lápida» con la fecha del borrado, para que no resucite al sincronizar con otro
        dispositivo. Para cada elemento gana lo más reciente (elemento o lápida). */
     var NOVENTA_DIAS = 90 * 24 * 3600 * 1000;
-    var COLECCIONES = ['falladas', 'marcadas', 'notas'];
+    var COLECCIONES = ['falladas', 'marcadas', 'notas', 'favoritas', 'subrayados'];
+    var TIPO = { falladas: 'f', marcadas: 'm', notas: 'n', favoritas: 'v', subrayados: 'u' };   // prefijo de las lápidas
 
     function normBanco(b) {
         b = b || {};
-        return { falladas: b.falladas || {}, marcadas: b.marcadas || {}, notas: b.notas || {}, borradas: b.borradas || {} };
+        return { falladas: b.falladas || {}, marcadas: b.marcadas || {}, notas: b.notas || {}, favoritas: b.favoritas || {}, subrayados: b.subrayados || {}, borradas: b.borradas || {} };
     }
     function mezclarBanco(a, b, ahora) {
         a = normBanco(a); b = normBanco(b); ahora = ahora || Date.now();
-        var out = { falladas: {}, marcadas: {}, notas: {}, borradas: {} };
+        var out = { falladas: {}, marcadas: {}, notas: {}, favoritas: {}, subrayados: {}, borradas: {} };
         COLECCIONES.forEach(function (col) {
-            var tipo = col.charAt(0), claves = {};
+            var tipo = TIPO[col], claves = {};
             [a[col], b[col]].forEach(function (m) { Object.keys(m).forEach(function (k) { claves[k] = 1; }); });
             [a.borradas, b.borradas].forEach(function (m) { Object.keys(m).forEach(function (k) { if (k.charAt(0) === tipo && k.charAt(1) === ':') claves[k.slice(2)] = 1; }); });
             Object.keys(claves).forEach(function (k) {
@@ -62,7 +63,7 @@
     }
     // Qué trae la copia fusionada que no estuviera ya en este dispositivo (para decírselo a la persona)
     function novedades(local, fusion) {
-        local = local || {}; var lb = normBanco(local.banco), fb = fusion.banco, r = { falladas: 0, marcadas: 0, notas: 0, intentos: 0, quitadas: 0 };
+        local = local || {}; var lb = normBanco(local.banco), fb = fusion.banco, r = { falladas: 0, marcadas: 0, notas: 0, favoritas: 0, subrayados: 0, intentos: 0, quitadas: 0 };
         COLECCIONES.forEach(function (c) {
             Object.keys(fb[c]).forEach(function (k) { if (!lb[c][k] || (lb[c][k].ts || 0) < (fb[c][k].ts || 0)) r[c]++; });
             Object.keys(lb[c]).forEach(function (k) { if (!fb[c][k]) r.quitadas++; });
@@ -171,7 +172,7 @@
 
     function explicacion(siguiente) {
         var c = el('div', 'sync-texto');
-        c.appendChild(el('p', null, 'Esto te permite tener tus notas, preguntas marcadas, falladas y estadísticas en el móvil, la tablet y el ordenador a la vez.'));
+        c.appendChild(el('p', null, 'Esto te permite tener tus notas, preguntas marcadas, favoritas, subrayados, falladas y estadísticas en el móvil, la tablet y el ordenador a la vez.'));
         c.appendChild(el('h4', null, '¿Qué va a pasar?'));
         c.appendChild(lista('ul', [
             'Se guarda una copia de tus datos de estudio en una <strong>carpeta privada y oculta de tu propio Google Drive</strong>.',
@@ -216,6 +217,8 @@
             var n = r.nov, partes = [];
             if (n.falladas) partes.push(n.falladas + (n.falladas === 1 ? ' pregunta fallada' : ' preguntas falladas'));
             if (n.marcadas) partes.push(n.marcadas + (n.marcadas === 1 ? ' pregunta marcada' : ' preguntas marcadas'));
+            if (n.favoritas) partes.push(n.favoritas + (n.favoritas === 1 ? ' favorita' : ' favoritas'));
+            if (n.subrayados) partes.push(n.subrayados + (n.subrayados === 1 ? ' subrayado' : ' subrayados'));
             if (n.notas) partes.push(n.notas + (n.notas === 1 ? ' nota' : ' notas'));
             if (n.intentos) partes.push(n.intentos + (n.intentos === 1 ? ' intento' : ' intentos'));
             p.textContent = (r.primera ? 'Se ha creado tu copia en Google Drive. ' : '') +

@@ -395,6 +395,8 @@ def datos_vacios():
             "minutos": 30,
             "aptoPorcentaje": 50,
             "respuestas": 0,
+            "corazon": True,
+            "subrayar": True,
             "logo": LOGO_POR_DEFECTO,
             "logoAlt": "ECAP - Escuela Ciudadana de Administración Pública",
             "organismo": "Comunidad ECAP ASS C1",
@@ -495,6 +497,8 @@ def normalizar(datos):
     except (TypeError, ValueError):
         cfg["minutos"] = 30
     cfg["aptoPorcentaje"] = min(100.0, max(0.0, numero(cfg.get("aptoPorcentaje"), 50.0)))
+    cfg["corazon"] = cfg.get("corazon", True) is not False      # corazón de favoritas (por defecto, sí)
+    cfg["subrayar"] = cfg.get("subrayar", True) is not False    # subrayar con colores (por defecto, sí)
     # Cuántas respuestas salen de cada pregunta (0 = todas las escritas)
     try:
         respuestas = int(cfg.get("respuestas") or 0)

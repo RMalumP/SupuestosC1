@@ -4,7 +4,7 @@
      · guarda el resultado de cada intento completo (lo lee el menú)
      · guarda el intento a medias y permite continuarlo
      · «Repetir solo las falladas»
-     · marcar preguntas para revisar (punto naranja en la casilla) y notas personales
+     · marcar preguntas para más tarde (punto naranja en la casilla) y notas personales
      · banco personal de preguntas falladas / marcadas / con nota (lo lee «Mi estudio»)
      · historial de intentos para las estadísticas y «?practicar=falladas|marcadas»
      · tamaño de letra y tema oscuro en el panel ⚙
@@ -31,22 +31,13 @@
        Cada pregunta se identifica por «supuesto:huella del enunciado», así que
        sigue valiendo aunque se reordenen las preguntas del supuesto. */
     var K_BANCO = 'banco';
-    function huella(t) {
-        var h1 = 0xdeadbeef, h2 = 0x41c6ce57;
-        for (var i = 0; i < t.length; i++) {
-            var c = t.charCodeAt(i);
-            h1 = Math.imul(h1 ^ c, 2654435761); h2 = Math.imul(h2 ^ c, 1597334677);
-        }
-        h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
-        h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
-        return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
-    }
+    function huella(t) { return S.huella(t); }
     function textoPlano(q) { return String(q.q || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim(); }
     function claveDe(q) { return ID + ':' + huella(textoPlano(q)); }
     function corto(q) { var t = textoPlano(q); return t.length > 220 ? t.slice(0, 217) + '…' : t; }
     function banco() {
         var b = S.get(K_BANCO, null) || {};
-        b.falladas = b.falladas || {}; b.marcadas = b.marcadas || {}; b.notas = b.notas || {}; b.borradas = b.borradas || {};
+        b.falladas = b.falladas || {}; b.marcadas = b.marcadas || {}; b.notas = b.notas || {}; b.favoritas = b.favoritas || {}; b.borradas = b.borradas || {};
         return b;
     }
     function guardarBanco(b) { S.set(K_BANCO, b); }
@@ -84,12 +75,30 @@
         });
     }
 
-    /* ── Marcar para revisar y notas ── */
+    /* ── Favoritas (corazón). Se pueden desactivar en el supuesto (config.corazon:false, desde el editor
+       de Python) o en el panel ⚙ de cada persona. ── */
+    function corazonDisponible() { return !(typeof EXAM_CONFIG !== 'undefined' && EXAM_CONFIG && EXAM_CONFIG.corazon === false); }
+    function aplicarCorazon() { document.documentElement.classList.toggle('sin-corazon', !corazonDisponible() || S.get('corazon', true) === false); }
+    function pintarFav(i) {
+        var q = questions[i]; if (!q) return;
+        var on = !!banco().favoritas[claveDe(q)];
+        var b = document.querySelector('#qcard-' + i + ' .btn-corazon');
+        if (b) { b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); b.querySelector('i').textContent = on ? '♥' : '♡'; b.title = on ? 'Quitar de favoritas' : 'Guardar en favoritas'; }
+    }
+    function alternarFav(i) {
+        var q = questions[i]; if (!q) return;
+        var b = banco(), k = claveDe(q);
+        if (b.favoritas[k]) { delete b.favoritas[k]; b.borradas['v:' + k] = Date.now(); }
+        else { b.favoritas[k] = { f: ID, h: k.split(':')[1], t: corto(q), ts: Date.now() }; delete b.borradas['v:' + k]; }
+        guardarBanco(b); pintarFav(i);
+    }
+
+    /* ── Marcar para más tarde y notas ── */
     function pintarMarca(i) {
         var on = marcas.has(i);
         var b = document.querySelector('#qcard-' + i + ' .btn-marcar');
         var n = $('nav-' + i);
-        if (b) { b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); b.querySelector('span').textContent = on ? 'Marcada' : 'Marcar para revisar'; }
+        if (b) { b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); b.querySelector('span').textContent = on ? 'Marcada' : 'Marcar para más tarde'; }
         if (n) n.classList.toggle('marcada', on);
     }
     function alternarMarca(i) {
@@ -127,6 +136,7 @@
     }
 
     function decorar() {
+        aplicarCorazon();
         document.querySelectorAll('.question-card').forEach(function (card) {
             var i = parseInt(card.id.replace('qcard-', ''), 10);
             var h = card.querySelector('.q-header');
@@ -134,7 +144,7 @@
             var caja = document.createElement('div');
             caja.className = 'q-acciones';
             var b = document.createElement('button');
-            b.type = 'button'; b.className = 'btn-marcar'; b.innerHTML = '<i aria-hidden="true">🚩</i><span>Marcar para revisar</span>';
+            b.type = 'button'; b.className = 'btn-marcar'; b.innerHTML = '<i aria-hidden="true">🚩</i><span>Marcar para más tarde</span>'; b.title = 'Marca la pregunta para repasarla o contestarla más tarde (tecla M)';
             b.addEventListener('click', function (e) { e.stopPropagation(); alternarMarca(i); });
             var nb = document.createElement('button');
             nb.type = 'button'; nb.className = 'btn-nota'; nb.innerHTML = '<i aria-hidden="true">📝</i><span>Añadir nota</span>';
@@ -149,6 +159,13 @@
             ta.addEventListener('blur', function () { clearTimeout(t); guardarNota(i, ta.value); });
             h.parentNode.insertBefore(ta, h.nextSibling);
             pintarNota(i);
+            if (corazonDisponible() && !card.querySelector('.btn-corazon')) {
+                var cb = document.createElement('button');
+                cb.type = 'button'; cb.className = 'btn-corazon'; cb.innerHTML = '<i aria-hidden="true">♡</i>';
+                cb.setAttribute('aria-label', 'Favorita (tecla H)');
+                cb.addEventListener('click', function (e) { e.stopPropagation(); alternarFav(i); });
+                card.appendChild(cb); pintarFav(i);
+            }
         });
         marcas.forEach(pintarMarca);
     }
@@ -184,10 +201,10 @@
 
     // «supuesto.html?practicar=falladas|marcadas»: intento de práctica solo con esas preguntas
     function practicarDesdeUrl() {
-        var m = /[?&]practicar=(falladas|marcadas)/.exec(location.search);
+        var m = /[?&]practicar=(falladas|marcadas|favoritas)/.exec(location.search);
         if (!m) return false;
         history.replaceState(null, '', location.pathname);
-        var b = banco(), mapa = m[1] === 'falladas' ? b.falladas : b.marcadas;
+        var b = banco(), mapa = b[m[1]];
         var sub = QUESTIONS_BANK.filter(function (q) { return mapa[claveDe(q)]; });
         if (!sub.length) { aviso('No te quedan preguntas ' + m[1] + ' en este supuesto.'); return false; }
         var curso = S.get(K_CURSO, null);
@@ -368,7 +385,7 @@
     window.addEventListener('pagehide', guardar);
 
     // API para app-uso.js (atajos de teclado, etc.)
-    S.sup = { marcar: alternarMarca, nota: alternarNota, esParcial: function () { return parcial; } };
+    S.sup = { id: ID, huella: huella, clave: claveDe, corto: corto, marcar: alternarMarca, nota: alternarNota, favorita: alternarFav, aplicarCorazon: aplicarCorazon, corazonDisponible: corazonDisponible, esParcial: function () { return parcial; } };
 
     marcasDelBanco();
     decorar();

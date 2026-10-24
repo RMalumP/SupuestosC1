@@ -1034,6 +1034,35 @@ class EditorApp(tk.Tk):
         combo.pack(anchor="w", fill="x", padx=10, pady=(0, 10))
         combo.bind("<<ComboboxSelected>>", lambda e: self._tocado())
 
+        caja = ttk.LabelFrame(m, text=" Corazón de favoritas ")
+        caja.pack(fill="x", padx=16, pady=6)
+        rotulo(caja, "Corazón de favoritas ♥", "config.corazon",
+               '<button class="btn-corazon"> en la esquina de cada pregunta', con_titulo=False,
+               ayuda=
+                    "Un corazón pequeño en la esquina de cada pregunta con el que la persona guarda "
+                    "sus favoritas (aparecen en «Mi estudio»). Si lo desmarcas, este supuesto no "
+                    "lo muestra. Cada persona también puede ocultarlo desde el panel ⚙."
+               ).pack(anchor="w", padx=10, pady=(8, 4))
+        self.var_cfg_corazon = tk.BooleanVar(value=True)
+        chk = ttk.Checkbutton(caja, text="Mostrar el corazón de favoritas en este supuesto",
+                              variable=self.var_cfg_corazon, command=self._tocado)
+        chk.pack(anchor="w", padx=10, pady=(0, 10))
+
+        caja = ttk.LabelFrame(m, text=" Subrayar con colores ")
+        caja.pack(fill="x", padx=16, pady=6)
+        rotulo(caja, "Subrayar texto", "config.subrayar",
+               '<mark class="subr"> sobre enunciado, pregunta y respuestas', con_titulo=False,
+               ayuda=
+                    "Permite a la persona seleccionar un trozo del enunciado, de la pregunta o de una "
+                    "respuesta y subrayarlo con el color que elija en una ventanita. Los subrayados se "
+                    "guardan en su navegador y se ven también en «Mi estudio». Si lo desmarcas, este "
+                    "supuesto no deja subrayar. Cada persona también puede apagarlo desde el panel ⚙."
+               ).pack(anchor="w", padx=10, pady=(8, 4))
+        self.var_cfg_subrayar = tk.BooleanVar(value=True)
+        chk2 = ttk.Checkbutton(caja, text="Permitir subrayar en este supuesto",
+                               variable=self.var_cfg_subrayar, command=self._tocado)
+        chk2.pack(anchor="w", padx=10, pady=(0, 10))
+
         caja = ttk.LabelFrame(m, text=" Número de preguntas (automático) ")
         caja.pack(fill="x", padx=16, pady=6)
         rotulo(caja, "Nº de preguntas",
@@ -1176,6 +1205,8 @@ class EditorApp(tk.Tk):
         actual = cfg.get("respuestas", 0)
         pos = valores.index(actual) if actual in valores else 0
         self.var_cfg_respuestas.set(self._etiquetas_respuestas[pos])
+        self.var_cfg_corazon.set(cfg.get("corazon", True) is not False)
+        self.var_cfg_subrayar.set(cfg.get("subrayar", True) is not False)
         tema = self.datos.get("tema") or TEMA_DEFECTO
         for clave in TEMA_DEFECTO:
             self.w_tema[clave].set(tema.get(clave, TEMA_DEFECTO[clave]))
@@ -1193,6 +1224,8 @@ class EditorApp(tk.Tk):
             cfg[clave] = valor
         etiqueta = self.var_cfg_respuestas.get()
         cfg["respuestas"] = next((v for v, t in RESPUESTAS_EXAMEN if t == etiqueta), 0)
+        cfg["corazon"] = bool(self.var_cfg_corazon.get())
+        cfg["subrayar"] = bool(self.var_cfg_subrayar.get())
         self.datos["tema"] = {
             clave: color_valido(self.w_tema[clave].get(), TEMA_DEFECTO[clave])
             for clave in TEMA_DEFECTO}
