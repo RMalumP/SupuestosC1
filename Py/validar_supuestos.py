@@ -24,8 +24,8 @@ RE_JSON = re.compile(r'<script\b[^>]*\bid=["\']datos-supuesto["\'][^>]*>(.*?)</s
 RE_MOTOR = re.compile(r'<meta\s+name=["\']motor-plantilla["\']\s+content=["\'](\d+)["\']', re.I)
 RE_REFS = re.compile(r'(?:href|src)=["\']([^"\']+)["\']', re.I)
 # Archivos que todo supuesto debe enlazar (en este orden relativo)
-OBLIGATORIOS = ["base-supuesto.css", "tema-supuesto.css", "prefs.js", "pwa.js", "normas-datos.js",
-                "telemetria-config.js", "app-supuesto.js", "app-uso.js", "app-subrayado.js", "subrayado.css", "app-telemetria.js"]
+OBLIGATORIOS = ["css/base-supuesto.css", "css/tema-supuesto.css", "js/prefs.js", "js/pwa.js", "datos/normas-datos.js",
+                "config/telemetria-config.js", "js/app-supuesto.js", "js/app-uso.js", "js/app-subrayado.js", "css/subrayado.css", "js/app-telemetria.js"]
 
 errores, avisos = [], []
 
@@ -153,7 +153,7 @@ def validar_supuesto(ruta, motor_actual):
 
 
 def validar_menu(supuestos):
-    ruta = RAIZ / "supuestos-datos.js"
+    ruta = RAIZ / "datos" / "supuestos-datos.js"
     if not ruta.exists():
         err("supuestos-datos.js", "no existe")
         return
@@ -207,13 +207,13 @@ def validar_sw():
         err("sw.js", "no encuentro la lista PRECACHE_BASE")
         return
     lista = re.findall(r'"([^"]+)"', m.group(1))
-    if "importScripts" not in t or "supuestos-datos.js" not in t:
+    if "importScripts" not in t or "datos/supuestos-datos.js" not in t:
         err("sw.js", "debe cargar supuestos-datos.js con importScripts para guardar los supuestos sin conexión")
     for r in lista:
         if r != "./" and not (RAIZ / r).exists():
             err("sw.js", "PRECACHE incluye «%s», que no existe (la app no se instalaría)" % r)
     ya = {"supuestos/" + a + ".html" for a in menu_datos.archivos_del_menu(menu_datos.leer(
-        (RAIZ / "supuestos-datos.js").read_text(encoding="utf-8")))} if (RAIZ / "supuestos-datos.js").exists() else set()
+        (RAIZ / "datos" / "supuestos-datos.js").read_text(encoding="utf-8")))} if (RAIZ / "datos" / "supuestos-datos.js").exists() else set()
     for rel in ["index.html", "mi-estudio.html", "resultados/resultados.html"]:
         if (RAIZ / rel).exists() and rel not in lista:
             aviso("sw.js", "PRECACHE no incluye %s (no estará disponible sin conexión hasta visitarlo)" % rel)
@@ -221,9 +221,9 @@ def validar_sw():
         rel = p.relative_to(RAIZ).as_posix()
         if rel not in ya:
             aviso("sw.js", "%s no está en el menú, así que tampoco se guarda sin conexión" % rel)
-    for p in ["base-supuesto.css", "tema-supuesto.css", "tema-menu.css", "tema-resultados.css", "prefs.js", "pwa.js",
-              "app-supuesto.js", "app-uso.js", "app-subrayado.js", "subrayado.css", "app-menu.js", "app-estudio.js", "app-telemetria.js", "normas-datos.js",
-              "telemetria-config.js", "supuestos-datos.js"]:
+    for p in ["css/base-supuesto.css", "css/tema-supuesto.css", "css/tema-menu.css", "css/tema-resultados.css", "js/prefs.js", "js/pwa.js",
+              "js/app-supuesto.js", "js/app-uso.js", "js/app-subrayado.js", "css/subrayado.css", "js/app-menu.js", "js/app-estudio.js", "js/app-telemetria.js", "datos/normas-datos.js",
+              "config/telemetria-config.js", "datos/supuestos-datos.js"]:
         if (RAIZ / p).exists() and p not in lista:
             aviso("sw.js", "PRECACHE no incluye %s" % p)
     fu = RAIZ / "fuentes" / "fuentes.css"
