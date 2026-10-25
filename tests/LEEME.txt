@@ -1,0 +1,31 @@
+PRUEBAS AUTOMÁTICAS
+───────────────────
+
+Qué comprueban (todo en un navegador real, sin enviar nada a Google):
+
+  carga      todas las páginas cargan sin errores de JavaScript y con el diseño aplicado
+  envios     lo que se manda a los formularios de Google es EXACTAMENTE lo de siempre
+             (tests/golden/envios.json guarda el envío correcto de cada supuesto)
+  estilos    el aspecto no cambia sin querer (tests/golden/estilos.json guarda una
+             huella de los estilos de las zonas clave en ordenador y móvil)
+  funciones  progreso, continuar un intento, repetir falladas, banco de falladas,
+             atajos de teclado, deslizar, «practicar», accesibilidad básica…
+  menu       el menú, el buscador y «Mi estudio»
+
+Cómo se ejecutan
+
+  Una vez:            npm install   y   npx playwright install chromium
+  Cada vez:           npm test        (primero valida los supuestos y luego abre el navegador)
+  Solo un grupo:      node tests/run.js envios
+  Solo el validador:  python3 Py/validar_supuestos.py
+
+Si cambias algo A PROPÓSITO (un diseño nuevo, otro formulario…), las pruebas de
+«envios» o «estilos» fallarán porque la referencia es la anterior. Revisa que el
+cambio es el que querías y guarda la nueva referencia con:
+
+  npm run test:actualizar
+
+y sube también los archivos de tests/golden/ junto con el cambio.
+
+En GitHub se ejecutan solas en cada subida (pestaña «Actions»), con
+.github/workflows/pruebas.yml.

@@ -719,3 +719,242 @@
       .bak que se genera en cada guardado.
 
 ════════════════════════════════════════════════════════════════════════════════
+
+
+────────────────────────────────────────────────────────────────────────────────
+ NUEVO · DISEÑO, FUNCIONES EXTRA Y MENÚ PRINCIPAL
+────────────────────────────────────────────────────────────────────────────────
+
+  La plantilla (motor 9) ya incluye el diseño nuevo y las funciones extra de la
+  web (continuar un intento, repetir falladas, marcar preguntas, tema oscuro…).
+  Para que funcionen, el supuesto debe guardarse dentro de la carpeta
+  «supuestos/» del proyecto (o en otra del mismo nivel que «Py/»): enlaza a los
+  archivos base-supuesto.css, tema-supuesto.css, app-supuesto.js, prefs.js, pwa.js y fuentes/ que
+  están UNA CARPETA POR ENCIMA.
+
+  ALTA EN EL MENÚ PRINCIPAL
+     Al guardar un supuesto dentro de «supuestos/», el programa mira si existe
+     «supuestos-datos.js» en la carpeta de arriba (es la lista que pinta el menú):
+       · Si el supuesto ya está en la lista, actualiza su título, referencia y
+         descripción (preguntas y minutos).
+       · Si es nuevo, pregunta dónde ponerlo: «Supuestos por temas» o «Supuestos
+         generales» (cada uno con sus grupos Iniciales y Avanzados) o «Exámenes y
+         simulacros», y qué texto lleva el círculo de la tarjeta.
+     Así ya no hay que tocar index.html ni copiar tarjetas a mano.
+
+  EL EDITOR EN VARIOS ARCHIVOS, UN SOLO LANZADOR
+     El programa está repartido en módulos que viven junto a él en la carpeta Py/
+     (menu_datos.py, datos_html.py, sincronizar_local.py, alta_menu.py,
+     ventana_menu.py, ventana_subir.py). NO tienes que abrirlos: se lanza siempre
+     editor_supuestos.py (con Thonny y F5, como siempre). Si copias el editor a otra
+     carpeta, copia con él todos los .py de Py/ o fallará al arrancar.
+
+     Sin ventana (desde una terminal, en la carpeta del proyecto):
+       python Py/editor_supuestos.py --alta [--auto]   da de alta en el menú los supuestos
+                                                       de supuestos/ que falten
+       python Py/editor_supuestos.py --actualizar      pone al día los supuestos y prepara PARA_SUBIR
+       python Py/editor_supuestos.py --para-subir      solo prepara PARA_SUBIR
+       python Py/editor_supuestos.py --subido          marca todo como ya subido
+
+  AÑADIR UN SUPUESTO AL MENÚ A MANO
+     supuestos-datos.js tiene UNA LÍNEA por supuesto. Copia una línea, cámbiale el
+     archivo, la letra, la referencia, el título y la descripción, y respeta la coma
+     del final (la última línea no lleva coma). «seccion» y «grupo» dicen dónde sale.
+     Con "oculto": true desaparece del menú sin borrarse. El modo sin conexión (sw.js)
+     lee esta misma lista: no hay que tocar nada más. Si te equivocas, el validador
+     (python Py/validar_supuestos.py) dice la línea.
+
+  MENÚ DE INICIO (botón «🗂 Menú de inicio…»)
+     Ventana para ordenar el menú de la web: subir y bajar supuestos, moverlos de
+     sección o grupo, editar su título, referencia, descripción y texto del círculo,
+     ocultarlos, quitarlos (el .html NO se borra), añadir los que falten y crear,
+     renombrar, ordenar o borrar (si están vacíos) secciones y grupos. Nada se escribe
+     hasta pulsar «Guardar menú».
+
+  CARPETA «PARA_SUBIR» (botón «📦 Para subir a GitHub…»)
+     Para trabajar en local y subir luego a la web de GitHub sin dudas:
+       1. Descarga el repositorio y abre el editor: lo que hay en ese momento cuenta
+          como «lo descargado» (se recuerda en .estado_local.json; no se sube).
+       2. Trabaja con normalidad. «Poner todo al día» rehace con la plantilla actual la
+          página de los supuestos que se quedaron con un motor antiguo (no cambia ni una
+          pregunta).
+       3. Cada vez que guardas, la carpeta PARA_SUBIR se rehace con SOLO los archivos
+          nuevos o modificados, con la misma estructura de carpetas, y un
+          LEEME_SUBIR.txt con la lista (y los que borraste en local).
+       4. En GitHub (web): «Add file» → «Upload files», arrastra el contenido de
+          PARA_SUBIR y confirma.
+       5. Pulsa «Marcar como subido» para empezar de cero.
+     Tus copias .bak y la carpeta PARA_SUBIR no cuentan como cambios.
+
+  TOTAL ABSOLUTO EN EL ENVÍO
+     En la pestaña de envío hay un apartado «Enviar el TOTAL de todos los
+     bloques» con las casillas del recuento global (preguntas, aciertos, fallos,
+     en blanco y puntos). Las casillas por bloque son opcionales.
+
+  AL PUBLICAR
+     Sube el número VERSION de sw.js (en la raíz del proyecto) para que quien
+     tenga la app instalada reciba el aviso «Hay una versión nueva».
+
+────────────────────────────────────────────────────────────────────────────────
+ PROBAR LOS SUPUESTOS EN LOCAL (SIN SUBIRLOS A LA WEB)
+────────────────────────────────────────────────────────────────────────────────
+
+  1. Descarga el repositorio ENTERO: en GitHub, botón «Code» → «Download ZIP»
+     (o con Git: git clone), y descomprímelo. Mantén todas las carpetas juntas:
+     los supuestos enlazan con archivos de la carpeta de arriba (el diseño, las
+     funciones extra y las fuentes). No muevas supuestos sueltos a otro sitio.
+
+  2. Qué puedes abrir con doble clic:
+       · index.html                       el menú principal completo
+       · supuestos/supuesto_XX.html       cualquier supuesto, con su diseño
+     y desde el editor, «Ver en el navegador» hace lo mismo.
+
+  3. Lo que sí funciona en local: el diseño, el tema oscuro, el tamaño de letra,
+     marcar preguntas, guardar el progreso, continuar un intento y repetir
+     solo las falladas (todo se guarda en el navegador de ese ordenador).
+
+  4. Lo que solo funciona en la web publicada: instalarla como app, usarla sin
+     conexión y el aviso de «Hay una versión nueva». Para probarlo también en
+     local, abre una terminal en la carpeta del proyecto y ejecuta:
+           python -m http.server
+     y entra en http://localhost:8000
+
+  5. Si un supuesto se ve con el diseño antiguo o sin las funciones nuevas,
+     casi seguro está fuera de su sitio: debe estar dentro de «supuestos/» (o de
+     otra carpeta que cuelgue de la raíz del proyecto, como «Py/»).
+
+  6. Las notas y el progreso del navegador son independientes entre la copia
+     local y la web publicada: no se mezclan.
+
+  7. Antes de publicar un cambio, sube el número VERSION de sw.js para que quien
+     tenga la app instalada reciba el aviso de actualización.
+
+────────────────────────────────────────────────────────────────────────────────
+ DATOS ANÓNIMOS DE INTENTOS A MEDIAS (APAGADO POR DEFECTO)
+────────────────────────────────────────────────────────────────────────────────
+
+  Hoy solo se envía el detalle al CORREGIR. Se ha dejado preparado, apagado, el
+  envío de una instantánea de los intentos que se abandonan (también los de
+  «corregir pregunta a pregunta» que no se llegan a corregir). Se configura en
+  telemetria-config.js, en la carpeta raíz del proyecto.
+
+  QUÉ ENVÍA (sin nombre; solo un identificador aleatorio por navegador)
+     título del supuesto · fecha y hora · estado · modo (normal o pregunta a
+     pregunta) · identificador del intento · identificador anónimo · preguntas
+     respondidas y totales · aciertos, fallos y en blanco · tiempo restante ·
+     y, por pregunta, «Correcta: …», «Incorrecta: …» o «En blanco» (igual que el
+     envío automático). Varias instantáneas del mismo intento comparten
+     identificador, así que en la hoja se agrupan por esa columna.
+
+  CUÁNDO ENVÍA
+     Al salir de la página o cambiar de pestaña, si hay al menos
+     «minRespuestas» preguntas respondidas y algo ha cambiado desde el último
+     envío (como mucho una cada 15 segundos). NO envía: si el intento ya se
+     corrigió (eso lo cubre el envío automático de siempre) ni en los intentos de
+     «repetir solo las falladas».
+
+  PARA ACTIVARLO
+     1. Crea un formulario de Google NUEVO con una pregunta de respuesta corta
+        por cada dato que quieras recoger y una de «párrafo» para «respuestas».
+     2. Copia su URL cambiando «viewform» por «formResponse».
+     3. En telemetria-config.js pon esa URL en «url» y, en «campos», el código
+        «entry.…» de cada casilla (menú ⋮ → «Obtener enlace previamente
+        rellenado»). Lo que dejes en "" no se envía.
+        (Opcional: «preguntas» admite una casilla por pregunta, como el envío
+        automático, en vez de la de «respuestas».)
+     4. Pon «activa: true» y sube VERSION en sw.js antes de publicar.
+     Al activarlo, el texto de «aviso» aparece como última línea del menú
+     principal (sin botones: se da por aceptada la participación, que ya se
+     pidió por el formulario anterior).
+
+  VER LOS DATOS (MODO ADMINISTRADOR)
+     Los datos solo los ves tú, en la hoja de respuestas del formulario nuevo:
+     la protege tu cuenta de Google. Si quieres un enlace discreto desde la web a
+     tu panel (la hoja o una página de Apps Script restringida a tu cuenta), pon
+     su dirección en «adminUrl» y entra una vez en tu navegador con
+        index.html#admin
+     En el pie del menú aparecerá «· admin» solo en ese navegador. OJO: eso no
+     protege nada (el código de la web es público); lo que protege los datos es
+     que el panel pida tu cuenta de Google.
+
+────────────────────────────────────────────────────────────────────────────────
+ FUNCIONES NUEVAS PARA EL ALUMNO
+────────────────────────────────────────────────────────────────────────────────
+
+  · MI ESTUDIO (mi-estudio.html, tarjeta en el menú): estadísticas por supuesto
+    (evolución, mejor y última nota, media, segundos por pregunta), banco de
+    preguntas falladas (entran al fallarlas y salen tras acertarlas dos veces
+    seguidas; «Practicar falladas» abre el supuesto solo con esas preguntas),
+    preguntas marcadas y notas personales. Todo queda en el navegador del alumno.
+  · MARCAR (PARA MÁS TARDE) Y NOTAS: en cada pregunta, «Marcar para más tarde» y
+    «Añadir nota». Las marcadas aparecen en «Mi estudio» y se pueden practicar.
+  · FAVORITAS ♥: un corazón pequeño en la esquina de cada pregunta (tecla H). Aparecen
+    en «Mi estudio» con «Practicar favoritas». Se puede apagar en un supuesto desde el
+    editor (pestaña 1, «Corazón de favoritas») o cada persona desde el panel ⚙.
+  · SUBRAYAR: al seleccionar un trozo del enunciado, de la pregunta o de una respuesta
+    sale una ventanita con 5 colores (y «Quitar»). Los subrayados se guardan en el
+    navegador, salen en «Mi estudio» (donde también se pueden subrayar las preguntas
+    guardadas) y se sincronizan con Drive. Se apaga en un supuesto desde el editor
+    (pestaña 1, «Subrayar con colores») o desde el panel ⚙.
+  · ATAJOS: A–G o 1–7 responden · ← → cambian de pregunta · M marca · H favorita ·
+    N nota · ? ayuda. En el móvil, deslizar el dedo a izquierda o derecha cambia de
+    pregunta (se puede desactivar en el panel ⚙).
+  · ENLACES A LA NORMA: las citas tipo «art. 12 de la LGSS» de la motivación se
+    enlazan al artículo en el BOE. Las normas y sus códigos están en
+    normas-datos.js; para añadir otra, añade una línea con sus siglas y su «BOE-A-…».
+  · ACCESIBILIDAD: manejo completo con teclado, etiquetas para lectores de pantalla,
+    enlace «Saltar a las preguntas», foco visible y respeto a «reducir movimiento».
+
+────────────────────────────────────────────────────────────────────────────────
+ VALIDAR Y PROBAR ANTES DE SUBIR
+────────────────────────────────────────────────────────────────────────────────
+
+  VALIDADOR (no necesita instalar nada):
+        python Py/validar_supuestos.py
+    Revisa cada supuesto (opciones vacías o repetidas, respuestas correctas que no
+    existen, enunciados y bloques inexistentes, enlaces a archivos…), que el menú
+    coincide con los supuestos (preguntas y minutos de cada tarjeta) y que la lista
+    de archivos de la app instalada (sw.js) está completa. «ERROR» = arreglar antes
+    de publicar; «AVISO» = conviene mirarlo.
+
+  PRUEBAS EN EL NAVEGADOR (requiere Node.js; ver tests/LEEME.txt):
+        npm install        (una vez)
+        npm test
+    Comprueban que todo carga, que lo que se envía a Google no cambia y que las
+    funciones siguen funcionando. En GitHub se ejecutan solas en cada subida.
+
+────────────────────────────────────────────────────────────────────────────────
+ SINCRONIZAR ENTRE DISPOSITIVOS CON GOOGLE DRIVE (APAGADO POR DEFECTO)
+────────────────────────────────────────────────────────────────────────────────
+
+  QUÉ HACE
+     En «Mi estudio» aparece el botón «Sincronizar». Cada persona guarda una copia
+     de sus notas, preguntas marcadas, falladas y estadísticas en una carpeta
+     OCULTA de SU PROPIO Google Drive (la «appDataFolder»: la web solo ve esa
+     carpeta, nunca el resto del Drive, y tú no recibes nada). En otro dispositivo
+     pulsa el mismo botón con la misma cuenta y los datos se COMBINAN: se suman las
+     falladas y marcadas, gana la última nota editada, los borrados se respetan y
+     las estadísticas se unen. No se sincronizan los intentos a medias.
+     Antes de empezar se abre una ventana que explica, paso a paso y con palabras
+     sencillas, qué va a pasar (con la casilla «No volver a mostrar»). Si Google
+     falla o la persona cancela, el mensaje es claro y no se toca nada.
+
+  PARA ACTIVARLO (una sola vez, gratis, ~10 minutos) — pasos completos en sync-config.js
+     1. console.cloud.google.com → crear un proyecto → habilitar «Google Drive API».
+     2. Pantalla de consentimiento OAuth: «Externo», permiso SOLO «drive.appdata»,
+        y pulsar «Publicar aplicación» (no hace falta verificación con ese permiso).
+     3. Credenciales → ID de cliente de OAuth → «Aplicación web» → origen de
+        JavaScript autorizado: https://rmalump.github.io
+     4. Copiar el ID de cliente (público, no es un secreto) a «clientId» en
+        sync-config.js y subir VERSION en sw.js.
+     Mientras «clientId» esté vacío, el botón no aparece.
+
+  PRIVACIDAD Y SEGURIDAD
+     · La web no guarda ninguna contraseña ni ningún token: Google da un permiso
+       temporal cada vez que se sincroniza.
+     · La persona puede retirar el permiso en su cuenta de Google → Seguridad →
+       «Conexiones con aplicaciones y servicios de terceros».
+     · El texto de «Mi estudio» ya aclara que los datos son personales y no se
+       comparten con terceros; si se activa la sincronización añade que la copia
+       va a su propio Drive.
+

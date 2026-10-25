@@ -1,0 +1,12 @@
+{
+  "name": "supuestosc1-pruebas",
+  "private": true,
+  "description": "Pruebas automáticas de la web de supuestos (no se publican)",
+  "scripts": {
+    "test": "python3 Py/validar_supuestos.py && node tests/run.js",
+    "test:actualizar": "node tests/run.js --actualizar"
+  },
+  "devDependencies": {
+    "playwright": "^1.50.0"
+  }
+}
