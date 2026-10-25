@@ -361,6 +361,15 @@ async function menu() {
         const faltan = r.esperados.filter(e => !r.guardados.includes(e));
         return (r.esperados.length === 9 && faltan.length === 0) || 'faltan ' + faltan.join();
     });
+    await caso('«Información» abre los créditos con la versión y pulsar en cualquier parte los cierra', async () => {
+        const ctx = await contexto(); const pg = await abrir(ctx, 'index.html');
+        const antes = await pg.evaluate(() => document.getElementById('creditos').hidden);
+        await pg.click('#btn-info');
+        const abierto = await pg.evaluate(() => !document.getElementById('creditos').hidden && /^v\d/.test(document.getElementById('version-app').textContent));
+        await pg.mouse.click(5, 5);
+        const cerrado = await pg.evaluate(() => document.getElementById('creditos').hidden);
+        await ctx.close(); return (antes && abierto && cerrado) || JSON.stringify({ antes, abierto, cerrado });
+    });
     await caso('el aviso de datos anónimos no aparece con la recogida apagada', async () => {
         const ctx = await contexto(); const pg = await abrir(ctx, 'index.html'); const n = await pg.locator('.aviso-pie').count(); await ctx.close(); return n === 0 || 'aparece';
     });
