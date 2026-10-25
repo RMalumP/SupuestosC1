@@ -934,7 +934,14 @@
      carpeta, nunca el resto del Drive, y tú no recibes nada). En otro dispositivo
      pulsa el mismo botón con la misma cuenta y los datos se COMBINAN: se suman las
      falladas y marcadas, gana la última nota editada, los borrados se respetan y
-     las estadísticas se unen. No se sincronizan los intentos a medias.
+     las estadísticas se unen, y los intentos a medias también se sincronizan.
+     La sesión se recuerda hasta pulsar «Cerrar sesión» y se sincroniza sola.
+     AVISO DE LA HORA: Google da accesos de solo 1 hora y, sin servidor propio, no
+     permite renovarlos sin abrir su ventana. Al caducar aparece el icono ☁⚠, la
+     web intenta reconectarse sola y, si el navegador lo impide, reintenta con el
+     siguiente toque o clic (puede verse un instante la ventana de Google). Al
+     conseguirlo, el icono desaparece; mientras tanto los datos quedan en el
+     dispositivo y se envían después. Se avisa también en la ventana explicativa.
      Antes de empezar se abre una ventana que explica, paso a paso y con palabras
      sencillas, qué va a pasar (con la casilla «No volver a mostrar»). Si Google
      falla o la persona cancela, el mensaje es claro y no se toca nada.
@@ -950,8 +957,8 @@
      Mientras «clientId» esté vacío, el botón no aparece.
 
   PRIVACIDAD Y SEGURIDAD
-     · La web no guarda ninguna contraseña ni ningún token: Google da un permiso
-       temporal cada vez que se sincroniza.
+     · La web no guarda ninguna contraseña: solo el acceso temporal de 1 hora que
+       da Google (se borra al cerrar sesión y caduca solo).
      · La persona puede retirar el permiso en su cuenta de Google → Seguridad →
        «Conexiones con aplicaciones y servicios de terceros».
      · El texto de «Mi estudio» ya aclara que los datos son personales y no se

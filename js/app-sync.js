@@ -104,7 +104,8 @@
     var el = function (tag, cls, txt) { var e = doc.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
     var nombreArchivo = C.archivo || 'supc1-sync.json';
     var K_ULT = 'sync-ultima', K_NO = 'sync-explicacion-no', K_SES = 'sync-sesion';
-    var K_TOK = 'supc1:sync-token';       // en sessionStorage: solo dura mientras la pestaña esté abierta
+    var K_TOK = 'supc1:sync-token';       // acceso temporal de Google (1 hora), compartido entre pestañas y páginas
+    var K_INT = 'supc1:sync-intento';     // cuándo fue el último intento de renovarlo sin ventana (para no insistir)
 
     function leerLocal() {
         var prog = {};
@@ -141,11 +142,17 @@
     /* ─── Sesión: se recuerda hasta pulsar «Cerrar sesión» ─── */
     var sesion = function () { return !!S.get(K_SES, null); };
     function tokenGuardado() {
-        try { var t = JSON.parse(W.sessionStorage.getItem(K_TOK)); if (t && t.t && t.exp > Date.now()) return t.t; } catch (e) { /* ignorar */ }
+        try { var t = JSON.parse(W.localStorage.getItem(K_TOK)); if (t && t.t && t.exp > Date.now()) return t.t; } catch (e) { /* ignorar */ }
         return null;
     }
-    function guardarToken(t, seg) { try { W.sessionStorage.setItem(K_TOK, JSON.stringify({ t: t, exp: Date.now() + Math.max(60, (seg || 3600) - 60) * 1000 })); } catch (e) { /* ignorar */ } }
-    function olvidarToken() { try { W.sessionStorage.removeItem(K_TOK); } catch (e) { /* ignorar */ } }
+    function guardarToken(t, seg) {
+        var exp = Date.now() + Math.max(60, (seg || 3600) - 60) * 1000;
+        try { W.localStorage.setItem(K_TOK, JSON.stringify({ t: t, exp: exp })); } catch (e) { /* ignorar */ }
+        vigilarCaducidad(exp);
+    }
+    function olvidarToken() { try { W.localStorage.removeItem(K_TOK); } catch (e) { /* ignorar */ } }
+    function ultimoIntento() { try { return +W.localStorage.getItem(K_INT) || 0; } catch (e) { return 0; } }
+    function anotarIntento() { try { W.localStorage.setItem(K_INT, String(Date.now())); } catch (e) { /* ignorar */ } }
 
     function cargarGoogle() {
         return new Promise(function (ok, ko) {
@@ -211,9 +218,20 @@
     /* ─── Sincronización automática (con la sesión recordada) ─── */
     var estado = 'fuera';       // fuera · ok · sincronizando · reconectar · error
     var enCurso = false, pendiente = false, reloj = null;
-    function auto() {
+    var AVISO_ESPERA = 60000, GESTO_ESPERA = 15000, aCaducar = null;
+    // Cuando caduca el acceso (1 hora) se intenta renovar solo; si el navegador lo impide, queda el aviso y se reintenta con el siguiente toque
+    function vigilarCaducidad(exp) {
+        if (aCaducar) clearTimeout(aCaducar);
+        aCaducar = setTimeout(function () { aCaducar = null; if (sesion() && !tokenGuardado()) auto(); }, Math.max(1000, exp - Date.now() + 500));
+    }
+    function auto(conGesto) {
         if (!sesion()) return;
         if (enCurso) { pendiente = true; return; }
+        // sin acceso válido: se intenta renovar sin ventana, pero sin insistir (varias páginas abiertas no deben abrir Google a la vez)
+        if (!tokenGuardado()) {
+            if (!conGesto && Date.now() - ultimoIntento() < AVISO_ESPERA) { estado = 'reconectar'; armarGesto(); pintarIcono(); pintarTarjeta(); return; }
+            anotarIntento();
+        }
         enCurso = true; estado = 'sincronizando'; pintarIcono(); pintarTarjeta();
         sincronizar(false).then(function (r) {
             estado = 'ok';
@@ -221,10 +239,22 @@
             if (W.SupC1Estudio && (n.falladas || n.marcadas || n.notas || n.favoritas || n.subrayados || n.intentos || n.cursos || n.quitadas)) W.SupC1Estudio.repintar();
         }).catch(function (e) {
             estado = /silencio|interaction|login|consent|popup|cerrada|denegado|access_denied|immediate/i.test(String(e && e.message)) ? 'reconectar' : 'error';
+            if (estado === 'reconectar') armarGesto();
         }).then(function () {
             enCurso = false; pintarIcono(); pintarTarjeta();
             if (pendiente) { pendiente = false; programar(); }
         });
+    }
+    var gestoArmado = false;
+    function armarGesto() {
+        if (gestoArmado) return; gestoArmado = true;
+        var h = function () {
+            if (estado !== 'reconectar' && estado !== 'error') { quitar(); return; }
+            if (enCurso || Date.now() - ultimoIntento() < GESTO_ESPERA) return;
+            quitar(); auto(true);
+        };
+        var quitar = function () { gestoArmado = false; ['pointerdown', 'keydown'].forEach(function (t) { doc.removeEventListener(t, h, true); }); };
+        ['pointerdown', 'keydown'].forEach(function (t) { doc.addEventListener(t, h, true); });
     }
     function programar() { if (reloj) clearTimeout(reloj); reloj = setTimeout(function () { reloj = null; auto(); }, 4000); }
     function vigilar() {
@@ -281,6 +311,7 @@
         c.appendChild(lista('ul', [
             'Si no se abre la ventana de Google, permite las ventanas emergentes para esta página y vuelve a intentarlo.',
             'Puedes sincronizar cuando quieras para ponerte al día; los datos de los dos dispositivos se <strong>combinan</strong>, no se pierde nada.',
+            '<strong>Cada hora, Google corta el acceso</strong> por seguridad. Si pasa, verás un icono de aviso (☁⚠) y la web intentará reconectarse sola; con tu siguiente toque o clic puede verse un instante la ventana de Google. Cuando lo consiga, el icono desaparece. Mientras tanto no pierdes nada: tus datos siguen guardados en el dispositivo y se envían al reconectar.',
             'Para dejar de usarlo: en tu cuenta de Google → Seguridad → «Conexiones con aplicaciones y servicios de terceros» quita «Supuestos C1».'
         ]));
         var etq = el('label', 'sync-no-mas'); var chk = el('input'); chk.type = 'checkbox'; chk.id = 'sync-no-mas';
@@ -331,7 +362,7 @@
         var h = Math.round(m / 60); if (h < 24) return 'hace ' + h + (h === 1 ? ' hora' : ' horas');
         var d = Math.round(h / 24); return 'hace ' + d + (d === 1 ? ' día' : ' días');
     }
-    var TEXTO_ESTADO = { ok: 'Sincronizado', sincronizando: 'Sincronizando…', reconectar: 'Hay que volver a conectar con Google', error: 'No se pudo sincronizar (se reintentará)' };
+    var TEXTO_ESTADO = { ok: 'Sincronizado', sincronizando: 'Sincronizando…', reconectar: 'Sincronización cortada: se reconecta con tu próximo toque', error: 'No se pudo sincronizar (se reintentará)' };
     var ICONO_ESTADO = { ok: '☁✔', sincronizando: '☁⟳', reconectar: '☁⚠', error: '☁⚠' };
     function pintarTarjeta() {
         var cont = $('estudio-sync'); if (!cont) return;
@@ -384,11 +415,12 @@
     // Icono flotante en las páginas que no son «Mi estudio» (ahí ya está la tarjeta)
     function pintarIcono() {
         var ic = $('sync-icono');
-        if (!sesion() || $('estudio-sync')) { if (ic) ic.remove(); return; }
+        // solo aparece cuando la sincronización se ha cortado; se va sola al volver a conectar
+        if (!sesion() || $('estudio-sync') || (estado !== 'reconectar' && estado !== 'error')) { if (ic) ic.remove(); return; }
         if (!ic) {
             ic = el('button', 'sync-icono'); ic.type = 'button'; ic.id = 'sync-icono';
             ic.style.cssText = 'position:fixed;left:10px;bottom:10px;z-index:50;min-width:44px;min-height:44px;border-radius:22px;border:1px solid rgba(0,0,0,.25);background:#fff;color:#222;font-size:14px;cursor:pointer;padding:0 10px;opacity:.9';
-            ic.addEventListener('click', function () { if (estado === 'reconectar') ejecutar(); else if (estado !== 'sincronizando') auto(); });
+            ic.addEventListener('click', function () { if (estado === 'reconectar') ejecutar(); else if (estado !== 'sincronizando') auto(true); });
             doc.body.appendChild(ic);
         }
         var e = estado === 'fuera' ? 'ok' : estado;

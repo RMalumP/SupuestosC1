@@ -540,6 +540,24 @@ async function sync() {
         await ca.close(); await cb.close();
         return (sinBoton && icono === 1 && avisoOculto && avisoVisible && avisoVuelve && bTiene && !bSigue && salida === null) || JSON.stringify({ sinBoton, icono, avisoOculto, avisoVisible, avisoVuelve, bTiene, bSigue, salida });
     });
+    await caso('si se corta el acceso aparece el aviso, se reintenta con el siguiente toque y al reconectar desaparece', async () => {
+        const drive = driveFalso();
+        const ctx = await dispositivo(drive, () => { localStorage.setItem('supc1:sync-sesion', JSON.stringify({ ts: 1 })); });
+        await ctx.route('https://accounts.google.com/gsi/client', r => r.fulfill({ contentType: 'text/javascript', body:
+            'window.google={accounts:{oauth2:{initTokenClient:function(c){return{requestAccessToken:function(){setTimeout(function(){' +
+            'if(window.__ok)c.callback({access_token:"tok",expires_in:3600});else c.error_callback({type:"popup_failed_to_open"})},30)}}}}}};' }));
+        const pg = await abrir(ctx, 'index.html');
+        await pg.waitForSelector('#sync-icono', { timeout: 8000 });         // sin acceso: aviso visible
+        const aviso = await hay(pg, '#sync-icono');
+        await pg.evaluate(() => { window.__ok = true; localStorage.setItem('supc1:sync-intento', '1'); });
+        await pg.mouse.click(5, 5);                                         // el siguiente toque reintenta
+        await pg.waitForSelector('#sync-icono', { state: 'detached', timeout: 8000 });
+        await pg.waitForFunction(() => !!localStorage.getItem('supc1:sync-token'), null, { timeout: 8000 }).catch(() => {});
+        await pg.waitForTimeout(500);
+        const token = await pg.evaluate(() => !!localStorage.getItem('supc1:sync-token')), vuelve = await hay(pg, '#sync-icono');
+        await ctx.close();
+        return (aviso === 1 && token && vuelve === 0) || JSON.stringify({ aviso, token, vuelve });
+    });
     await caso('si Google no concede el permiso, el mensaje es claro y no se toca nada', async () => {
         const drive = driveFalso(), ctx = await dispositivo(drive, SIEMBRA_A, { deniega: true }); const pg = await abrir(ctx, 'mi-estudio.html');
         await pulsarSync(pg); await pg.click('.sync-explicacion .btn-primary'); await pg.waitForSelector('.sync-proceso h3:has-text("No se ha podido sincronizar")', { timeout: 8000 });
