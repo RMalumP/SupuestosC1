@@ -3,8 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Menú de Supuestos | Comunidad ECAP ASS C1</title>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,600;1,8..60,300&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <meta name="theme-color" content="#3d2a20">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Supuestos C1">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <script src="prefs.js"></script>
+    <script src="pwa.js" defer></script>
+    <title>Menú de Supuestos | Comunidad ECAP ASS C1 </title>
+    <link rel="stylesheet" href="fuentes/fuentes.css">
 
     <style>
         :root {
@@ -146,6 +155,54 @@
             opacity: 0.5; cursor: not-allowed; pointer-events: none;
         }
 
+
+        /* SUBSECCIONES (Iniciales / Avanzados) */
+        .grupo { margin-bottom: 44px; }
+        .grupo:last-child { margin-bottom: 0; }
+        .grupo-head {
+            display: flex; align-items: center; gap: 14px;
+            margin-bottom: 18px;
+        }
+        .grupo-head h3 {
+            font-family: 'Playfair Display', serif; font-style: italic; font-weight: 700;
+            font-size: 1.35rem; color: var(--brown-dark); white-space: nowrap;
+        }
+        .grupo-head .linea {
+            flex: 1; height: 1.5px;
+            background: linear-gradient(90deg, var(--tan), transparent);
+        }
+        .grupo-head .contador {
+            font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; letter-spacing: 0.15em;
+            color: var(--brown-mid); text-transform: uppercase; white-space: nowrap;
+        }
+        .grupo-desc {
+            font-family: 'Source Serif 4', serif; font-size: 0.85rem; color: var(--slate);
+            margin: -8px 0 18px; font-style: italic;
+        }
+        .grupo.avanzados .exp-number { background: var(--brown-dark); }
+        .grupo.iniciales .supuesto-card { border-left: 4px solid var(--blue); }
+        .grupo.avanzados .supuesto-card { border-left: 4px solid var(--tan); }
+
+
+        /* TÍTULOS DE SECCIÓN (mismo estilo visual en toda la página) */
+        .seccion-head {
+            display: flex; align-items: center; gap: 16px;
+            margin: 64px 0 26px;
+        }
+        .seccion-head h2 {
+            font-family: 'Playfair Display', serif; font-style: italic; font-weight: 900;
+            font-size: 2rem; line-height: 1.15; color: var(--brown-dark); white-space: nowrap;
+            text-transform: uppercase; letter-spacing: 0.02em;
+        }
+        .seccion-head .linea {
+            flex: 1; height: 2px;
+            background: linear-gradient(90deg, var(--blue), transparent);
+        }
+        .container > .seccion-head:first-child { margin-top: 20px; }
+        @media (max-width: 480px) {
+            .seccion-head h2 { font-size: 1.5rem; white-space: normal; }
+        }
+
         footer {
             text-align: center; margin-top: 50px;
             font-family: 'JetBrains Mono', monospace; font-size: 0.6rem;
@@ -157,91 +214,96 @@
             .hero h1 { font-size: 1.7rem; }
             .supuestos-grid { grid-template-columns: 1fr; }
         }
+        .enlace-privacidad { text-align: center; margin: 10px 0 0; font-size: 0.8rem; }
+        .enlace-privacidad a { color: var(--brown-mid); text-decoration: underline; text-underline-offset: 3px; }
+        .enlace-privacidad a:hover { color: var(--brown); }
     </style>
+    <link rel="stylesheet" href="tema-menu.css">
 </head>
-<body>
+<body data-instalar>
 
 <div class="hero">
     <div class="hero-inner">
         <div class="logo-wrap">
             <img src="https://academia.ecap.es/pluginfile.php?file=%2F1%2Fcore_admin%2Flogo%2F0x200%2F1782109950%2FACADEMIA%20VIRTUAL%20%281%29.png" alt="ECAP - Escuela Ciudadana de Administración Pública">
-            <span class="logo-subtitle">Comunidad ECAP ASS C1</span>
+            <span class="logo-subtitle">Comunidad ECAP ASS C1 | NO RELACIONADO CON LA PLATAFORMA OFICIAL</span>
         </div>
         <h1>Menú principal<strong>de supuestos</strong></h1>
         <p>Selecciona el supuesto que quieras practicar</p>
     </div>
 </div>
 
+
 <div class="container">
 
-    <div class="grid-title">SUPUESTOS DISPONIBLES</div>
+    <!-- Buscador y filtros (los rellena app-menu.js) -->
+    <div id="menu-filtros"></div>
 
-    <div class="supuestos-grid" id="supuestos-grid">
+    <!--
+        Los supuestos y exámenes se pintan desde supuestos-datos.js:
+        para añadir uno nuevo no hace falta tocar este archivo (las
+        instrucciones están al principio de ese archivo).
+    -->
+    <div id="menu-supuestos"></div>
 
-        <a class="supuesto-card" href="supuestos/supuesto_0.html">
-            <div class="exp-number">0</div>
-            <span class="ref">REF: S000</span>
-            <h2>Supuesto 0 · Hay que espabilar que el verano se os va a comer</h2>
-            <div class="desc">15 preguntas · 30 minutos · Legislación a 28 de agosto de 2026 · Temas 1 al 13</div>
-            <div class="go">Comenzar →</div>
-        </a>
-
-        <!--
-            supuesto_plantilla.html es la plantilla base (con marcadores de posición
-            [entre corchetes]) que se usa para construir cada supuesto nuevo.
-            No se borra, pero se mantiene sin tarjeta aquí para que no
-            aparezca en el menú como si fuera un supuesto real.
-
-            Todo el contenido de un supuesto vive en un único bloque de datos
-            JSON dentro del propio archivo:  <script id="datos-supuesto">.
-            Ahí están el examen, sus bloques (supuesto práctico y/o teoría),
-            los enunciados, las preguntas, la paleta de colores, los botones
-            y el envío de resultados. El resto del archivo es el motor y no
-            hace falta tocarlo.
-
-            Para añadir un nuevo supuesto:
-            1. Copia supuestos/supuesto_plantilla.html con el nuevo nombre de archivo
-               (p.ej. supuesto_2.html) y rellena su bloque de datos, a mano o
-               con el editor gráfico de Python (editor_supuestos.py).
-            2. Copia una de estas tarjetas <a class="supuesto-card">...</a>
-            3. Cambia el número, la REF, el título y la descripción
-            4. Cambia el href para que apunte al archivo .html correspondiente
-               dentro de la carpeta /supuestos
-        -->
-
+    <div class="seccion-head" id="cab-examenes">
+        <h2>Exámenes y simulacros</h2>
+        <span class="linea"></span>
     </div>
 
-    <div class="grid-title" style="margin-top: 50px;">RESULTADOS</div>
+    <div class="supuestos-grid" id="examenes-grid"></div>
+
+    <noscript><p class="grupo-desc">Activa JavaScript para ver la lista de supuestos.</p></noscript>
+
+    <div class="seccion-head">
+        <h2>Resultados y estudio</h2>
+        <span class="linea"></span>
+    </div>
 
     <div class="supuestos-grid">
 
+        <a class="supuesto-card" href="mi-estudio.html">
+            <div class="exp-number">📈</div>
+            <h2>Mi estudio</h2>
+            <span class="ref">REF: MI-ESTUDIO</span>
+            <div class="desc">Tus estadísticas, tus preguntas falladas y marcadas y tus notas. Para practicar solo lo que te falta.</div>
+            <div class="go">Ver →</div>
+        </a>
+
         <a class="supuesto-card" href="resultados/resultados.html">
             <div class="exp-number">★</div>
-            <span class="ref">REF: RESULTADOS</span>
             <h2>Ver resultados</h2>
+            <span class="ref">REF: RESULTADOS</span>
             <div class="desc">Consulta los resultados y estadísticas de los supuestos realizados.</div>
             <div class="go">Ver →</div>
         </a>
 
     </div>
 
-    <div class="grid-title" style="margin-top: 50px;">OTRAS HERRAMIENTAS</div>
+    <div class="seccion-head">
+        <h2>Otras herramientas</h2>
+        <span class="linea"></span>
+    </div>
 
     <div class="supuestos-grid">
 
         <a class="supuesto-card" href="https://rmalump.github.io/Calculadora-EXamen/" target="_blank">
     <div class="exp-number">★</div>
-    <span class="ref">REF: CALCULADORA</span>
     <h2>Calculadora examen</h2>
+    <span class="ref">REF: CALCULADORA</span>
     <div class="desc">Calculadora de examen y de notas trasformadas.</div>
     <div class="go">Ver →</div>
 </a>
 
     </div>
     
-    <footer>REALIZADO DESDE LA COMUNIDAD DE ECAP · NO RELACIONADO CON LA PLATFORMA OFICIAL</footer>
+    <footer>REALIZADO DESDE LA COMUNIDAD DE ECAP · NO RELACIONADO CON LA PLATAFORMA OFICIAL</footer>
+    <p class="enlace-privacidad"><a href="privacidad.html">Política de privacidad</a></p>
 
 </div>
 
+<script src="supuestos-datos.js"></script>
+<script src="telemetria-config.js"></script>
+<script src="app-menu.js" defer></script>
 </body>
 </html>

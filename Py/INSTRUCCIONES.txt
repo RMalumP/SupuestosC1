@@ -118,7 +118,9 @@
     4 · Preguntas y respuestas las preguntas, sus 4 opciones, la correcta,
                                la motivación legal y el consejo
     5 · Botones y envío        qué botones ve el alumno, cómo se llaman y a
-                               dónde se mandan los resultados
+                               dónde se mandan los resultados (dos
+                               formularios: el del botón 📤 y el del detalle
+                               pregunta a pregunta, que sale solo al corregir)
     6 · Comprobar              informe de revisión y vista de los datos
 
   CÓMO ESTÁ ROTULADO CADA CUADRO
@@ -211,6 +213,15 @@
        · Línea del organismo: el renglón pequeño en mayúsculas que va justo
          encima del título. Vacío = no se muestra.
 
+     CUÁNTAS RESPUESTAS SALEN EN CADA PREGUNTA (apartado nuevo):
+       · "Todas las que tenga escritas cada pregunta" (lo de siempre).
+       · 3, 4 o 5 → todas las preguntas saldrán con ese número: se muestran
+         siempre la correcta (o las correctas) y se sortean los distractores
+         que falten. Así puedes escribir hasta SIETE opciones en una
+         pregunta y que cada intento enseñe cuatro distintas.
+       Una pregunta con menos opciones escritas sale con las que tenga, y en
+       la pestaña 4 se le puede dar a una pregunta suelta su propio número.
+
      Abajo del todo está la PALETA DE COLORES de la página (apartado 5B).
 
   PASO 2 · Pestaña "2 · Bloques"
@@ -222,8 +233,19 @@
           - Nombre: lo que se lee arriba y en la barra de sección.
           - Tipo: supuesto (con enunciado) o teoría (test suelto).
           - Color: pulsa uno de los botones de color o "🎨 Elegir color…".
-          - Cómo se ven: "en cadena" (todas seguidas, lo normal en teoría)
-            o "de una en una" (lo normal en un supuesto).
+          - Cómo EMPIEZAN viéndose: "en cadena" (todas seguidas) o "de una
+            en una" (solo la pregunta actual). Es solo el estado de
+            PARTIDA: en la página, cada bloque tiene SU PROPIA casilla en
+            el panel ⚙ y el alumno lo cambia bloque a bloque.
+            En un bloque de supuesto, "en cadena" significa que se lee de
+            corrido y en su orden natural: enunciado 1 entero → todas sus
+            preguntas → enunciado 2 entero → sus preguntas, etc.
+          - "Sacar la casilla de este bloque en el panel ⚙": desmárcalo si
+            no quieres que el alumno pueda cambiar cómo se ve ESTE bloque;
+            se quedará siempre como lo hayas dejado arriba.
+          - Dónde va la barra del bloque: marcada (lo normal) va ENCIMA del
+            enunciado, encabezando toda la sección; desmarcada, baja hasta
+            justo delante de la primera pregunta.
           - Puntuación: suma por acierto, descuento por fallo y descuento
             por dejarla en blanco. Se admiten decimales con COMA: 0,33.
           - Intento aleatorio: 0 = salen todas; un número = salen solo esas,
@@ -238,6 +260,10 @@
           - IMPORTANTE: separa los párrafos DEJANDO UNA LÍNEA EN BLANCO.
           - Marca "Hecho desencadenante" en el bloque crítico: saldrá con
             borde rojo y el icono ⚠️.
+          - Cada bloque de hechos lleva delante su código (H1, H2, H3…).
+            NO se ve en la página: sirve para vincularle preguntas en la
+            pestaña 4 y que el MODO FOCO recorte el enunciado a esa parte.
+            Debajo de las casillas se indica cuántas preguntas lo usan.
        d) En "Línea de tiempo" añade los hitos con su fecha. Marca "Hito
           crítico" el que sea el detonante (saldrá en rojo).
      Los bloques de teoría no usan esta pestaña.
@@ -249,18 +275,43 @@
        b) Arriba, elige el BLOQUE en el que va la pregunta.
        c) Si es un bloque de supuesto, elige además el enunciado. En los
           bloques de teoría ese campo se queda desactivado a propósito.
-       d) Escribe el texto de la pregunta.
-       e) Escribe las CUATRO opciones y MARCA EL PUNTO de la que es correcta.
-       f) Escribe la motivación legal (sale al corregir) y, si procede, el
+       d) OPCIONAL — "Partes del enunciado de las que depende (modo foco)":
+          la lista muestra los bloques de hechos de ese enunciado (H1, H2…).
+          Marca el hecho desencadenante concreto del que depende la pregunta
+          (con Ctrl+clic se marcan varios; "Ninguno" los quita todos).
+          Solo se usa si el alumno enciende el MODO FOCO en el panel ⚙: la
+          pregunta mostrará entonces SOLO esos hechos, con un botón para
+          desplegar el enunciado entero. Sin vincular, se ve el enunciado
+          completo siempre.
+       e) Escribe el texto de la pregunta.
+       f) Escribe las opciones y MARCA LA CASILLA de la que es correcta.
+          - De 2 a 7 opciones. Con "＋ Añadir respuesta" y "🗑 Quitar la
+            última" cambias cuántas tiene ESA pregunta (de base son 4).
+          - "Respuesta múltiple": marca varias casillas y el alumno tendrá
+            que acertarlas TODAS (ni una de más ni una de menos) para que
+            la pregunta cuente como acertada. En la página esas opciones
+            salen con la insignia cuadrada y el aviso "marca todas las
+            respuestas que procedan".
+          - Sin respuesta múltiple, marcar una casilla desmarca la anterior.
+          - "Cuántas de estas respuestas salen en el examen": normalmente lo
+            que hayas puesto en la pestaña 1, pero aquí puedes darle un
+            número propio a una pregunta suelta. Debajo se te dice en
+            cristiano lo que verá el alumno.
+       g) Escribe la motivación legal (sale al corregir) y, si procede, el
           consejo con 💡.
-     En la lista de la izquierda cada pregunta lleva su bloque y su enunciado:
-        16 📝B2  --   ¿Qué órgano tiene atribuida…
+     En la lista de la izquierda cada pregunta lleva su bloque y su enunciado,
+     una lupa 🔎 si tiene hechos vinculados para el modo foco y un ☑ si es de
+     respuesta múltiple:
+        16 📝B2  --    ¿Qué órgano tiene atribuida…
+        17 📁B1  E1 🔎 Ante esa notificación defectuosa…
+        18 📝B2  --  ☑ Señale cuáles de los siguientes…
      Con "▲ Subir / ▼ Bajar" ordenas las preguntas DENTRO de su bloque. Para
      cambiar una pregunta de bloque se usa el desplegable de arriba.
 
   PASO 5 · Pestaña "5 · Botones y envío" (opcional, ver apartado 7B)
-     Solo si quieres quitar botones, cambiarles el nombre o mandar los
-     resultados a un formulario de Google.
+     Solo si quieres quitar botones, cambiarles el nombre o cambiar a qué
+     formulario de Google van los resultados. El envío del detalle pregunta
+     a pregunta (el que sale solo al corregir) ya viene configurado.
 
   PASO 6 · Pulsa "✔ Comprobar" y corrige lo que salga marcado con ✗.
      El informe incluye, bloque a bloque, cuántas preguntas tiene, su baremo
@@ -297,18 +348,65 @@
      El temporizador se coloca solo debajo de la cabecera, tenga las filas
      que tenga. En móvil, cada fila se desplaza en horizontal por separado.
 
-  ENCIMA DE LAS PREGUNTAS
+  ENCIMA DE TODO EL BLOQUE
      Una barra de sección con el nombre del bloque, cuántas preguntas tiene
-     y su baremo ("+1 por acierto · −0,33 por fallo").
+     y su baremo ("+1 por acierto · −0,33 por fallo"). En los supuestos va
+     ENCIMA DEL ENUNCIADO, encabezando la sección entera (se puede bajar
+     hasta delante de la primera pregunta desde la pestaña 2).
 
-  CÓMO SE VEN LAS PREGUNTAS
-     · Bloque "en cadena": todas sus preguntas seguidas; la barra de arriba
-       lleva a cada una y la deja resaltada.
-     · Bloque "de una en una": solo la pregunta actual, como siempre.
-     · El alumno puede forzar "de una en una" en TODO el examen desde el
-       panel ⚙ de la página → "Ver las preguntas de una en una".
+  DÓNDE SALE EL ENUNCIADO
+     Cada enunciado se pinta DENTRO del hilo del examen, delante del grupo
+     de preguntas que lo comparte. Así el documento se lee en su orden:
+
+         ══ SUPUESTO PRÁCTICO · 6 preguntas · +1 / −0,33 ══
+         ENUNCIADO 1 (hechos + línea de tiempo)
+            preguntas 1, 2, 3 de ese enunciado
+         ENUNCIADO 2
+            preguntas 4, 5, 6
+         ══ TEORÍA · 4 preguntas ══
+            preguntas 7 a 10
+
+  CÓMO SE VEN LAS PREGUNTAS  —  UNA CASILLA POR BLOQUE
+     En el panel ⚙, bajo "Ver las preguntas de una en una", hay UNA CASILLA
+     POR CADA BLOQUE del examen, con su nombre y su color:
+
+         Ver las preguntas de una en una
+            ☑ ● Supuesto práctico
+            ☐ ● Teoría
+
+     · Casilla SIN marcar → ese bloque sale EN CADENA: todas sus preguntas
+       seguidas y, si es un supuesto, cada enunciado delante de las suyas
+       (el esquema de arriba).
+     · Casilla MARCADA → ese bloque sale DE UNA EN UNA: solo la pregunta
+       actual, con su enunciado encima.
+     Cada bloque va por su cuenta: se puede tener el supuesto de una en una
+     y la teoría en cadena, o justo al revés. Cada casilla arranca como
+     hayas dejado el "modo" de ese bloque en la pestaña 2.
+
+  MODO FOCO  (panel ⚙, colgando de "ver las preguntas de una en una")
+     Pensado para estudiar un supuesto largo sin releerlo entero en cada
+     pregunta. SOLO actúa sobre los bloques que estén marcados como "de una
+     en una": un bloque en cadena no se recorta nunca (no tendría sentido,
+     porque se ven todas las preguntas a la vez). Con el modo foco
+     encendido, en un bloque que vaya de una en una:
+       · si la pregunta está vinculada a hechos concretos (pestaña 4), sale
+         SOLO esa parte del enunciado, con el aviso «🔎 MODO FOCO» y un
+         botón "Ver enunciado completo" por si hace falta el resto;
+       · si no está vinculada a nada, sale el enunciado entero, como siempre;
+       · la línea de tiempo se calla mientras el enunciado esté recortado:
+         es contexto de todo el expediente.
+     La casilla se queda apagada (en gris) mientras no haya ningún bloque de
+     supuesto marcado como "de una en una", porque entonces no puede
+     aplicarse; en cuanto marcas uno, se enciende sola.
+     Al imprimir o generar el PDF los enunciados salen SIEMPRE completos.
 
   CORRECCIÓN
+     Una pregunta de respuesta múltiple solo cuenta como acertada si se han
+     marcado EXACTAMENTE las correctas: ni sobra ni falta ninguna. No hay
+     medios puntos. Con "corregir pregunta a pregunta", la solución de esas
+     preguntas no se enseña hasta haber marcado tantas opciones como
+     correctas tiene, para no cantarla con el primer clic.
+
      Cada bloque se corrige por separado con su propio baremo y luego se
      suman. El marcador muestra:
         · los puntos totales, ya con los descuentos aplicados (4,75 / 7)
@@ -343,13 +441,21 @@
      · Botón de plegar ⌃ — se puede quitar si no lo quieres, y con «Empieza
        plegada» cada intento arranca mostrando solo la fila del bloque en el
        que está el alumno.
-     · Las cuatro opciones del panel: cambiar la duración, corregir pregunta
-       a pregunta, ver las preguntas de una en una y ocultar las etiquetas de
-       pregunta. Cada una se puede ocultar o renombrar, y las tres últimas
-       admiten además «Empieza activada». Ejemplos típicos: ocultar "cambiar
-       la duración" para que el examen dure siempre lo que has puesto en la
-       pestaña 1; o marcar "corregir pregunta a pregunta / Empieza activada"
-       para un test de repaso que se corrige sobre la marcha.
+     · Las cinco opciones del panel: cambiar la duración, corregir pregunta
+       a pregunta, ver las preguntas de una en una, el modo foco (que cuelga
+       de la anterior y va sangrado debajo de ella) y ocultar las etiquetas
+       de pregunta. Cada una se puede ocultar o renombrar, y las cuatro
+       últimas admiten además «Empieza activada». Ejemplos típicos: ocultar
+       "cambiar la duración" para que el examen dure siempre lo que has
+       puesto en la pestaña 1; marcar "corregir pregunta a pregunta /
+       Empieza activada" para un test de repaso que se corrige sobre la
+       marcha; o dejar el "modo foco" oculto en un examen de verdad y
+       visible en el mismo supuesto usado para estudiar.
+       OJO con "ver las preguntas de una en una": en la página no es UNA
+       casilla, sino una por bloque. Lo que hay aquí manda sobre el GRUPO
+       entero (si se ve y cómo se titula) y, con «Empieza activada», hace
+       que TODOS los bloques arranquen de una en una. Para quitarle la
+       casilla a un bloque suelto, se hace en la pestaña 2.
 
   B) BOTONES DE ABAJO Y DE LA PANTALLA DE RESULTADOS
      Anterior, Siguiente, Corregir, Ver corrección completa, Imprimir/PDF,
@@ -357,6 +463,23 @@
      Los cuatro últimos son los que aparecen AL TERMINAR el examen; si
      desmarcas uno, no sale ni en la botonera de abajo ni en la ventana de
      resultados.
+
+     EL BOTÓN 🔀 Y SUS DOS FORMAS DE REPETIR
+     Debajo de "Nuevo intento aleatorio" hay ahora una línea por cada una de
+     las dos opciones que ofrece su ventana, y cada una se quita por su
+     cuenta:
+       · "Mismas preguntas y mismo orden" → salen las mismas preguntas en el
+         mismo orden; solo cambia el orden de las respuestas dentro de cada
+         pregunta (y qué opciones salen, si alguna tiene más escritas de las
+         que se muestran).
+       · "Mismas preguntas en otro orden" → salen TODAS las preguntas otra
+         vez, barajadas. NO se descarta ninguna: la única diferencia con la
+         anterior es el orden. Se respeta el orden de los bloques y cada
+         pregunta sigue pegada a su enunciado.
+     Si dejas una sola, el botón 🔀 no pregunta nada: repite directamente de
+     esa forma. Si quitas las dos, el botón desaparece.
+     (Lo único que sí descarta preguntas es "cuántas preguntas salen al
+     azar" de la pestaña 2, que es una decisión expresa tuya.)
 
   C) ENVÍO DE RESULTADOS A UN FORMULARIO DE GOOGLE
      Viene ya relleno con el formulario y las casillas que usa el proyecto,
@@ -388,6 +511,60 @@
 
      La puntuación se manda con coma decimal (1,75), igual que se ve en
      pantalla.
+
+  D) ENVÍO AUTOMÁTICO DEL DETALLE PREGUNTA A PREGUNTA (segundo formulario)
+     OJO: esto NO sustituye al apartado C. Son dos formularios distintos y
+     complementarios. El del apartado C lo manda el alumno pulsando 📤; este
+     otro sale SOLO, sin que el alumno pulse nada ni vea ningún aviso, en
+     cuanto corrige el examen (botón «Corregir») o se le agota el tiempo.
+
+     Viene ya configurado con el formulario del proyecto, así que lo normal
+     es no tocar nada de este apartado.
+
+     QUÉ MANDA:
+       · Nombre supuesto  → el título del supuesto (pestaña 1).
+       · Tiempo           → la fecha y hora del envío (dd/mm/aaaa hh:mm).
+       · Nº aciertos      → recuento EN BRUTO, sin aplicar el baremo.
+       · Nº fallos        → recuento EN BRUTO, sin aplicar el baremo.
+       · Pregunta 1 … 80  → una casilla por pregunta, con:
+                              «Correcta: <lo que marcó>»    si acertó
+                              «Incorrecta: <lo que marcó>»  si falló
+                              «En blanco»                   si no la contestó
+         Se manda el TEXTO de la opción, no la letra (que cambia en cada
+         intento). En las preguntas de respuesta múltiple se mandan todas
+         las opciones que marcó, separadas por « | », y cuentan como acierto
+         solo si marcó exactamente las correctas, igual que en la corrección.
+
+     A QUÉ CASILLA VA CADA PREGUNTA:
+       Siempre a la de su NÚMERO DE ORDEN EN EL EDITOR, el de la pestaña
+       «4 · Preguntas y respuestas»: la 1ª pregunta de la lista va a
+       «Pregunta 1», la 2ª a «Pregunta 2», y así hasta 80. Ese número no
+       cambia nunca:
+         · da igual en qué bloque esté la pregunta y en qué orden salgan los
+           bloques;
+         · da igual que el intento sea aleatorio: aunque al alumno le salgan
+           barajadas, la página se acuerda por dentro del orden original y
+           manda cada una a su casilla;
+         · da igual que se barajen las opciones, o que la pregunta tenga
+           siete escritas y solo salgan cuatro: se manda el texto de la que
+           marcó.
+       Las preguntas que no salgan en ese intento (bloques con «por intento»
+       o supuestos que sacan solo parte de las preguntas) dejan su casilla
+       vacía. Si el supuesto tiene más de 80 preguntas, de la 81 en adelante
+       no se manda nada: el formulario solo tiene 80 casillas.
+
+     QUÉ SE PUEDE CAMBIAR:
+       · Dirección del formulario del detalle: igual que en el apartado C,
+         terminada en /formResponse. Si se deja vacía, no se manda nada.
+       · Las cuatro casillas generales (nombre, tiempo, aciertos, fallos).
+       · La lista de las 80 casillas de pregunta, una por línea y en orden.
+         El botón «↺ Restaurar las casillas del proyecto» las vuelve a
+         dejar como venían.
+
+     EN EL ARCHIVO HTML todo esto vive en el apartado «envioDetalle». Un
+     supuesto antiguo que no lo tenga lo estrena solo al abrirlo con el
+     editor. La plantilla clásica (la de formato JavaScript) NO sabe hacer
+     este envío: el editor avisa antes de guardar en ese formato.
 
 
 ────────────────────────────────────────────────────────────────────────────────
@@ -465,6 +642,23 @@
      A partir de ahí ya puedes editar los datos generales, crear el bloque
      de teoría y repartir las preguntas.
 
+  CUANDO LA PLANTILLA MEJORA Y TU SUPUESTO SE HA QUEDADO ATRÁS
+     Un archivo de supuesto lleva dos cosas: los DATOS (tus enunciados y
+     preguntas) y la PÁGINA que los muestra. Al guardar, el editor cambia
+     los datos dentro del archivo que abriste; la página se quedaría tal y
+     como estaba el día en que se creó.
+     Para que eso no te deje con opciones nuevas que no se notan, la
+     plantilla lleva un número de versión y el editor lo vigila:
+       · Al abrir un supuesto atrasado, la barra de abajo te avisa.
+       · Al guardarlo, te pregunta una sola vez: "¿Rehacer la página con la
+         plantilla actual?". Di que SÍ y el archivo estrena la página nueva
+         sin tocar ni una pregunta (queda una copia .bak de la anterior).
+         Si dices que no, se guarda igual pero seguirá con la página vieja.
+     Es decir: NO hace falta hacer nada especial. Abre, guarda y di que sí.
+     El botón "⇪ Pasar a plantilla nueva…" queda solo para los archivos
+     realmente antiguos (los del apartado C de aquí arriba, con el título
+     escrito a mano dentro del HTML).
+
 
 ────────────────────────────────────────────────────────────────────────────────
  10. PUBLICAR EL SUPUESTO EN EL MENÚ PRINCIPAL
@@ -525,3 +719,242 @@
       .bak que se genera en cada guardado.
 
 ════════════════════════════════════════════════════════════════════════════════
+
+
+────────────────────────────────────────────────────────────────────────────────
+ NUEVO · DISEÑO, FUNCIONES EXTRA Y MENÚ PRINCIPAL
+────────────────────────────────────────────────────────────────────────────────
+
+  La plantilla (motor 9) ya incluye el diseño nuevo y las funciones extra de la
+  web (continuar un intento, repetir falladas, marcar preguntas, tema oscuro…).
+  Para que funcionen, el supuesto debe guardarse dentro de la carpeta
+  «supuestos/» del proyecto (o en otra del mismo nivel que «Py/»): enlaza a los
+  archivos base-supuesto.css, tema-supuesto.css, app-supuesto.js, prefs.js, pwa.js y fuentes/ que
+  están UNA CARPETA POR ENCIMA.
+
+  ALTA EN EL MENÚ PRINCIPAL
+     Al guardar un supuesto dentro de «supuestos/», el programa mira si existe
+     «supuestos-datos.js» en la carpeta de arriba (es la lista que pinta el menú):
+       · Si el supuesto ya está en la lista, actualiza su título, referencia y
+         descripción (preguntas y minutos).
+       · Si es nuevo, pregunta dónde ponerlo: «Supuestos por temas» o «Supuestos
+         generales» (cada uno con sus grupos Iniciales y Avanzados) o «Exámenes y
+         simulacros», y qué texto lleva el círculo de la tarjeta.
+     Así ya no hay que tocar index.html ni copiar tarjetas a mano.
+
+  EL EDITOR EN VARIOS ARCHIVOS, UN SOLO LANZADOR
+     El programa está repartido en módulos que viven junto a él en la carpeta Py/
+     (menu_datos.py, datos_html.py, sincronizar_local.py, alta_menu.py,
+     ventana_menu.py, ventana_subir.py). NO tienes que abrirlos: se lanza siempre
+     editor_supuestos.py (con Thonny y F5, como siempre). Si copias el editor a otra
+     carpeta, copia con él todos los .py de Py/ o fallará al arrancar.
+
+     Sin ventana (desde una terminal, en la carpeta del proyecto):
+       python Py/editor_supuestos.py --alta [--auto]   da de alta en el menú los supuestos
+                                                       de supuestos/ que falten
+       python Py/editor_supuestos.py --actualizar      pone al día los supuestos y prepara PARA_SUBIR
+       python Py/editor_supuestos.py --para-subir      solo prepara PARA_SUBIR
+       python Py/editor_supuestos.py --subido          marca todo como ya subido
+
+  AÑADIR UN SUPUESTO AL MENÚ A MANO
+     supuestos-datos.js tiene UNA LÍNEA por supuesto. Copia una línea, cámbiale el
+     archivo, la letra, la referencia, el título y la descripción, y respeta la coma
+     del final (la última línea no lleva coma). «seccion» y «grupo» dicen dónde sale.
+     Con "oculto": true desaparece del menú sin borrarse. El modo sin conexión (sw.js)
+     lee esta misma lista: no hay que tocar nada más. Si te equivocas, el validador
+     (python Py/validar_supuestos.py) dice la línea.
+
+  MENÚ DE INICIO (botón «🗂 Menú de inicio…»)
+     Ventana para ordenar el menú de la web: subir y bajar supuestos, moverlos de
+     sección o grupo, editar su título, referencia, descripción y texto del círculo,
+     ocultarlos, quitarlos (el .html NO se borra), añadir los que falten y crear,
+     renombrar, ordenar o borrar (si están vacíos) secciones y grupos. Nada se escribe
+     hasta pulsar «Guardar menú».
+
+  CARPETA «PARA_SUBIR» (botón «📦 Para subir a GitHub…»)
+     Para trabajar en local y subir luego a la web de GitHub sin dudas:
+       1. Descarga el repositorio y abre el editor: lo que hay en ese momento cuenta
+          como «lo descargado» (se recuerda en .estado_local.json; no se sube).
+       2. Trabaja con normalidad. «Poner todo al día» rehace con la plantilla actual la
+          página de los supuestos que se quedaron con un motor antiguo (no cambia ni una
+          pregunta).
+       3. Cada vez que guardas, la carpeta PARA_SUBIR se rehace con SOLO los archivos
+          nuevos o modificados, con la misma estructura de carpetas, y un
+          LEEME_SUBIR.txt con la lista (y los que borraste en local).
+       4. En GitHub (web): «Add file» → «Upload files», arrastra el contenido de
+          PARA_SUBIR y confirma.
+       5. Pulsa «Marcar como subido» para empezar de cero.
+     Tus copias .bak y la carpeta PARA_SUBIR no cuentan como cambios.
+
+  TOTAL ABSOLUTO EN EL ENVÍO
+     En la pestaña de envío hay un apartado «Enviar el TOTAL de todos los
+     bloques» con las casillas del recuento global (preguntas, aciertos, fallos,
+     en blanco y puntos). Las casillas por bloque son opcionales.
+
+  AL PUBLICAR
+     Sube el número VERSION de sw.js (en la raíz del proyecto) para que quien
+     tenga la app instalada reciba el aviso «Hay una versión nueva».
+
+────────────────────────────────────────────────────────────────────────────────
+ PROBAR LOS SUPUESTOS EN LOCAL (SIN SUBIRLOS A LA WEB)
+────────────────────────────────────────────────────────────────────────────────
+
+  1. Descarga el repositorio ENTERO: en GitHub, botón «Code» → «Download ZIP»
+     (o con Git: git clone), y descomprímelo. Mantén todas las carpetas juntas:
+     los supuestos enlazan con archivos de la carpeta de arriba (el diseño, las
+     funciones extra y las fuentes). No muevas supuestos sueltos a otro sitio.
+
+  2. Qué puedes abrir con doble clic:
+       · index.html                       el menú principal completo
+       · supuestos/supuesto_XX.html       cualquier supuesto, con su diseño
+     y desde el editor, «Ver en el navegador» hace lo mismo.
+
+  3. Lo que sí funciona en local: el diseño, el tema oscuro, el tamaño de letra,
+     marcar preguntas, guardar el progreso, continuar un intento y repetir
+     solo las falladas (todo se guarda en el navegador de ese ordenador).
+
+  4. Lo que solo funciona en la web publicada: instalarla como app, usarla sin
+     conexión y el aviso de «Hay una versión nueva». Para probarlo también en
+     local, abre una terminal en la carpeta del proyecto y ejecuta:
+           python -m http.server
+     y entra en http://localhost:8000
+
+  5. Si un supuesto se ve con el diseño antiguo o sin las funciones nuevas,
+     casi seguro está fuera de su sitio: debe estar dentro de «supuestos/» (o de
+     otra carpeta que cuelgue de la raíz del proyecto, como «Py/»).
+
+  6. Las notas y el progreso del navegador son independientes entre la copia
+     local y la web publicada: no se mezclan.
+
+  7. Antes de publicar un cambio, sube el número VERSION de sw.js para que quien
+     tenga la app instalada reciba el aviso de actualización.
+
+────────────────────────────────────────────────────────────────────────────────
+ DATOS ANÓNIMOS DE INTENTOS A MEDIAS (APAGADO POR DEFECTO)
+────────────────────────────────────────────────────────────────────────────────
+
+  Hoy solo se envía el detalle al CORREGIR. Se ha dejado preparado, apagado, el
+  envío de una instantánea de los intentos que se abandonan (también los de
+  «corregir pregunta a pregunta» que no se llegan a corregir). Se configura en
+  telemetria-config.js, en la carpeta raíz del proyecto.
+
+  QUÉ ENVÍA (sin nombre; solo un identificador aleatorio por navegador)
+     título del supuesto · fecha y hora · estado · modo (normal o pregunta a
+     pregunta) · identificador del intento · identificador anónimo · preguntas
+     respondidas y totales · aciertos, fallos y en blanco · tiempo restante ·
+     y, por pregunta, «Correcta: …», «Incorrecta: …» o «En blanco» (igual que el
+     envío automático). Varias instantáneas del mismo intento comparten
+     identificador, así que en la hoja se agrupan por esa columna.
+
+  CUÁNDO ENVÍA
+     Al salir de la página o cambiar de pestaña, si hay al menos
+     «minRespuestas» preguntas respondidas y algo ha cambiado desde el último
+     envío (como mucho una cada 15 segundos). NO envía: si el intento ya se
+     corrigió (eso lo cubre el envío automático de siempre) ni en los intentos de
+     «repetir solo las falladas».
+
+  PARA ACTIVARLO
+     1. Crea un formulario de Google NUEVO con una pregunta de respuesta corta
+        por cada dato que quieras recoger y una de «párrafo» para «respuestas».
+     2. Copia su URL cambiando «viewform» por «formResponse».
+     3. En telemetria-config.js pon esa URL en «url» y, en «campos», el código
+        «entry.…» de cada casilla (menú ⋮ → «Obtener enlace previamente
+        rellenado»). Lo que dejes en "" no se envía.
+        (Opcional: «preguntas» admite una casilla por pregunta, como el envío
+        automático, en vez de la de «respuestas».)
+     4. Pon «activa: true» y sube VERSION en sw.js antes de publicar.
+     Al activarlo, el texto de «aviso» aparece como última línea del menú
+     principal (sin botones: se da por aceptada la participación, que ya se
+     pidió por el formulario anterior).
+
+  VER LOS DATOS (MODO ADMINISTRADOR)
+     Los datos solo los ves tú, en la hoja de respuestas del formulario nuevo:
+     la protege tu cuenta de Google. Si quieres un enlace discreto desde la web a
+     tu panel (la hoja o una página de Apps Script restringida a tu cuenta), pon
+     su dirección en «adminUrl» y entra una vez en tu navegador con
+        index.html#admin
+     En el pie del menú aparecerá «· admin» solo en ese navegador. OJO: eso no
+     protege nada (el código de la web es público); lo que protege los datos es
+     que el panel pida tu cuenta de Google.
+
+────────────────────────────────────────────────────────────────────────────────
+ FUNCIONES NUEVAS PARA EL ALUMNO
+────────────────────────────────────────────────────────────────────────────────
+
+  · MI ESTUDIO (mi-estudio.html, tarjeta en el menú): estadísticas por supuesto
+    (evolución, mejor y última nota, media, segundos por pregunta), banco de
+    preguntas falladas (entran al fallarlas y salen tras acertarlas dos veces
+    seguidas; «Practicar falladas» abre el supuesto solo con esas preguntas),
+    preguntas marcadas y notas personales. Todo queda en el navegador del alumno.
+  · MARCAR (PARA MÁS TARDE) Y NOTAS: en cada pregunta, «Marcar para más tarde» y
+    «Añadir nota». Las marcadas aparecen en «Mi estudio» y se pueden practicar.
+  · FAVORITAS ♥: un corazón pequeño en la esquina de cada pregunta (tecla H). Aparecen
+    en «Mi estudio» con «Practicar favoritas». Se puede apagar en un supuesto desde el
+    editor (pestaña 1, «Corazón de favoritas») o cada persona desde el panel ⚙.
+  · SUBRAYAR: al seleccionar un trozo del enunciado, de la pregunta o de una respuesta
+    sale una ventanita con 5 colores (y «Quitar»). Los subrayados se guardan en el
+    navegador, salen en «Mi estudio» (donde también se pueden subrayar las preguntas
+    guardadas) y se sincronizan con Drive. Se apaga en un supuesto desde el editor
+    (pestaña 1, «Subrayar con colores») o desde el panel ⚙.
+  · ATAJOS: A–G o 1–7 responden · ← → cambian de pregunta · M marca · H favorita ·
+    N nota · ? ayuda. En el móvil, deslizar el dedo a izquierda o derecha cambia de
+    pregunta (se puede desactivar en el panel ⚙).
+  · ENLACES A LA NORMA: las citas tipo «art. 12 de la LGSS» de la motivación se
+    enlazan al artículo en el BOE. Las normas y sus códigos están en
+    normas-datos.js; para añadir otra, añade una línea con sus siglas y su «BOE-A-…».
+  · ACCESIBILIDAD: manejo completo con teclado, etiquetas para lectores de pantalla,
+    enlace «Saltar a las preguntas», foco visible y respeto a «reducir movimiento».
+
+────────────────────────────────────────────────────────────────────────────────
+ VALIDAR Y PROBAR ANTES DE SUBIR
+────────────────────────────────────────────────────────────────────────────────
+
+  VALIDADOR (no necesita instalar nada):
+        python Py/validar_supuestos.py
+    Revisa cada supuesto (opciones vacías o repetidas, respuestas correctas que no
+    existen, enunciados y bloques inexistentes, enlaces a archivos…), que el menú
+    coincide con los supuestos (preguntas y minutos de cada tarjeta) y que la lista
+    de archivos de la app instalada (sw.js) está completa. «ERROR» = arreglar antes
+    de publicar; «AVISO» = conviene mirarlo.
+
+  PRUEBAS EN EL NAVEGADOR (requiere Node.js; ver tests/LEEME.txt):
+        npm install        (una vez)
+        npm test
+    Comprueban que todo carga, que lo que se envía a Google no cambia y que las
+    funciones siguen funcionando. En GitHub se ejecutan solas en cada subida.
+
+────────────────────────────────────────────────────────────────────────────────
+ SINCRONIZAR ENTRE DISPOSITIVOS CON GOOGLE DRIVE (APAGADO POR DEFECTO)
+────────────────────────────────────────────────────────────────────────────────
+
+  QUÉ HACE
+     En «Mi estudio» aparece el botón «Sincronizar». Cada persona guarda una copia
+     de sus notas, preguntas marcadas, falladas y estadísticas en una carpeta
+     OCULTA de SU PROPIO Google Drive (la «appDataFolder»: la web solo ve esa
+     carpeta, nunca el resto del Drive, y tú no recibes nada). En otro dispositivo
+     pulsa el mismo botón con la misma cuenta y los datos se COMBINAN: se suman las
+     falladas y marcadas, gana la última nota editada, los borrados se respetan y
+     las estadísticas se unen. No se sincronizan los intentos a medias.
+     Antes de empezar se abre una ventana que explica, paso a paso y con palabras
+     sencillas, qué va a pasar (con la casilla «No volver a mostrar»). Si Google
+     falla o la persona cancela, el mensaje es claro y no se toca nada.
+
+  PARA ACTIVARLO (una sola vez, gratis, ~10 minutos) — pasos completos en sync-config.js
+     1. console.cloud.google.com → crear un proyecto → habilitar «Google Drive API».
+     2. Pantalla de consentimiento OAuth: «Externo», permiso SOLO «drive.appdata»,
+        y pulsar «Publicar aplicación» (no hace falta verificación con ese permiso).
+     3. Credenciales → ID de cliente de OAuth → «Aplicación web» → origen de
+        JavaScript autorizado: https://rmalump.github.io
+     4. Copiar el ID de cliente (público, no es un secreto) a «clientId» en
+        sync-config.js y subir VERSION en sw.js.
+     Mientras «clientId» esté vacío, el botón no aparece.
+
+  PRIVACIDAD Y SEGURIDAD
+     · La web no guarda ninguna contraseña ni ningún token: Google da un permiso
+       temporal cada vez que se sincroniza.
+     · La persona puede retirar el permiso en su cuenta de Google → Seguridad →
+       «Conexiones con aplicaciones y servicios de terceros».
+     · El texto de «Mi estudio» ya aclara que los datos son personales y no se
+       comparten con terceros; si se activa la sincronización añade que la copia
+       va a su propio Drive.
+

@@ -1,0 +1,31 @@
+/* Subrayar con colores (app-subrayado.js): marcas y ventana de colores. Sirve a los supuestos y a «Mi estudio». */
+mark.subr { color: inherit; border-radius: 3px; padding: 0 1px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.subr-c0 { background: rgba(255, 235, 59, .6); }
+.subr-c1 { background: rgba(105, 240, 174, .5); }
+.subr-c2 { background: rgba(255, 128, 171, .45); }
+.subr-c3 { background: rgba(100, 181, 246, .5); }
+.subr-c4 { background: rgba(255, 183, 77, .55); }
+:root[data-tema="oscuro"] .subr-c0 { background: rgba(250, 204, 21, .38); }
+:root[data-tema="oscuro"] .subr-c1 { background: rgba(52, 211, 153, .36); }
+:root[data-tema="oscuro"] .subr-c2 { background: rgba(244, 114, 182, .38); }
+:root[data-tema="oscuro"] .subr-c3 { background: rgba(96, 165, 250, .4); }
+:root[data-tema="oscuro"] .subr-c4 { background: rgba(251, 146, 60, .4); }
+.sin-subrayado mark.subr { background: transparent; }
+mark.subr { cursor: pointer; }
+.option mark.subr { cursor: inherit; }
+
+.subr-pop {
+    position: fixed; z-index: 2000; display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+    background: #fffef9; color: #3d2a20; border: 1px solid rgba(61, 42, 32, .25); border-radius: 99px;
+    box-shadow: 0 6px 22px rgba(0, 0, 0, .22);
+}
+.subr-punto { width: 28px; height: 28px; padding: 0; border-radius: 50%; border: 2px solid rgba(61, 42, 32, .25); cursor: pointer; }
+.subr-punto.on { border-color: #3d2a20; box-shadow: 0 0 0 2px #fffef9, 0 0 0 4px #3d2a20; }
+.subr-punto.subr-c0 { background: #ffeb3b; } .subr-punto.subr-c1 { background: #69f0ae; } .subr-punto.subr-c2 { background: #ff80ab; }
+.subr-punto.subr-c3 { background: #64b5f6; } .subr-punto.subr-c4 { background: #ffb74d; }
+.subr-quitar { cursor: pointer; font: inherit; font-size: .8rem; font-weight: 700; color: #7f1d1d; background: transparent; border: 1px solid rgba(127, 29, 29, .4); border-radius: 99px; padding: 5px 12px; }
+.subr-punto:focus-visible, .subr-quitar:focus-visible { outline: 3px solid #1f5878; outline-offset: 2px; }
+:root[data-tema="oscuro"] .subr-pop { background: #2a1f19; color: #f3e9de; border-color: rgba(243, 233, 222, .3); }
+:root[data-tema="oscuro"] .subr-quitar { color: #fca5a5; border-color: rgba(252, 165, 165, .5); }
+.item-ico { margin-right: 2px; }
+@media print { .subr-pop { display: none; } }

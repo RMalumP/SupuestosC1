@@ -1,0 +1,3 @@
+tkinter falso: permite importar Py/editor_supuestos.py en un ordenador sin pantalla
+(por ejemplo, en GitHub) para comprobar que carga y que sus funciones sin ventana funcionan.
+Solo lo usan las pruebas (tests/test_py.py).

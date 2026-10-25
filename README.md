@@ -20,6 +20,28 @@ El sitio está disponible en:
 - **Seguimiento de resultados** – Consulta tus estadísticas y el historial de supuestos realizados.
 - **Calculadora de examen** – Herramienta para calcular notas transformadas y estimar la puntuación final.
 
+- **App instalable (PWA)** – Se puede instalar en navegadores de escritorio, Android e iOS ("Añadir a pantalla de inicio") y funciona sin conexión tras la primera visita.
+
+- **Tu progreso, en tu navegador** – El menú muestra tu mejor nota e intentos de cada supuesto, y si lo dejaste a medias puedes continuarlo (se guarda solo en tu dispositivo).
+- **Repetir solo las falladas**, **marcar para más tarde**, **favoritas ♥** y **subrayar con colores** durante el supuesto.
+- **Buscador y filtros** en el menú (sin hacer / en curso / hechos).
+- **Tema oscuro y tamaño de letra** ajustables.
+- **Aviso de nueva versión** cuando se actualiza la app instalada.
+- **Mi estudio:** estadísticas personales, banco de preguntas falladas (con «Practicar falladas»), favoritas, marcadas, subrayados y notas.
+- **Atajos de teclado** (A–G, flechas, M, H, N, ?) y deslizar el dedo para cambiar de pregunta; enlaces automáticos al BOE en la motivación de las respuestas.
+
+---
+
+## 🛠️ Para quien mantiene el repositorio
+
+- **Añadir un supuesto al menú:** copia su `.html` a `supuestos/` y ejecuta `python Py/editor_supuestos.py --alta` (te pregunta dónde ponerlo y rellena título, preguntas y minutos solo), o deja que lo haga el editor al guardar. También puedes copiar a mano una línea de `supuestos-datos.js` (hay una por supuesto). El modo sin conexión (`sw.js`) lee esa misma lista: no hay que tocar nada más. Comprueba con `python Py/validar_supuestos.py`.
+- **Trabajar en local y subir a GitHub web:** el editor (`Py/editor_supuestos.py`, único lanzador; el resto de `.py` de `Py/` son sus módulos) deja en `PARA_SUBIR/` solo los archivos que han cambiado; arrastra su contenido a GitHub. También edita el menú de inicio (`🗂 Menú de inicio…`). Ver `Py/INSTRUCCIONES.txt`.
+- **Publicar cambios:** sube el número de `VERSION` en `sw.js`; así los usuarios ven el aviso «Hay una versión nueva».
+- **Sincronizar entre dispositivos (Google Drive, apagado hasta poner el «clientId» en `sync-config.js`):** cada persona guarda su copia en una carpeta oculta de su propio Drive; ventana explicativa antes de empezar. Ver `Py/INSTRUCCIONES.txt`.
+- **Pruebas y validación:** `python3 Py/validar_supuestos.py` revisa los supuestos y el menú; `npm test` abre las páginas en un navegador y comprueba envíos, aspecto y funciones (ver `tests/LEEME.txt`). En GitHub corren solas en cada subida.
+- **Datos anónimos de intentos a medias:** preparado pero apagado; se activa en `telemetria-config.js` (pasos en `Py/INSTRUCCIONES.txt`).
+- **Estilos:** `base-supuesto.css` (reglas comunes de todos los supuestos), `tema-supuesto.css` (diseño de los supuestos), `tema-menu.css` (menú) y `tema-resultados.css` (resultados). Las funciones comunes están en `app-supuesto.js` y `app-menu.js`.
+
 ---
 
 ## 🤝 Cómo contribuir
@@ -36,7 +58,7 @@ Este proyecto se distribuye bajo licencia **MIT**, lo que permite su uso, modifi
 
 ## ⚠️ Aviso importante
 
-**Este repositorio no tiene ninguna relación con la plataforma oficial del proceso selectivo ni con ninguna entidad gubernamental.** Es un recurso creado de forma independiente por opositores para opositores, con el único fin de facilitar el estudio y la práctica.
+**Este repositorio no tiene ninguna relación con la plataforma oficial del proceso selectivo ni con ninguna entidad gubernamental. Ni con la plataforma ECAP Oficial** Es un recurso creado de forma independiente por opositores para opositores, con el único fin de facilitar el estudio y la práctica.
 
 ---
 

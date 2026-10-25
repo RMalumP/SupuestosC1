@@ -29,825 +29,38 @@
 import json
 import os
 import re
+import sys
 import webbrowser
 from pathlib import Path
+
+# Los módulos del editor (menu_datos, datos_html, alta_menu…) están junto a este archivo.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+# Modos sin ventana (se deciden antes de cargar tkinter). El lanzador es siempre este archivo:
+#   --alta [--auto]      da de alta en el menú los supuestos que falten        (alta_menu.py)
+#   --actualizar         pone todo al día y prepara la carpeta PARA_SUBIR      (sincronizar_local.py)
+#   --para-subir         solo prepara la carpeta PARA_SUBIR
+#   --subido             marca lo actual como ya subido a GitHub
+if __name__ == "__main__":
+    if "--alta" in sys.argv:
+        import alta_menu
+        sys.exit(alta_menu.main([a for a in sys.argv[1:] if a != "--alta"]))
+    if any(a in sys.argv for a in ("--actualizar", "--para-subir", "--subido")):
+        import sincronizar_local
+        sys.exit(sincronizar_local.main(sys.argv[1:]))
+
+import menu_datos            # lista del menú
+import sincronizar_local     # poner al día y carpeta PARA_SUBIR
+import ventana_subir         # ventana «Para subir a GitHub»
+import ventana_menu          # ventana «Menú de inicio»
 
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, colorchooser
 from tkinter import font as tkfont
 
-APP_TITULO = "Editor de Supuestos — plantilla ECAP C1"
-PLANTILLA_BASE = "supuesto_plantilla_python.html"   # se busca junto a este .py
-
-# Paleta (a juego con la plantilla)
-C_FONDO = "#f3ece4"
-C_PANEL = "#fffef9"
-C_TINTA = "#3d2a20"
-C_TEC   = "#8a6f5c"     # texto técnico (nombre del campo / HTML)
-C_AYUDA = "#6b7280"
-C_ROJO  = "#8b1a1a"
-C_VERDE = "#1a4731"
-
-# Paleta original de la plantilla. Cada clave sustituye a una variable CSS
-# de :root, y con ella cambian también todas las transparencias derivadas.
-TEMA_DEFECTO = {
-    "fondo":        "#3d2a20",
-    "barra":        "#5c4033",
-    "acento":       "#8fc4d9",
-    "acentoClaro":  "#b8dceb",
-    "azulProfundo": "#2f6f93",
-    "textoClaro":   "#fdf8f0",
-    "tarjeta":      "#fffef9",
-    "fondoHechos":  "#f7ece7",
-    "texto":        "#1a1a2e",
-    "gris":         "#4a5568",
-    "rojo":         "#8b1a1a",
-    "verde":        "#1a4731",
-}
-
-# (clave, nombre visible, variable CSS, qué pinta exactamente)
-CAMPOS_TEMA = [
-    ("fondo", "Fondo de la página", "--navy",
-     "Solo el fondo del documento, detrás de las tarjetas."),
-    ("barra", "Barra superior, paneles y chips oscuros", "--navy-mid",
-     "Cabecera, temporizador, panel ⚙, marcador, botones oscuros y los chips: "
-     "insignia del expediente, letras A/B/C/D, línea de tiempo y cabecera de la "
-     "motivación legal."),
-    ("acento", "Color de acento", "--gold",
-     "Bordes, líneas, rótulos pequeños, cifras del temporizador y píldoras de la cabecera."),
-    ("acentoClaro", "Acento claro (al pasar el ratón)", "--gold-lt",
-     "Variante clara del acento: botones y casillas al pasar por encima."),
-    ("azulProfundo", "Azul profundo", "--blue-deep",
-     "Detalles finos de la cabecera institucional y de los enunciados."),
-    ("textoClaro", "Texto sobre fondo oscuro", "--cream",
-     "Textos escritos encima de la barra, del marcador y de los modales."),
-    ("tarjeta", "Fondo de las tarjetas", "--paper",
-     "Fondo de cada pregunta, del enunciado y de las cabeceras de bloque."),
-    ("fondoHechos", "Fondo de los bloques de hechos", "--parch",
-     "Recuadros de la narración de hechos del supuesto (efecto pergamino)."),
-    ("texto", "Texto principal y titulares", "--ink",
-     "Preguntas, opciones, títulos del expediente y de cada bloque, y el texto "
-     "escrito encima del color de acento."),
-    ("gris", "Texto secundario", "--slate",
-     "Motivación legal, referencias, notas pequeñas y textos de apoyo."),
-    ("rojo", "Rojo de fallos y hechos críticos", "--crimson",
-     "Respuestas falladas, bloques de hechos desencadenantes e hitos críticos."),
-    ("verde", "Verde de aciertos y consejos", "--forest",
-     "Respuestas acertadas y recuadro del consejo 💡."),
-]
-
-# ── BOTONES Y RÓTULOS DE LA PÁGINA ───────────────────────────────────────
-# Cada clave gobierna un elemento (o pareja de elementos) del HTML.
-INTERFAZ_DEFECTO = {
-    "botonCasa":   {"visible": True, "texto": "🏠", "titulo": "Volver al menú principal",
-                    "url": "../index.html"},
-    "botonConfig": {"visible": True, "titulo": "Configuración"},
-    "botonPlegar": {"visible": True, "titulo": "Plegar: ver solo el bloque actual",
-                    "plegado": False},
-    "opcionTiempo":   {"visible": True, "texto": "Duración del examen (mm:ss)"},
-    "opcionCorregir": {"visible": True, "texto": "Corregir pregunta a pregunta",
-                       "activa": False},
-    "opcionUnaEnUna": {"visible": True, "texto": "Ver las preguntas de una en una",
-                       "activa": False},
-    "opcionQtags":    {"visible": True, "texto": "Ocultar las etiquetas de pregunta",
-                       "activa": False},
-    "btnAnterior":      {"visible": True, "texto": "← Anterior"},
-    "btnSiguiente":     {"visible": True, "texto": "Siguiente →"},
-    "btnCorregir":      {"visible": True, "texto": "✓ Corregir Expediente"},
-    "btnVerCorreccion": {"visible": True, "texto": "✓ Ver Corrección Completa"},
-    "btnImprimir":      {"visible": True, "texto": "🖨 Imprimir / PDF"},
-    "btnReintentar":    {"visible": True, "texto": "🔀 Nuevo Intento (Aleatorio)"},
-    "btnEnviar":        {"visible": True, "texto": "📤 Enviar Resultados"},
-    "btnMenu":          {"visible": True, "texto": "🏠 Volver al Menú Principal"},
-}
-
-# Campos de sí/no que, además de "se ve", tiene alguna opción: con qué
-# estado arranca el examen. El alumno puede cambiarlo luego desde el ⚙.
-CAMPOS_ESTADO = {
-    "activa":  "Empieza activada",
-    "plegado": "Empieza plegada",
-}
-
-# Elementos de la CABECERA (botones y opciones del panel ⚙)
-# (clave, nombre visible, elemento HTML, rótulo del campo de texto, ayuda)
-CAMPOS_CABECERA = [
-    ("botonCasa", "Botón de inicio 🏠", '<button id="home-btn-top">', "Icono",
-     "Botón de la cabecera que devuelve al menú principal. Debajo se elige a qué "
-     "página lleva."),
-    ("botonConfig", "Botón de configuración ⚙", '<button id="settings-toggle">', None,
-     "Abre el panel de opciones del alumno. Si lo ocultas, no podrá cambiar el tiempo "
-     "ni las opciones de abajo."),
-    ("botonPlegar", "Botón de plegar la cabecera ⌃", '<button id="fold-btn">', None,
-     "Deja a la vista solo la fila del bloque en el que está. Solo aparece cuando el "
-     "examen tiene más de un bloque. Con «Empieza plegada», cada intento arranca "
-     "mostrando una sola fila."),
-    ("opcionTiempo", "Opción: cambiar la duración", '<div class="settings-row" id="row-tiempo">',
-     "Texto", "Permite al alumno fijar otro tiempo. Ocúltala para que el examen dure "
-     "siempre lo que hayas puesto en la pestaña 1."),
-    ("opcionCorregir", "Opción: corregir pregunta a pregunta",
-     '<div class="settings-row" id="row-corregir">', "Texto",
-     "Enseña la solución nada más responder cada pregunta. Marca «Empieza activada» "
-     "para que el examen arranque ya en ese modo."),
-    ("opcionUnaEnUna", "Opción: ver las preguntas de una en una",
-     '<div class="settings-row" id="row-una">', "Texto",
-     "Anula el modo «en cadena» de los bloques que lo tengan. Con «Empieza activada», "
-     "el examen arranca mostrando una sola pregunta cada vez."),
-    ("opcionQtags", "Opción: ocultar las etiquetas de pregunta",
-     '<div class="settings-row" id="row-qtags">', "Texto",
-     "Oculta las etiquetas de materia que aparecen encima de cada pregunta. Con "
-     "«Empieza activada», arrancan ya ocultas."),
-]
-
-# Botones de la BOTONERA y de la ventana de corrección
-# (clave, nombre visible, elemento HTML, ayuda)
-CAMPOS_BOTONERA = [
-    ("btnAnterior", "Anterior", '<button id="prev-btn">',
-     "Retrocede una pregunta."),
-    ("btnSiguiente", "Siguiente", '<button id="next-btn">',
-     "Avanza una pregunta."),
-    ("btnCorregir", "Corregir el examen", '<button id="check-btn">',
-     "Termina el examen y lo corrige. Está visible desde el principio."),
-    ("btnVerCorreccion", "Ver corrección completa", '<button id="ov-corr-btn">',
-     "En la ventana de resultados: despliega la corrección de todas las preguntas."),
-    ("btnImprimir", "Imprimir / PDF", '#print-btn  ·  #ov-print-btn',
-     "Aparece al terminar, abajo y en la ventana de resultados."),
-    ("btnReintentar", "Nuevo intento aleatorio", '#restart-btn  ·  #ov-restart-btn',
-     "Aparece al terminar. Abre la elección de tipo de aleatoriedad."),
-    ("btnEnviar", "Enviar resultados", '#send-btn  ·  #ov-send-btn',
-     "Aparece al terminar. Si no hay dirección de envío configurada, no se muestra "
-     "aunque esté marcado."),
-    ("btnMenu", "Volver al menú principal", '#home-btn-bottom  ·  #ov-home-btn',
-     "Aparece al terminar, abajo y en la ventana de resultados."),
-]
-
-# ── ENVÍO DE RESULTADOS A UN FORMULARIO DE GOOGLE ────────────────────────
-# Los datos generales del intento. Los recuentos (preguntas, aciertos,
-# fallos, en blanco y puntos) NO van aquí: cada bloque tiene los suyos, y
-# con un solo bloque ese bloque es el examen entero.
-ENVIO_DEFECTO = {
-    "url": ("https://docs.google.com/forms/d/e/"
-            "1FAIpQLSd9h52UH7XzaRDRSIxSevScmqKZC28Fvtfnp39drKtC5SiwGA/formResponse"),
-    "examen": "entry.241409513",
-    "usuario": "entry.1810433543",
-    "tiempoAsignado": "entry.1069013600",
-    "tiempoEmpleado": "entry.815398067",
-}
-
-# (clave, nombre visible, qué valor se manda)
-CAMPOS_ENVIO = [
-    ("examen",         "Examen",          "el título del supuesto (pestaña 1)"),
-    ("usuario",        "Alumno",          "el nombre que escribe al pulsar Enviar"),
-    ("tiempoAsignado", "Tiempo asignado", "mm:ss"),
-    ("tiempoEmpleado", "Tiempo empleado", "mm:ss"),
-]
-
-ENVIO_BLOQUE_DEFECTO = {"preguntas": "", "aciertos": "", "fallos": "",
-                        "blancos": "", "puntos": ""}
-
-# Casillas que ya usaba el formulario del proyecto: se asignan al primer
-# bloque, que con un único bloque equivale al examen completo.
-ENVIO_BLOQUE_PRIMERO = {
-    "preguntas": "entry.771114786",
-    "aciertos":  "entry.1903892811",
-    "fallos":    "entry.1155230396",
-    "blancos":   "entry.943386498",
-    "puntos":    "",
-}
-
-# Recuentos que antes iban sueltos: si un archivo antiguo los trae, se
-# trasladan al primer bloque en lugar de perderse.
-EQUIVALENCIA_ENVIO_ANTIGUO = {
-    "total": "preguntas", "aciertos": "aciertos",
-    "fallos": "fallos", "blancos": "blancos", "puntos": "puntos",
-}
-
-CAMPOS_ENVIO_BLOQUE = [
-    ("preguntas", "Preguntas"), ("aciertos", "Aciertos"), ("fallos", "Fallos"),
-    ("blancos", "En blanco"), ("puntos", "Puntos"),
-]
-
-# Colores por defecto de cada tipo de bloque (los del HTML)
-LOGO_POR_DEFECTO = ("https://academia.ecap.es/pluginfile.php?file=%2F1%2Fcore_admin"
-                    "%2Flogo%2F0x200%2F1782109950%2FACADEMIA%20VIRTUAL%20%281%29.png")
-
-COLOR_SUPUESTO = "#8fc4d9"      # azul de la plantilla
-COLOR_TEST     = "#e0ac4a"      # ámbar, para distinguir la teoría
-
-
-# ══════════════════════════════════════════════════════════════════════
-#  1. MODELO DE DATOS
-# ══════════════════════════════════════════════════════════════════════
-
-def datos_vacios():
-    """Estructura mínima de un supuesto recién creado."""
-    return {
-        "config": {
-            "titulo": "Nuevo supuesto",
-            "referencia": "EXP-000/2025",
-            "ambito": "Legislación vigente",
-            "minutos": 30,
-            "aptoPorcentaje": 50,
-            "logo": LOGO_POR_DEFECTO,
-            "logoAlt": "ECAP - Escuela Ciudadana de Administración Pública",
-            "organismo": "Comunidad ECAP ASS C1",
-        },
-        "tema": dict(TEMA_DEFECTO),
-        "interfaz": {k: dict(v) for k, v in INTERFAZ_DEFECTO.items()},
-        "envio": dict(ENVIO_DEFECTO),
-        "bloques": [bloque_vacio("supuesto", "B1", primero=True)],
-        "enunciados": [],
-        "preguntas": [],
-    }
-
-
-def bloque_vacio(tipo="supuesto", sugerencia_id="B1", primero=False):
-    """Un bloque es una sección del examen: un supuesto práctico (con
-    enunciados) o una tanda de teoría tipo test."""
-    es_test = (tipo == "test")
-    return {
-        "id": sugerencia_id,
-        "tipo": "test" if es_test else "supuesto",
-        "titulo": "Teoría" if es_test else "Supuesto práctico",
-        "color": COLOR_TEST if es_test else COLOR_SUPUESTO,
-        "modo": "cadena" if es_test else "individual",
-        "porIntento": 0,
-        "acierto": 1.0,
-        "fallo": 0.0,
-        "blanco": 0.0,
-        "envio": dict(ENVIO_BLOQUE_PRIMERO if primero else ENVIO_BLOQUE_DEFECTO),
-    }
-
-
-def enunciado_vacio(sugerencia_id="E1"):
-    return {
-        "id": sugerencia_id,
-        "number": sugerencia_id.lstrip("Ee") or "1",
-        "title": "Título del expediente",
-        "ref": "REF-000",
-        "ambito": "Materias que abarca",
-        "factBlocks": [],
-        "timeline": [],
-    }
-
-
-def bloque_hechos_vacio():
-    return {"title": "Título del bloque de hechos", "paragraphs": [""],
-            "red": False, "hidden": False}
-
-
-def hito_vacio():
-    return {"date": "01/01/2025", "text": "Descripción del hito",
-            "red": False, "hidden": False}
-
-
-def pregunta_vacia(statement_id=None, bloque_id="B1"):
-    return {
-        "bloqueId": bloque_id,
-        "statementId": statement_id,
-        "tag": "",
-        "q": "Texto de la pregunta",
-        "a": ["Opción correcta", "Opción incorrecta", "Opción incorrecta", "Opción incorrecta"],
-        "c": 0,
-        "law": "",
-        "tip": "",
-    }
-
-
-def normalizar(datos):
-    """Rellena las claves que falten para que la interfaz nunca reviente."""
-    base = datos_vacios()
-    cfg = dict(base["config"])
-    cfg.update(datos.get("config") or {})
-    try:
-        cfg["minutos"] = int(float(str(cfg.get("minutos", 30)).replace(",", ".")))
-    except (TypeError, ValueError):
-        cfg["minutos"] = 30
-    cfg["aptoPorcentaje"] = min(100.0, max(0.0, numero(cfg.get("aptoPorcentaje"), 50.0)))
-    for k in ("titulo", "referencia", "ambito", "logo", "logoAlt", "organismo"):
-        cfg[k] = "" if cfg.get(k) is None else str(cfg.get(k))
-
-    # ── tema (colores de la página) ───────────────────────────────────
-    tema_bruto = datos.get("tema") or {}
-    tema = {clave: color_valido(tema_bruto.get(clave), valor)
-            for clave, valor in TEMA_DEFECTO.items()}
-
-    # ── interfaz (botones y rótulos) ──────────────────────────────────
-    interfaz_bruta = datos.get("interfaz") or {}
-    interfaz = {}
-    for clave, base_clave in INTERFAZ_DEFECTO.items():
-        ajuste = dict(base_clave)
-        dado = interfaz_bruta.get(clave) or {}
-        if isinstance(dado, dict):
-            ajuste["visible"] = bool(dado.get("visible", True))
-            for campo in CAMPOS_ESTADO:
-                if campo in base_clave:
-                    ajuste[campo] = bool(dado.get(campo, base_clave[campo]))
-            for campo in ("texto", "titulo", "url"):
-                if campo in base_clave and dado.get(campo) is not None:
-                    ajuste[campo] = str(dado.get(campo))
-        interfaz[clave] = ajuste
-
-    # ── envío de resultados ───────────────────────────────────────────
-    # Un archivo que nunca ha tenido apartado de envío (por ejemplo uno de
-    # los antiguos) estrena la configuración del proyecto; si lo tiene, se
-    # respeta tal cual, incluso con casillas vacías a propósito.
-    sin_configurar = ("envio" not in datos and
-                      not any((b or {}).get("envio") for b in (datos.get("bloques") or [])))
-    envio_bruto = datos.get("envio") or (dict(ENVIO_DEFECTO) if sin_configurar else {})
-    envio = {clave: str(envio_bruto.get(clave, "") or "").strip()
-             for clave in ENVIO_DEFECTO}
-    # Casillas de recuento que en versiones anteriores iban sueltas
-    heredadas = {destino: str(envio_bruto.get(origen, "") or "").strip()
-                 for origen, destino in EQUIVALENCIA_ENVIO_ANTIGUO.items()}
-
-    # ── bloques ───────────────────────────────────────────────────────
-    brutos = datos.get("bloques") or []
-    bloques, usados = [], set()
-    for i, b in enumerate(brutos):
-        tipo = "test" if str(b.get("tipo")) == "test" else "supuesto"
-        nb = bloque_vacio(tipo, "B%d" % (i + 1))
-        ident = re.sub(r"[^A-Za-z0-9_-]", "", str(b.get("id") or "")) or ("B%d" % (i + 1))
-        while ident in usados:
-            ident += "x"
-        usados.add(ident)
-        nb["id"] = ident
-        nb["titulo"] = str(b.get("titulo") or nb["titulo"])
-        nb["color"] = color_valido(b.get("color"), nb["color"])
-        modo = str(b.get("modo") or "")
-        nb["modo"] = modo if modo in ("cadena", "individual") else nb["modo"]
-        try:
-            nb["porIntento"] = max(0, int(b.get("porIntento") or 0))
-        except (TypeError, ValueError):
-            nb["porIntento"] = 0
-        env_bruto = b.get("envio") or {}
-        nb["envio"] = {clave: str(env_bruto.get(clave, "") or "").strip()
-                       for clave in ENVIO_BLOQUE_DEFECTO}
-        if i == 0:      # el primer bloque hereda las casillas sueltas antiguas
-            for clave, valor in heredadas.items():
-                if valor and not nb["envio"].get(clave):
-                    nb["envio"][clave] = valor
-            if sin_configurar:
-                nb["envio"] = dict(ENVIO_BLOQUE_PRIMERO)
-        nb["acierto"] = numero(b.get("acierto"), 1.0)
-        nb["fallo"] = abs(numero(b.get("fallo"), 0.0))
-        nb["blanco"] = abs(numero(b.get("blanco"), 0.0))
-        bloques.append(nb)
-    if not bloques:
-        # Sin bloques declarados: uno solo, que es el examen entero
-        bloques = [bloque_vacio("supuesto", "B1", primero=sin_configurar)]
-    ids_bloque = [b["id"] for b in bloques]
-    tipos = {b["id"]: b["tipo"] for b in bloques}
-
-    enunciados = []
-    for e in (datos.get("enunciados") or []):
-        n = enunciado_vacio()
-        n.update({k: v for k, v in e.items() if v is not None})
-        n["id"] = str(n.get("id") or "E1")
-        n["number"] = str(n.get("number") or "")
-        for k in ("title", "ref", "ambito"):
-            n[k] = str(n.get(k) or "")
-        bloques_hechos = []
-        for fb in (e.get("factBlocks") or []):
-            b = bloque_hechos_vacio()
-            b["title"] = str(fb.get("title") or "")
-            parr = fb.get("paragraphs") or []
-            b["paragraphs"] = [str(p) for p in parr] if isinstance(parr, list) else [str(parr)]
-            b["red"] = bool(fb.get("red"))
-            b["hidden"] = bool(fb.get("hidden"))
-            bloques_hechos.append(b)
-        n["factBlocks"] = bloques_hechos
-        hitos = []
-        for t in (e.get("timeline") or []):
-            h = hito_vacio()
-            h["date"] = str(t.get("date") or "")
-            h["text"] = str(t.get("text") or "")
-            h["red"] = bool(t.get("red"))
-            h["hidden"] = bool(t.get("hidden"))
-            hitos.append(h)
-        n["timeline"] = hitos
-        enunciados.append(n)
-
-    preguntas = []
-    for p in (datos.get("preguntas") or []):
-        q = pregunta_vacia()
-        bid = str(p.get("bloqueId") or "")
-        q["bloqueId"] = bid if bid in ids_bloque else ids_bloque[0]
-        sid = p.get("statementId")
-        q["statementId"] = str(sid) if sid else None
-        if tipos[q["bloqueId"]] == "test":
-            q["statementId"] = None      # la teoría nunca lleva enunciado
-        q["tag"] = str(p.get("tag") or "")
-        q["q"] = str(p.get("q") or "")
-        opciones = [str(x) for x in (p.get("a") or [])]
-        while len(opciones) < 4:
-            opciones.append("")
-        q["a"] = opciones[:4]
-        try:
-            q["c"] = max(0, min(3, int(p.get("c", 0))))
-        except (TypeError, ValueError):
-            q["c"] = 0
-        q["law"] = str(p.get("law") or "")
-        q["tip"] = str(p.get("tip") or "")
-        preguntas.append(q)
-
-    # Las preguntas se guardan en el orden del examen: bloque a bloque.
-    orden = {bid: i for i, bid in enumerate(ids_bloque)}
-    preguntas.sort(key=lambda q: orden[q["bloqueId"]])
-
-    return {"config": cfg, "tema": tema, "interfaz": interfaz, "envio": envio,
-            "bloques": bloques, "enunciados": enunciados, "preguntas": preguntas}
-
-
-def numero(valor, por_defecto):
-    """Convierte a número admitiendo coma decimal ("0,33" → 0.33)."""
-    try:
-        return float(str(valor).replace(",", "."))
-    except (TypeError, ValueError):
-        return por_defecto
-
-
-def color_valido(valor, por_defecto):
-    """#rgb o #rrggbb; cualquier otra cosa se sustituye por el color base."""
-    txt = str(valor or "").strip()
-    if re.fullmatch(r"#[0-9A-Fa-f]{3}", txt) or re.fullmatch(r"#[0-9A-Fa-f]{6}", txt):
-        return txt
-    return por_defecto
-
-
-# ══════════════════════════════════════════════════════════════════════
-#  2. LECTURA DEL HTML
-#     Formato A (recomendado): <script type="application/json" id="datos-supuesto">
-#     Formato B (plantilla antigua en JavaScript): const EXAM_CONFIG = {...} etc.
-# ══════════════════════════════════════════════════════════════════════
-
-RE_BLOQUE_JSON = re.compile(
-    r'(<script\b[^>]*\bid=["\']datos-supuesto["\'][^>]*>)(.*?)(</script>)',
-    re.S | re.I)
-
-
-class _AnalizadorJS:
-    """Lector mínimo de literales JavaScript (objetos, arrays, cadenas con
-    comillas invertidas, números, true/false/null y comentarios)."""
-
-    def __init__(self, texto, pos=0):
-        self.t = texto
-        self.i = pos
-
-    def _saltar(self):
-        t, n = self.t, len(self.t)
-        while self.i < n:
-            c = t[self.i]
-            if c in " \t\r\n":
-                self.i += 1
-            elif t.startswith("//", self.i):
-                j = t.find("\n", self.i)
-                self.i = n if j < 0 else j + 1
-            elif t.startswith("/*", self.i):
-                j = t.find("*/", self.i)
-                self.i = n if j < 0 else j + 2
-            else:
-                return
-
-    def valor(self):
-        self._saltar()
-        if self.i >= len(self.t):
-            return None
-        c = self.t[self.i]
-        if c == "{":
-            return self.objeto()
-        if c == "[":
-            return self.lista()
-        if c in "`\"'":
-            return self.cadena()
-        return self.escalar()
-
-    def cadena(self):
-        comilla = self.t[self.i]
-        self.i += 1
-        salida = []
-        mapa = {"n": "\n", "t": "\t", "r": "\r", "\\": "\\", "`": "`",
-                "'": "'", '"': '"', "/": "/", "$": "$", "\n": ""}
-        while self.i < len(self.t):
-            c = self.t[self.i]
-            if c == "\\" and self.i + 1 < len(self.t):
-                sig = self.t[self.i + 1]
-                if sig == "u":
-                    try:
-                        salida.append(chr(int(self.t[self.i + 2:self.i + 6], 16)))
-                        self.i += 6
-                        continue
-                    except ValueError:
-                        pass
-                salida.append(mapa.get(sig, sig))
-                self.i += 2
-                continue
-            if c == comilla:
-                self.i += 1
-                break
-            salida.append(c)
-            self.i += 1
-        return "".join(salida)
-
-    def escalar(self):
-        j = self.i
-        while j < len(self.t) and self.t[j] not in ",}]\n":
-            j += 1
-        bruto = self.t[self.i:j].strip()
-        self.i = j
-        if bruto == "true":
-            return True
-        if bruto == "false":
-            return False
-        if bruto in ("null", "undefined", ""):
-            return None
-        try:
-            return int(bruto)
-        except ValueError:
-            pass
-        try:
-            return float(bruto)
-        except ValueError:
-            return bruto
-
-    def lista(self):
-        self.i += 1                      # [
-        salida = []
-        while True:
-            self._saltar()
-            if self.i >= len(self.t):
-                break
-            c = self.t[self.i]
-            if c == "]":
-                self.i += 1
-                break
-            if c == ",":
-                self.i += 1
-                continue
-            salida.append(self.valor())
-        return salida
-
-    def objeto(self):
-        self.i += 1                      # {
-        salida = {}
-        while True:
-            self._saltar()
-            if self.i >= len(self.t):
-                break
-            c = self.t[self.i]
-            if c == "}":
-                self.i += 1
-                break
-            if c == ",":
-                self.i += 1
-                continue
-            if c in "`\"'":
-                clave = self.cadena()
-            else:
-                j = self.i
-                while j < len(self.t) and (self.t[j].isalnum() or self.t[j] in "_$"):
-                    j += 1
-                clave = self.t[self.i:j]
-                self.i = j
-                if not clave:            # carácter inesperado: lo saltamos
-                    self.i += 1
-                    continue
-            self._saltar()
-            if self.i < len(self.t) and self.t[self.i] == ":":
-                self.i += 1
-            salida[clave] = self.valor()
-        return salida
-
-
-def _en_comentario(texto, pos):
-    """¿La posición cae dentro de un comentario /* … */ o // … ?
-
-    Las plantillas explican en sus comentarios cosas como
-    «deja const STATEMENTS_BANK = [];», así que hay que descartar esas
-    apariciones y quedarse con la declaración de verdad."""
-    ini_bloque = texto.rfind("/*", 0, pos)
-    fin_bloque = texto.rfind("*/", 0, pos)
-    if ini_bloque > fin_bloque:
-        return True
-    ini_linea = texto.rfind("\n", 0, pos) + 1
-    return "//" in texto[ini_linea:pos]
-
-
-def _literal_js(texto, nombre):
-    """Localiza  const NOMBRE = <literal>  dentro del texto.
-
-    Devuelve (valor, posicion_inicial_de_la_declaracion, posicion_final_del_literal)
-    o (None, -1, -1) si no aparece."""
-    patron = re.compile(r"\b(?:const|let|var)\s+%s\s*=\s*" % re.escape(nombre))
-    elegido = None
-    for m in patron.finditer(texto):
-        if not _en_comentario(texto, m.start()):
-            elegido = m
-            break
-    if elegido is None:
-        return None, -1, -1
-    an = _AnalizadorJS(texto, elegido.end())
-    valor = an.valor()
-    return valor, elegido.start(), an.i
-
-
-def leer_html(ruta):
-    """Lee un archivo de plantilla. Devuelve (datos, modo, texto_html).
-
-    modo: 'json'    → el archivo lleva el bloque <script id="datos-supuesto">
-          'js'      → plantilla antigua con EXAM_CONFIG/STATEMENTS_BANK/QUESTIONS_BANK
-          'js-sin-config' → plantilla antigua SIN EXAM_CONFIG (título fijo en el HTML)
-    """
-    html = Path(ruta).read_text(encoding="utf-8")
-
-    m = RE_BLOQUE_JSON.search(html)
-    if m:
-        crudo = m.group(2).strip()
-        datos = json.loads(crudo)
-        return normalizar(datos), "json", html
-
-    cfg, _, _ = _literal_js(html, "EXAM_CONFIG")
-    enun, pos_enun, _ = _literal_js(html, "STATEMENTS_BANK")
-    preg, pos_preg, _ = _literal_js(html, "QUESTIONS_BANK")
-    if pos_enun < 0 and pos_preg < 0:
-        raise ValueError(
-            "El archivo no parece una plantilla de supuesto: no se ha encontrado\n"
-            'ni el bloque <script id="datos-supuesto"> ni las listas\n'
-            "STATEMENTS_BANK / QUESTIONS_BANK.")
-
-    modo = "js" if cfg else "js-sin-config"
-    if not cfg:
-        # Rescatamos al menos el título de la pestaña
-        mt = re.search(r"<title>(.*?)</title>", html, re.S | re.I)
-        cfg = {"titulo": (mt.group(1).strip() if mt else "Supuesto"),
-               "referencia": "", "ambito": "", "minutos": 30}
-
-    datos = {"config": cfg, "enunciados": enun or [], "preguntas": preg or []}
-    return normalizar(datos), modo, html
-
-
-# ══════════════════════════════════════════════════════════════════════
-#  3. ESCRITURA DEL HTML
-# ══════════════════════════════════════════════════════════════════════
-
-def datos_a_json(datos):
-    """JSON legible; se escapa '<' para que ningún texto pueda cerrar el <script>."""
-    return json.dumps(datos, ensure_ascii=False, indent=2).replace("<", "\\u003c")
-
-
-def _bt(valor):
-    """Texto entre comillas invertidas, tal y como lo escribe la plantilla JS."""
-    s = "" if valor is None else str(valor)
-    s = s.replace("\\", "\\\\").replace("`", "\\`").replace("${", "\\${")
-    return "`" + s + "`"
-
-
-def bloques_se_pierden(datos):
-    """¿Guardar en la plantilla clásica perdería información de bloques?
-
-    La plantilla antigua no conoce los bloques: solo tiene una lista de
-    preguntas. Si el supuesto tiene más de un bloque, alguno de teoría o
-    un baremo distinto del simple "1 punto por acierto", al guardar en
-    ese formato se pierde esa configuración."""
-    if (datos.get("tema") or TEMA_DEFECTO) != TEMA_DEFECTO:
-        return True
-    if (datos.get("interfaz") or {}) != INTERFAZ_DEFECTO:
-        return True
-    if (datos.get("envio") or ENVIO_DEFECTO) != ENVIO_DEFECTO:
-        return True
-    bloques = datos.get("bloques") or []
-    if len(bloques) > 1:
-        return True
-    for b in bloques:
-        if b["tipo"] == "test" or b["fallo"] or b["blanco"] or b["porIntento"] \
-           or b["acierto"] != 1.0 or b["modo"] != "individual":
-            return True
-    return False
-
-
-def datos_a_js(datos):
-    """Reconstruye la ZONA EDITABLE en JavaScript (plantilla antigua).
-
-    Las preguntas se escriben seguidas, en el orden del examen: la
-    plantilla clásica no tiene bloques."""
-    cfg = datos["config"]
-    out = []
-    out.append("const EXAM_CONFIG = {")
-    out.append("    titulo:     %s," % _bt(cfg["titulo"]))
-    out.append("    referencia: %s," % _bt(cfg["referencia"]))
-    out.append("    ambito:     %s," % _bt(cfg["ambito"]))
-    out.append("    minutos:    %d" % int(cfg["minutos"]))
-    out.append("};")
-    out.append("")
-
-    out.append("const STATEMENTS_BANK = [")
-    partes = []
-    for e in datos["enunciados"]:
-        p = ["    {"]
-        p.append("        id: %s," % _bt(e["id"]))
-        p.append("        number: %s," % _bt(e["number"]))
-        p.append("        title: %s," % _bt(e["title"]))
-        p.append("        ref: %s," % _bt(e["ref"]))
-        p.append("        ambito: %s," % _bt(e["ambito"]))
-        p.append("        factBlocks: [")
-        sub = []
-        for fb in e["factBlocks"]:
-            q = ["            {"]
-            q.append("                title: %s," % _bt(fb["title"]))
-            if fb["red"]:
-                q.append("                red: true,")
-            if fb["hidden"]:
-                q.append("                hidden: true,")
-            q.append("                paragraphs: [")
-            q.append(",\n".join("                    %s" % _bt(x) for x in fb["paragraphs"]))
-            q.append("                ]")
-            q.append("            }")
-            sub.append("\n".join(q))
-        p.append(",\n".join(sub))
-        p.append("        ],")
-        p.append("        timeline: [")
-        sub = []
-        for t in e["timeline"]:
-            trozo = "            { date: %s, text: %s" % (_bt(t["date"]), _bt(t["text"]))
-            if t["red"]:
-                trozo += ", red: true"
-            if t["hidden"]:
-                trozo += ", hidden: true"
-            trozo += " }"
-            sub.append(trozo)
-        p.append(",\n".join(sub))
-        p.append("        ]")
-        p.append("    }")
-        partes.append("\n".join(p))
-    out.append(",\n".join(partes))
-    out.append("];")
-    out.append("")
-
-    out.append("const QUESTIONS_BANK = [")
-    partes = []
-    for pr in datos["preguntas"]:
-        p = ["    {"]
-        sid = pr["statementId"]
-        p.append("        statementId: %s," % (_bt(sid) if sid else "null"))
-        p.append("        tag: %s," % _bt(pr["tag"]))
-        p.append("        q: %s," % _bt(pr["q"]))
-        p.append("        a: [")
-        p.append(",\n".join("            %s" % _bt(x) for x in pr["a"]))
-        p.append("        ],")
-        p.append("        c: %d," % int(pr["c"]))
-        p.append("        law: %s," % _bt(pr["law"]))
-        p.append("        tip: %s" % _bt(pr["tip"]))
-        p.append("    }")
-        partes.append("\n".join(p))
-    out.append(",\n".join(partes))
-    out.append("];")
-    return "\n".join(out)
-
-
-MARCA_FIN = "FIN DE LA ZONA EDITABLE"
-
-
-def escribir_html(ruta_destino, html_base, datos, modo):
-    """Inserta los datos en el HTML y lo guarda en ruta_destino."""
-    if modo == "json" and RE_BLOQUE_JSON.search(html_base):
-        nuevo = RE_BLOQUE_JSON.sub(
-            lambda m: m.group(1) + "\n" + datos_a_json(datos) + "\n" + m.group(3),
-            html_base, count=1)
-    else:
-        # Plantilla antigua: sustituimos desde "const EXAM_CONFIG"/"const STATEMENTS_BANK"
-        # hasta el marcador de fin de zona editable (o hasta el final de QUESTIONS_BANK).
-        ini, fin_literal = -1, -1
-        for nombre in ("EXAM_CONFIG", "STATEMENTS_BANK", "QUESTIONS_BANK"):
-            _, pos, fin_lit = _literal_js(html_base, nombre)
-            if pos >= 0:
-                if ini < 0 or pos < ini:
-                    ini = pos
-                fin_literal = max(fin_literal, fin_lit)
-        if ini < 0:
-            raise ValueError("No se ha encontrado la zona editable en el archivo de destino.")
-
-        # La zona editable termina en el comentario "FIN DE LA ZONA EDITABLE"
-        # (que se conserva) o, si no existe, justo tras el último literal.
-        pos_marca = html_base.find(MARCA_FIN, ini)
-        if pos_marca >= 0:
-            fin = html_base.rfind("/*", ini, pos_marca)
-            if fin < 0:
-                fin = pos_marca
-        else:
-            fin = fin_literal
-            while fin < len(html_base) and html_base[fin] in " \t\r\n;":
-                fin += 1
-        nuevo = html_base[:ini] + datos_a_js(datos) + "\n\n" + html_base[fin:]
-
-    destino = Path(ruta_destino)
-    if destino.exists():                       # copia de seguridad .bak
-        try:
-            destino.with_suffix(destino.suffix + ".bak").write_text(
-                destino.read_text(encoding="utf-8"), encoding="utf-8")
-        except OSError:
-            pass
-    destino.write_text(nuevo, encoding="utf-8")
-    return nuevo
-
+# Todo lo que no es ventana (valores por defecto, normalizar, leer_html, escribir_html,
+# alta en el menú…) está en datos_html.py, junto a este archivo.
+from datos_html import *  # noqa: F401,F403
 
 # ══════════════════════════════════════════════════════════════════════
 #  4. PIEZAS REUTILIZABLES DE LA INTERFAZ
@@ -920,15 +133,538 @@ def rotulo(padre, visible, tecnico, html, ayuda="", con_titulo=True):
     return marco
 
 
-def caja_texto(padre, alto=4, ancho=90):
-    """Cuadro de texto multilínea con su barra de desplazamiento."""
+# ══════════════════════════════════════════════════════════════════════
+#  FORMATO DEL TEXTO (negrita, cursiva, subrayado, tachado, resaltado y
+#  tamaños de letra)
+#  ─────────────────────────────────────────────────────────────────────
+#  El texto del supuesto se guarda tal cual dentro del JSON y la página
+#  lo pinta con innerHTML, así que el formato se escribe con etiquetas
+#  HTML sencillas:
+#
+#      <b>…</b>        negrita
+#      <i>…</i>        cursiva
+#      <u>…</u>        subrayado
+#      <s>…</s>        tachado
+#      <mark>…</mark>  resaltado (rotulador); con class="mk-verde",
+#                      "mk-azul" o "mk-rosa" cambia el color
+#      <span class="fs-l">…</span>   tamaño de letra (fs-xs, fs-s, fs-m,
+#                                    fs-l, fs-xl, fs-xxl)
+#      <span class="al-j">…</span>   párrafo JUSTIFICADO (ajustado al ancho
+#                                    de la línea). Sin esta etiqueta el
+#                                    párrafo va alineado a la izquierda.
+#      <span class="sg-1">…</span>   párrafo con SANGRÍA (sg-1, sg-2, sg-3:
+#                                    cada nivel, más hacia dentro)
+#      <span class="ff-mono">…</span> tipografía (ff-sans, ff-titulo, ff-mono,
+#                                    ff-mano)
+#
+#  Los saltos de línea (Enter) se respetan: cada Enter es un salto de
+#  párrafo en la página. En la narración de los hechos cada línea pasa a
+#  ser un párrafo con su separación; en el resto de cuadros (pregunta,
+#  respuestas, motivación, consejo, hitos) es un salto de línea.
+#
+#  Para no tener que escribirlas a mano, cada cuadro de texto lleva
+#  encima una barra de botones que envuelve lo que esté seleccionado, y
+#  el propio cuadro pinta el resultado a la vista (la negrita se ve en
+#  negrita, el resaltado con su color…) dejando las etiquetas en gris
+#  claro para que se sigan pudiendo tocar a mano.
+# ══════════════════════════════════════════════════════════════════════
+
+# Colores de rotulador: clase HTML → (color en la página, color en el editor)
+RESALTADOS = [
+    ("",          "Amarillo", "#ffe9a8"),
+    ("mk-verde",  "Verde",    "#c9f0d2"),
+    ("mk-azul",   "Azul",     "#cfe4fb"),
+    ("mk-rosa",   "Rosa",     "#fbd0e2"),
+]
+
+# Tamaños de letra: clase HTML → (nombre visible, tamaño en el editor)
+TAMANOS = [
+    ("fs-xs",  "Muy pequeña",  8),
+    ("fs-s",   "Pequeña",      9),
+    ("fs-m",   "Normal",      10),
+    ("fs-l",   "Grande",      12),
+    ("fs-xl",  "Muy grande",  14),
+    ("fs-xxl", "Enorme",      17),
+]
+
+_COLOR_RESALTADO = {clave: color for clave, _n, color in RESALTADOS}
+_TAM_EDITOR = {clave: tam for clave, _n, tam in TAMANOS}
+
+# Tipografías: clase HTML → (nombre visible, fuente con la que se pinta en el
+# editor, que es una aproximación: en la página salen las reales).
+FUENTES = [
+    ("ff-sans",   "Sans-serif (limpia)",          "Segoe UI"),
+    ("ff-titulo", "Elegante (Playfair Display)",  "Palatino Linotype"),
+    ("ff-mono",   "Máquina de escribir (mono)",   "Consolas"),
+    ("ff-mano",   "Manuscrita (Caveat)",          "Segoe Script"),
+]
+_FUENTE_EDITOR = {clave: fam for clave, _n, fam in FUENTES}
+
+# Clases que afectan a un PÁRRAFO entero (no a un trozo de línea)
+CLASES_PARRAFO = {"al-j", "sg-1", "sg-2", "sg-3"}
+SANGRIA_PX = 26          # sangría por nivel en el editor
+
+# Cualquier etiqueta HTML del texto (de apertura o de cierre).
+RE_ETIQUETA_HTML = re.compile(r"</?\s*([a-zA-Z][a-zA-Z0-9]*)\b[^<>]*>")
+RE_CLASE_HTML = re.compile(r"""class\s*=\s*["']([^"']*)["']""", re.I)
+
+# Etiquetas que el editor sabe pintar y qué cambian del aspecto.
+_EFECTO_ETIQUETA = {
+    "b": "negrita", "strong": "negrita",
+    "i": "cursiva", "em": "cursiva",
+    "u": "subrayado",
+    "s": "tachado", "del": "tachado", "strike": "tachado",
+}
+
+# Etiquetas que el editor sigue de apertura a cierre. <span> entra en la
+# lista aunque no todos los <span> sean de formato: se apila igualmente
+# (con estilo None) para que cada </span> cierre el suyo y no el de otro.
+ETIQUETAS_FORMATO = set(_EFECTO_ETIQUETA) | {"mark", "span"}
+
+FUENTE_CAJA = ("Georgia", 10)
+
+
+def _estilo_de_etiqueta(nombre, atributos):
+    """Qué cambia esta etiqueta de apertura. None si el editor no la pinta."""
+    efecto = _EFECTO_ETIQUETA.get(nombre)
+    if efecto:
+        return (efecto, True)
+    clases = ""
+    m = RE_CLASE_HTML.search(atributos or "")
+    if m:
+        clases = m.group(1).lower()
+    if nombre == "mark":
+        clave = next((c for c in _COLOR_RESALTADO if c and c in clases.split()), "")
+        return ("resaltado", clave)
+    if nombre == "span":
+        lista = clases.split()
+        if any(c in CLASES_PARRAFO for c in lista):
+            return ("parrafo", True)
+        for clave in lista:
+            if clave in _FUENTE_EDITOR:
+                return ("fuente", clave)
+        for clave in lista:
+            if clave in _TAM_EDITOR:
+                return ("tamano", clave)
+    return None
+
+
+def _etiqueta_compuesta(widget, estilo):
+    """Devuelve (creándola si hace falta) la etiqueta de tkinter que pinta
+    esa combinación de efectos. Se hace una sola por combinación para que
+    negrita + cursiva + tamaño puedan verse a la vez."""
+    negrita, cursiva, subrayado, tachado, tamano, resaltado, fuente = estilo
+    nombre = "fmt_%s" % "_".join(
+        str(x) for x in (int(negrita), int(cursiva), int(subrayado), int(tachado),
+                         tamano or "-", resaltado if resaltado is not None else "-", fuente or "-"))
+    if nombre in widget.tag_names():
+        return nombre
+    fuente = tkfont.Font(
+        family=_FUENTE_EDITOR.get(fuente, FUENTE_CAJA[0]),
+        size=_TAM_EDITOR.get(tamano, FUENTE_CAJA[1]),
+        weight="bold" if negrita else "normal",
+        slant="italic" if cursiva else "roman",
+        underline=1 if subrayado else 0,
+        overstrike=1 if tachado else 0)
+    # La fuente hay que guardarla: si se la lleva el recolector de basura,
+    # tkinter se queda sin ella y el cuadro deja de pintarse.
+    widget._fuentes_formato.append(fuente)
+    widget.tag_configure(nombre, font=fuente)
+    if resaltado is not None:
+        widget.tag_configure(nombre, background=_COLOR_RESALTADO.get(resaltado, "#ffe9a8"),
+                             foreground="#111827")
+    return nombre
+
+
+def repintar_formato(widget):
+    """Pinta el cuadro de texto como se verá en la página: lee las
+    etiquetas HTML del contenido y aplica el aspecto a lo que envuelven."""
+    if not getattr(widget, "_formato", False):
+        return
+    for etq in widget.tag_names():
+        if etq.startswith("fmt_") or etq == "fmt_etiqueta":
+            widget.tag_remove(etq, "1.0", "end")
+    contenido = widget.get("1.0", "end-1c")
+
+    def indice(n):
+        return "1.0 + %d chars" % n
+
+    def pintar(desde, hasta, pila):
+        if hasta <= desde:
+            return
+        negrita = cursiva = subrayado = tachado = False
+        tamano = None
+        resaltado = None
+        fuente = None
+        for _nombre, estilo in pila:
+            if not estilo:
+                continue
+            efecto, valor = estilo
+            if efecto == "negrita":     negrita = True
+            elif efecto == "cursiva":   cursiva = True
+            elif efecto == "subrayado": subrayado = True
+            elif efecto == "tachado":   tachado = True
+            elif efecto == "tamano":    tamano = valor
+            elif efecto == "resaltado": resaltado = valor
+            elif efecto == "fuente":    fuente = valor
+        if not (negrita or cursiva or subrayado or tachado or tamano or fuente
+                or resaltado is not None):
+            return
+        etq = _etiqueta_compuesta(
+            widget, (negrita, cursiva, subrayado, tachado, tamano, resaltado, fuente))
+        widget.tag_add(etq, indice(desde), indice(hasta))
+
+    pila = []
+    pos = 0
+    for m in RE_ETIQUETA_HTML.finditer(contenido):
+        ini, fin = m.span()
+        pintar(pos, ini, pila)
+        widget.tag_add("fmt_etiqueta", indice(ini), indice(fin))
+        nombre = m.group(1).lower()
+        entero = m.group(0)
+        if nombre in ETIQUETAS_FORMATO:
+            if entero.startswith("</"):
+                for k in range(len(pila) - 1, -1, -1):
+                    if pila[k][0] == nombre:
+                        pila.pop(k)
+                        break
+            elif not entero.endswith("/>"):
+                pila.append((nombre, _estilo_de_etiqueta(nombre, entero)))
+        pos = fin
+    pintar(pos, len(contenido), pila)
+
+    # Párrafos justificados o con sangría: se marcan líneas enteras. Tk no
+    # sabe justificar, así que lo justificado se ve con fondo azulado; la
+    # sangría sí se ve de verdad.
+    for n, linea in enumerate(contenido.split("\n"), 1):
+        env = envoltorio_parrafo(linea)
+        if not env:
+            continue
+        clases = env[0]
+        a, b = "%d.0" % n, "%d.end" % n
+        if "al-j" in clases:
+            widget.tag_add("fmt_just", a, b)
+        nivel = nivel_sangria(clases)
+        if nivel:
+            widget.tag_add("fmt_sg%d" % nivel, a, b)
+    # Las etiquetas, siempre en gris por encima de todo lo demás.
+    widget.tag_raise("fmt_etiqueta")
+
+
+def _repintar_luego(widget):
+    """Repinta sin atascar la escritura: se espera a que el dedo levante."""
+    pendiente = getattr(widget, "_repintado_pendiente", None)
+    if pendiente:
+        try:
+            widget.after_cancel(pendiente)
+        except tk.TclError:
+            pass
+    widget._repintado_pendiente = widget.after(120, lambda: repintar_formato(widget))
+
+
+def envolver_formato(widget, apertura, cierre):
+    """Envuelve lo seleccionado (o deja el cursor dentro de las etiquetas,
+    si no hay nada seleccionado)."""
+    try:
+        ini = widget.index("sel.first")
+        fin = widget.index("sel.last")
+    except tk.TclError:
+        ini = fin = widget.index("insert")
+    largo = len(widget.get(ini, fin))
+    widget.insert(fin, cierre)
+    widget.insert(ini, apertura)
+    dentro = widget.index("%s + %d chars" % (ini, len(apertura)))
+    if largo:
+        widget.tag_remove("sel", "1.0", "end")
+        widget.tag_add("sel", dentro, "%s + %d chars" % (dentro, largo))
+        widget.mark_set("insert", "%s + %d chars" % (dentro, largo))
+    else:
+        widget.mark_set("insert", dentro)
+    widget.focus_set()
+    widget.see("insert")
+    repintar_formato(widget)
+    widget.event_generate("<<TextoTocado>>")
+    return "break"
+
+
+def quitar_formato(widget):
+    """Deja en texto pelado lo seleccionado: le quita todas las etiquetas
+    de formato (si no hay nada seleccionado, limpia el cuadro entero)."""
+    try:
+        ini = widget.index("sel.first")
+        fin = widget.index("sel.last")
+    except tk.TclError:
+        ini, fin = "1.0", "end-1c"
+    trozo = widget.get(ini, fin)
+    # Se quitan las etiquetas de formato con su cierre; lo que no sea
+    # formato (un <br>, un <span> de otra cosa) se queda como estaba.
+    pila = []
+
+    def fuera(m):
+        nombre = m.group(1).lower()
+        entero = m.group(0)
+        if nombre not in ETIQUETAS_FORMATO:
+            return entero
+        if entero.startswith("</"):
+            for k in range(len(pila) - 1, -1, -1):
+                if pila[k][0] == nombre:
+                    era_formato = pila.pop(k)[1]
+                    return "" if era_formato else entero
+            return entero
+        de_formato = bool(_estilo_de_etiqueta(nombre, entero))
+        if not entero.endswith("/>"):
+            pila.append((nombre, de_formato))
+        return "" if de_formato else entero
+
+    limpio = RE_ETIQUETA_HTML.sub(fuera, trozo)
+    if limpio == trozo:
+        return "break"
+    widget.delete(ini, fin)
+    widget.insert(ini, limpio)
+    repintar_formato(widget)
+    widget.event_generate("<<TextoTocado>>")
+    return "break"
+
+
+def nivel_sangria(clases):
+    """Nivel de sangría (0-3) que dicen unas clases."""
+    return next((n for n in (3, 2, 1) if "sg-%d" % n in clases), 0)
+
+
+def envoltorio_parrafo(linea):
+    """Si TODA la línea está envuelta en un único <span> de párrafo
+    (justificado y/o sangría) devuelve (clases, interior); si no, None."""
+    cuerpo = linea.rstrip()
+    m = re.match(r'^\s*<span class="([^"]*)">', cuerpo)
+    if not m or not cuerpo.endswith("</span>"):
+        return None
+    clases = set(m.group(1).split())
+    if not clases or not clases <= CLASES_PARRAFO:
+        return None
+    prof = 0
+    for t in RE_ETIQUETA_HTML.finditer(cuerpo):
+        if t.group(1).lower() != "span":
+            continue
+        if t.group(0).startswith("</"):
+            prof -= 1
+            if prof == 0 and t.end() != len(cuerpo):
+                return None             # el span se cierra antes del final
+        elif not t.group(0).endswith("/>"):
+            prof += 1
+    if prof != 0:
+        return None
+    return clases, cuerpo[m.end():-len("</span>")]
+
+
+def formato_parrafos(widget, accion):
+    """Justifica, quita el justificado o cambia la sangría de los PÁRRAFOS
+    tocados por la selección (cada línea escrita con Enter es un párrafo,
+    y se envuelve entera). Sin selección actúa sobre la línea del cursor.
+
+    accion: "just" · "izq" · "mas" (más sangría) · "menos" (menos sangría)."""
+    try:
+        ini = widget.index("sel.first")
+        fin = widget.index("sel.last")
+    except tk.TclError:
+        ini = fin = widget.index("insert")
+    l1, l2 = int(ini.split(".")[0]), int(fin.split(".")[0])
+    if l2 > l1 and fin.endswith(".0"):      # la selección acaba al principio de una línea
+        l2 -= 1
+    for n in range(l1, l2 + 1):
+        a, b = "%d.0" % n, "%d.end" % n
+        linea = widget.get(a, b)
+        if not linea.strip():
+            continue
+        env = envoltorio_parrafo(linea)
+        clases, interior = (set(env[0]), env[1]) if env else (set(), linea.strip())
+        nivel = nivel_sangria(clases)
+        if accion == "just":
+            clases.add("al-j")
+        elif accion == "izq":
+            clases.discard("al-j")
+        elif accion == "mas":
+            nivel = min(3, nivel + 1)
+        elif accion == "menos":
+            nivel = max(0, nivel - 1)
+        clases -= {"sg-1", "sg-2", "sg-3"}
+        if nivel:
+            clases.add("sg-%d" % nivel)
+        if clases:
+            orden = [c for c in ("al-j", "sg-1", "sg-2", "sg-3") if c in clases]
+            nueva = '<span class="%s">%s</span>' % (" ".join(orden), interior)
+        else:
+            nueva = interior
+        if nueva != linea:
+            widget.delete(a, b)
+            widget.insert(a, nueva)
+    widget.tag_remove("sel", "1.0", "end")
+    widget.tag_add("sel", "%d.0" % l1, "%d.end" % l2)
+    widget.focus_set()
+    repintar_formato(widget)
+    widget.event_generate("<<TextoTocado>>")
+    return "break"
+
+
+def barra_formato(padre, widget, compacta=False):
+    """Barra de botones de formato de un cuadro de texto."""
+    barra = ttk.Frame(padre, style="Panel.TFrame")
+    fuente = ("Segoe UI", 8 if compacta else 9)
+    ancho = 3 if compacta else 4
+
+    def boton(texto, orden, ayuda, ancho_b=None, **kw):
+        b = tk.Button(barra, text=texto, command=orden, relief="groove",
+                      background="#efe6da", foreground="#3b2f26",
+                      padx=2, pady=0, width=ancho_b or ancho, cursor="hand2", **kw)
+        b.pack(side="left", padx=1)
+        _consejo(b, ayuda)
+        return b
+
+    boton("N", lambda: envolver_formato(widget, "<b>", "</b>"),
+          "Negrita  ·  <b>…</b>  ·  Ctrl+B",
+          font=(fuente[0], fuente[1], "bold"))
+    boton("K", lambda: envolver_formato(widget, "<i>", "</i>"),
+          "Cursiva  ·  <i>…</i>  ·  Ctrl+I",
+          font=(fuente[0], fuente[1], "italic"))
+    boton("S", lambda: envolver_formato(widget, "<u>", "</u>"),
+          "Subrayado  ·  <u>…</u>  ·  Ctrl+U",
+          font=(fuente[0], fuente[1], "underline"))
+    boton("ab", lambda: envolver_formato(widget, "<s>", "</s>"),
+          "Tachado  ·  <s>…</s>  ·  Ctrl+T",
+          font=(fuente[0], fuente[1], "overstrike"))
+
+    # Resaltado: botón directo (amarillo) con menú de colores al lado.
+    boton("🖍", lambda: envolver_formato(widget, "<mark>", "</mark>"),
+          "Resaltar en amarillo  ·  <mark>…</mark>  ·  Ctrl+R", font=fuente)
+    menu_color = tk.Menubutton(barra, text="▾", relief="groove", font=fuente,
+                               background="#efe6da", foreground="#3b2f26",
+                               padx=2, pady=0, cursor="hand2")
+    menu_color.pack(side="left", padx=(0, 4))
+    m1 = tk.Menu(menu_color, tearoff=0)
+    for clave, nombre, color in RESALTADOS:
+        etq = ' class="%s"' % clave if clave else ""
+        m1.add_command(label="  %s  " % nombre, background=color, foreground="#111827",
+                       command=lambda e=etq: envolver_formato(
+                           widget, "<mark%s>" % e, "</mark>"))
+    menu_color.configure(menu=m1)
+    _consejo(menu_color, "Color del rotulador")
+
+    menu_tam = tk.Menubutton(barra, text="Aa ▾", relief="groove", font=fuente,
+                             background="#efe6da", foreground="#3b2f26",
+                             padx=4, pady=0, cursor="hand2")
+    menu_tam.pack(side="left", padx=(0, 4))
+    m2 = tk.Menu(menu_tam, tearoff=0)
+    for clave, nombre, tam in TAMANOS:
+        m2.add_command(label="%s  (%s)" % (nombre, clave),
+                       font=(FUENTE_CAJA[0], tam),
+                       command=lambda c=clave: envolver_formato(
+                           widget, '<span class="%s">' % c, "</span>"))
+    menu_tam.configure(menu=m2)
+    _consejo(menu_tam, "Tamaño de la letra  ·  <span class=\"fs-…\">…</span>")
+
+    menu_fuente = tk.Menubutton(barra, text="Fuente ▾", relief="groove", font=fuente,
+                                background="#efe6da", foreground="#3b2f26",
+                                padx=4, pady=0, cursor="hand2")
+    menu_fuente.pack(side="left", padx=(0, 4))
+    m3 = tk.Menu(menu_fuente, tearoff=0)
+    for clave, nombre, familia in FUENTES:
+        m3.add_command(label="  %s  " % nombre, font=(familia, 10),
+                       command=lambda c=clave: envolver_formato(
+                           widget, '<span class="%s">' % c, "</span>"))
+    menu_fuente.configure(menu=m3)
+    _consejo(menu_fuente, "Tipografía  ·  <span class=\"ff-…\">…</span>")
+
+    # Párrafo: «Izq.» es como se ve por defecto; «Just.» ajusta el párrafo al
+    # ancho de la línea; «Sang+/Sang-» lo meten más o menos hacia dentro.
+    boton("Izq.", lambda: formato_parrafos(widget, "izq"),
+          "Quitar el justificado (alinear a la izquierda, como está por defecto)  ·  Ctrl+L",
+          ancho_b=5, font=fuente)
+    boton("Just.", lambda: formato_parrafos(widget, "just"),
+          "Justificar: ajustar al ancho de la línea el párrafo  ·  "
+          "<span class=\"al-j\">…</span>  ·  Ctrl+J",
+          ancho_b=5, font=fuente)
+    boton("Sang+", lambda: formato_parrafos(widget, "mas"),
+          "Más sangría: mete el párrafo más hacia dentro (hasta 3 niveles)  ·  "
+          "<span class=\"sg-1\">…</span>  ·  Tab",
+          ancho_b=5, font=fuente)
+    boton("Sang-", lambda: formato_parrafos(widget, "menos"),
+          "Menos sangría: lo saca un nivel hacia fuera  ·  Mayús+Tab",
+          ancho_b=5, font=fuente)
+    boton("✕", lambda: quitar_formato(widget),
+          "Quitar el formato de lo seleccionado", font=fuente)
+    return barra
+
+
+def _consejo(widget, texto):
+    """Globo de ayuda amarillo al pasar el ratón por encima."""
+    estado = {"ventana": None}
+
+    def mostrar(_e=None):
+        if estado["ventana"] or not texto:
+            return
+        v = tk.Toplevel(widget)
+        v.wm_overrideredirect(True)
+        v.wm_geometry("+%d+%d" % (widget.winfo_rootx() + 6,
+                                  widget.winfo_rooty() + widget.winfo_height() + 4))
+        tk.Label(v, text=texto, background="#fff8dc", foreground="#3b2f26",
+                 relief="solid", borderwidth=1, font=("Segoe UI", 8),
+                 padx=6, pady=2).pack()
+        estado["ventana"] = v
+
+    def ocultar(_e=None):
+        if estado["ventana"]:
+            estado["ventana"].destroy()
+            estado["ventana"] = None
+
+    widget.bind("<Enter>", mostrar, add="+")
+    widget.bind("<Leave>", ocultar, add="+")
+    widget.bind("<ButtonPress>", ocultar, add="+")
+
+
+def caja_texto(padre, alto=4, ancho=90, formato=True):
+    """Cuadro de texto multilínea con su barra de desplazamiento y, salvo
+    que se pida lo contrario (formato=False), con su barra de botones de
+    formato encima."""
     marco = ttk.Frame(padre, style="Panel.TFrame")
-    texto = tk.Text(marco, height=alto, width=ancho, wrap="word",
-                    font=("Georgia", 10), relief="solid", borderwidth=1,
+    cuerpo = ttk.Frame(marco, style="Panel.TFrame")
+    texto = tk.Text(cuerpo, height=alto, width=ancho, wrap="word",
+                    font=FUENTE_CAJA, relief="solid", borderwidth=1,
                     background="white", foreground="#111827",
                     insertbackground="#111827", padx=6, pady=4)
-    barra = ttk.Scrollbar(marco, orient="vertical", command=texto.yview)
+    barra = ttk.Scrollbar(cuerpo, orient="vertical", command=texto.yview)
     texto.configure(yscrollcommand=barra.set)
+
+    if formato:
+        texto._formato = True
+        texto._fuentes_formato = []
+        texto.tag_configure("fmt_just", background="#e6eefb")
+        for nivel in (1, 2, 3):
+            texto.tag_configure("fmt_sg%d" % nivel, lmargin1=SANGRIA_PX * nivel,
+                                lmargin2=SANGRIA_PX * nivel)
+        texto.tag_configure("fmt_etiqueta", foreground="#b3aaa0")
+        barra_formato(marco, texto, compacta=(alto <= 3)).pack(fill="x", pady=(0, 2))
+        texto.bind("<KeyRelease>", lambda e: _repintar_luego(texto), add="+")
+        texto.bind("<<Paste>>", lambda e: _repintar_luego(texto), add="+")
+        atajos = [("b", "<b>", "</b>"), ("i", "<i>", "</i>"),
+                  ("u", "<u>", "</u>"), ("t", "<s>", "</s>"),
+                  ("r", "<mark>", "</mark>")]
+        for tecla, ap, ci in atajos:
+            for pulsacion in ("<Control-%s>" % tecla, "<Control-%s>" % tecla.upper()):
+                texto.bind(pulsacion,
+                           lambda e, a=ap, c=ci: envolver_formato(e.widget, a, c))
+        for tecla, accion in (("j", "just"), ("l", "izq")):
+            for pulsacion in ("<Control-%s>" % tecla, "<Control-%s>" % tecla.upper()):
+                texto.bind(pulsacion,
+                           lambda e, ac=accion: formato_parrafos(e.widget, ac))
+        # Tab / Mayús+Tab = más / menos sangría (en HTML un tabulador no
+        # se vería, así que la tecla se aprovecha para esto).
+        texto.bind("<Tab>", lambda e: formato_parrafos(e.widget, "mas"))
+        for ev in ("<Shift-Tab>", "<ISO_Left_Tab>"):
+            try:
+                texto.bind(ev, lambda e: formato_parrafos(e.widget, "menos"))
+            except tk.TclError:
+                pass
+
+    cuerpo.pack(fill="both", expand=True)
     texto.pack(side="left", fill="both", expand=True)
     barra.pack(side="right", fill="y")
     return marco, texto
@@ -937,10 +673,47 @@ def caja_texto(padre, alto=4, ancho=90):
 def poner_texto(widget, valor):
     widget.delete("1.0", "end")
     widget.insert("1.0", "" if valor is None else str(valor))
+    repintar_formato(widget)
 
 
 def sacar_texto(widget):
     return widget.get("1.0", "end-1c")
+
+
+def limpiar_texto(valor):
+    """Limpia un texto SIN perder los saltos de línea (Enter): quita los
+    espacios sobrantes de cada línea y las líneas en blanco del principio
+    y del final, y no deja más de una línea en blanco seguida."""
+    crudo = str(valor or "").replace("\r\n", "\n").replace("\r", "\n")
+    lineas = [" ".join(l.split()) for l in crudo.split("\n")]
+    return re.sub(r"\n{3,}", "\n\n", "\n".join(lineas).strip("\n"))
+
+
+def partir_parrafos(valor):
+    """Cada línea escrita con Enter pasa a ser un párrafo (las líneas en
+    blanco sobran). Si un formato (negrita, justificado…) abarca varias
+    líneas, se cierra al final de cada párrafo y se reabre en el siguiente,
+    para que ninguna etiqueta quede partida por la mitad."""
+    parrafos, abiertas = [], []              # abiertas: [(nombre, etiqueta completa)]
+    for linea in str(valor or "").replace("\r\n", "\n").replace("\r", "\n").split("\n"):
+        linea = linea.strip()
+        prefijo = "".join(ap for _n, ap in abiertas)
+        for m in RE_ETIQUETA_HTML.finditer(linea):
+            nombre, entero = m.group(1).lower(), m.group(0)
+            if nombre not in ETIQUETAS_FORMATO:
+                continue
+            if entero.startswith("</"):
+                for k in range(len(abiertas) - 1, -1, -1):
+                    if abiertas[k][0] == nombre:
+                        del abiertas[k]
+                        break
+            elif not entero.endswith("/>"):
+                abiertas.append((nombre, entero))
+        if not RE_ETIQUETA_HTML.sub("", linea).strip():
+            continue                          # línea vacía (o solo etiquetas)
+        cierre = "".join("</%s>" % n for n, _ap in reversed(abiertas))
+        parrafos.append(prefijo + linea + cierre)
+    return parrafos
 
 
 def nUm(x):
@@ -951,8 +724,10 @@ def nUm(x):
 
 
 def resumen(texto, largo=60):
-    """Primera línea recortada, para las listas laterales."""
-    t = " ".join(str(texto or "").split())
+    """Primera línea recortada, para las listas laterales. Las etiquetas de
+    formato (<b>, <mark>, <span class="fs-l">…) se quitan: en la lista
+    estorban más que ayudan."""
+    t = " ".join(RE_ETIQUETA_HTML.sub("", str(texto or "")).split())
     return t if len(t) <= largo else t[:largo - 1] + "…"
 
 
@@ -1070,6 +845,7 @@ class EditorApp(tk.Tk):
         self.modo = "json"
         self.datos = datos_vacios()
         self.hay_cambios = False
+        self._destinos_menu = None      # sitios del menú (los rellena _alta_en_menu)
         self._silencio = False           # evita reentradas al repintar listas
 
         self.i_sec = None
@@ -1146,6 +922,11 @@ class EditorApp(tk.Tk):
         ttk.Separator(barra, orient="vertical").pack(side="left", fill="y", padx=10)
         ttk.Button(barra, text="🌐  Ver en el navegador", command=self.ver_navegador).pack(side="left")
         ttk.Button(barra, text="✔  Comprobar", command=self.comprobar).pack(side="left", padx=(6, 0))
+        ttk.Separator(barra, orient="vertical").pack(side="left", fill="y", padx=10)
+        ttk.Button(barra, text="🗂  Menú de inicio…",
+                   command=lambda: ventana_menu.abrir(self)).pack(side="left", padx=(0, 6))
+        ttk.Button(barra, text="📦  Para subir a GitHub…",
+                   command=lambda: ventana_subir.abrir(self)).pack(side="left")
 
         self.lbl_archivo = ttk.Label(barra, text="(ningún archivo abierto)",
                                      style="Tec.TLabel")
@@ -1180,6 +961,9 @@ class EditorApp(tk.Tk):
     def _vigilar(self, *widgets):
         for w in widgets:
             w.bind("<KeyRelease>", self._tocado, add="+")
+            # Los botones de formato no pasan por el teclado: avisan con
+            # su propio evento para que el archivo se marque como tocado.
+            w.bind("<<TextoTocado>>", self._tocado, add="+")
 
     # ═════════════════════════════════════════════════════════════
     #  PESTAÑA 1 — DATOS GENERALES
@@ -1230,6 +1014,54 @@ class EditorApp(tk.Tk):
                 ent.pack(fill="x", padx=10, pady=(0, 10))
                 self._vigilar(ent)
                 self.w_cfg[clave] = var
+
+        caja = ttk.LabelFrame(m, text=" Cuántas respuestas salen en cada pregunta ")
+        caja.pack(fill="x", padx=16, pady=6)
+        rotulo(caja, "Respuestas que se muestran", "config.respuestas",
+               '<div class="options-grid"> → nº de <div class="option">', con_titulo=False,
+               ayuda=
+                    "Lo normal son cuatro. Si eliges 3, 4 o 5, todas las preguntas saldrán con "
+                    "ese número de respuestas: se muestran siempre la correcta (o las correctas) "
+                    "y se sortean los distractores que falten. Eso permite escribir hasta SIETE "
+                    "opciones en una pregunta y que cada intento enseñe unas cuantas distintas. "
+                    "Una pregunta que tenga menos opciones escritas sale con las que tenga, y en "
+                    "la pestaña 4 se puede dar a una pregunta suelta un número propio."
+               ).pack(anchor="w", padx=10, pady=(8, 4))
+        self.var_cfg_respuestas = tk.StringVar()
+        self._etiquetas_respuestas = [texto for _valor, texto in RESPUESTAS_EXAMEN]
+        combo = ttk.Combobox(caja, textvariable=self.var_cfg_respuestas, state="readonly",
+                             font=("Georgia", 10), values=self._etiquetas_respuestas)
+        combo.pack(anchor="w", fill="x", padx=10, pady=(0, 10))
+        combo.bind("<<ComboboxSelected>>", lambda e: self._tocado())
+
+        caja = ttk.LabelFrame(m, text=" Corazón de favoritas ")
+        caja.pack(fill="x", padx=16, pady=6)
+        rotulo(caja, "Corazón de favoritas ♥", "config.corazon",
+               '<button class="btn-corazon"> en la esquina de cada pregunta', con_titulo=False,
+               ayuda=
+                    "Un corazón pequeño en la esquina de cada pregunta con el que la persona guarda "
+                    "sus favoritas (aparecen en «Mi estudio»). Si lo desmarcas, este supuesto no "
+                    "lo muestra. Cada persona también puede ocultarlo desde el panel ⚙."
+               ).pack(anchor="w", padx=10, pady=(8, 4))
+        self.var_cfg_corazon = tk.BooleanVar(value=True)
+        chk = ttk.Checkbutton(caja, text="Mostrar el corazón de favoritas en este supuesto",
+                              variable=self.var_cfg_corazon, command=self._tocado)
+        chk.pack(anchor="w", padx=10, pady=(0, 10))
+
+        caja = ttk.LabelFrame(m, text=" Subrayar con colores ")
+        caja.pack(fill="x", padx=16, pady=6)
+        rotulo(caja, "Subrayar texto", "config.subrayar",
+               '<mark class="subr"> sobre enunciado, pregunta y respuestas', con_titulo=False,
+               ayuda=
+                    "Permite a la persona seleccionar un trozo del enunciado, de la pregunta o de una "
+                    "respuesta y subrayarlo con el color que elija en una ventanita. Los subrayados se "
+                    "guardan en su navegador y se ven también en «Mi estudio». Si lo desmarcas, este "
+                    "supuesto no deja subrayar. Cada persona también puede apagarlo desde el panel ⚙."
+               ).pack(anchor="w", padx=10, pady=(8, 4))
+        self.var_cfg_subrayar = tk.BooleanVar(value=True)
+        chk2 = ttk.Checkbutton(caja, text="Permitir subrayar en este supuesto",
+                               variable=self.var_cfg_subrayar, command=self._tocado)
+        chk2.pack(anchor="w", padx=10, pady=(0, 10))
 
         caja = ttk.LabelFrame(m, text=" Número de preguntas (automático) ")
         caja.pack(fill="x", padx=16, pady=6)
@@ -1369,6 +1201,12 @@ class EditorApp(tk.Tk):
         for clave, *_ in CAMPOS_CONFIG:
             valor = cfg.get(clave, "")
             self.w_cfg[clave].set(nUm(valor) if clave == "aptoPorcentaje" else str(valor))
+        valores = [v for v, _t in RESPUESTAS_EXAMEN]
+        actual = cfg.get("respuestas", 0)
+        pos = valores.index(actual) if actual in valores else 0
+        self.var_cfg_respuestas.set(self._etiquetas_respuestas[pos])
+        self.var_cfg_corazon.set(cfg.get("corazon", True) is not False)
+        self.var_cfg_subrayar.set(cfg.get("subrayar", True) is not False)
         tema = self.datos.get("tema") or TEMA_DEFECTO
         for clave in TEMA_DEFECTO:
             self.w_tema[clave].set(tema.get(clave, TEMA_DEFECTO[clave]))
@@ -1384,6 +1222,10 @@ class EditorApp(tk.Tk):
             elif clave == "aptoPorcentaje":
                 valor = min(100.0, max(0.0, numero(valor, 50.0)))
             cfg[clave] = valor
+        etiqueta = self.var_cfg_respuestas.get()
+        cfg["respuestas"] = next((v for v, t in RESPUESTAS_EXAMEN if t == etiqueta), 0)
+        cfg["corazon"] = bool(self.var_cfg_corazon.get())
+        cfg["subrayar"] = bool(self.var_cfg_subrayar.get())
         self.datos["tema"] = {
             clave: color_valido(self.w_tema[clave].get(), TEMA_DEFECTO[clave])
             for clave in TEMA_DEFECTO}
@@ -1489,18 +1331,53 @@ class EditorApp(tk.Tk):
             ttk.Button(fila, text=nombre, width=13,
                        command=lambda v=valor: self.poner_color(v)).pack(side="left", padx=(6, 0))
 
-        rotulo(caja, "Cómo se ven las preguntas", "bloques[].modo",
+        rotulo(caja, "Cómo EMPIEZAN viéndose las preguntas de este bloque", "bloques[].modo",
                '.question-card.visible  ·  .question-card.encadenada',
                "«En cadena» muestra todas las preguntas del bloque seguidas, una debajo de "
-               "otra (lo habitual en la teoría). «De una en una» muestra solo la pregunta "
-               "actual (lo habitual en un supuesto). El alumno siempre puede forzar «de una "
-               "en una» desde el panel ⚙ de la página."
+               "otra (lo habitual en la teoría, y también en un supuesto que se lea de "
+               "corrido). «De una en una» muestra solo la pregunta actual. Esto es solo el "
+               "estado de PARTIDA: en la página, cada bloque tiene su propia casilla en el "
+               "panel ⚙ y el alumno puede cambiarlo sin tocar los demás bloques."
                ).pack(anchor="w", padx=10, pady=(10, 4))
         self.var_sec_modo = tk.StringVar(value="individual")
         for valor, texto in (("cadena", "En cadena — todas las preguntas del bloque seguidas"),
                              ("individual", "De una en una — solo la pregunta actual")):
             ttk.Radiobutton(caja, text=texto, value=valor, variable=self.var_sec_modo,
                             command=self._tocado).pack(anchor="w", padx=18, pady=1)
+
+        rotulo(caja, "¿Puede el alumno cambiarlo en este bloque?", "bloques[].opcionUnaEnUna",
+               '<div id="una-por-bloque"> → una casilla por bloque',
+               "Marcada (lo normal): el panel ⚙ de la página enseña una casilla para ESTE "
+               "bloque, con su nombre y su color, y el alumno decide si lo ve en cadena o de "
+               "una en una. Desmarcada: ese bloque no sale en el panel y se queda siempre "
+               "como lo hayas dejado aquí arriba. Si desmarcas todos, la opción entera "
+               "desaparece del panel."
+               ).pack(anchor="w", padx=10, pady=(10, 4))
+        self.var_sec_opcion_una = tk.BooleanVar(value=True)
+        ttk.Checkbutton(caja, variable=self.var_sec_opcion_una, command=self._tocado,
+                        text="Sacar la casilla de este bloque en el panel ⚙"
+                        ).pack(anchor="w", padx=18, pady=1)
+
+        ttk.Label(caja, style="Ayuda.TLabel", wraplength=820, justify="left",
+                  text="EN CADENA, un bloque de supuesto se lee de corrido y en su orden "
+                       "natural: enunciado 1 completo (con todas sus secciones) → todas las "
+                       "preguntas de ese enunciado → enunciado 2 → sus preguntas, y así "
+                       "sucesivamente."
+                  ).pack(anchor="w", padx=18, pady=(6, 2))
+
+        rotulo(caja, "Dónde va la barra con el nombre del bloque",
+               "bloques[].cabeceraSobreEnunciado",
+               '<div class="block-header"> antes o después de <section class="statement">',
+               "Marcada (lo normal): la barra del bloque —nombre, nº de preguntas y "
+               "baremo— sale ENCIMA del enunciado, encabezando toda la sección. "
+               "Desmarcada: baja hasta justo delante de la primera pregunta, debajo de "
+               "los hechos (como en las versiones anteriores de la plantilla). En los "
+               "bloques de teoría da igual: no llevan enunciado."
+               ).pack(anchor="w", padx=10, pady=(10, 4))
+        self.var_sec_cabecera = tk.BooleanVar(value=True)
+        ttk.Checkbutton(caja, variable=self.var_sec_cabecera, command=self._tocado,
+                        text="La barra del bloque va encima del enunciado"
+                        ).pack(anchor="w", padx=18, pady=1)
         ttk.Frame(caja, height=8).pack()
 
         # ---------- puntuación ----------
@@ -1614,6 +1491,10 @@ class EditorApp(tk.Tk):
             self.w_sec[clave].set("" if b is None else str(b.get(clave, "")))
         self.var_sec_tipo.set("supuesto" if b is None else b["tipo"])
         self.var_sec_modo.set("individual" if b is None else b["modo"])
+        self.var_sec_cabecera.set(True if b is None
+                                  else b.get("cabeceraSobreEnunciado", True) is not False)
+        self.var_sec_opcion_una.set(True if b is None
+                                    else b.get("opcionUnaEnUna", True) is not False)
         self.var_sec_color.set(COLOR_SUPUESTO if b is None else b["color"])
         self.var_sec_por.set("0" if b is None else str(b["porIntento"]))
         self.var_sec_ac.set("1" if b is None else nUm(b["acierto"]))
@@ -1640,6 +1521,8 @@ class EditorApp(tk.Tk):
                                                              else "Supuesto práctico")
         b["tipo"] = self.var_sec_tipo.get()
         b["modo"] = self.var_sec_modo.get()
+        b["cabeceraSobreEnunciado"] = bool(self.var_sec_cabecera.get())
+        b["opcionUnaEnUna"] = bool(self.var_sec_opcion_una.get())
         b["color"] = color_valido(self.var_sec_color.get(),
                                   COLOR_TEST if b["tipo"] == "test" else COLOR_SUPUESTO)
         try:
@@ -1835,7 +1718,10 @@ class EditorApp(tk.Tk):
                   ).pack(anchor="w", padx=8, pady=(8, 0))
         ttk.Label(pb, style="Ayuda.TLabel", wraplength=780, justify="left",
                   text="Trozos de narración de los hechos, en el orden en que se leen. "
-                       "Marca «hecho desencadenante» el bloque crítico: sale con borde rojo y ⚠️."
+                       "Marca «hecho desencadenante» el bloque crítico: sale con borde rojo y ⚠️. "
+                       "Cada bloque lleva delante su código (H1, H2…): es el que se usa en la "
+                       "pestaña «4 · Preguntas» para vincular una pregunta a este hecho concreto "
+                       "y que el modo foco recorte el enunciado a esta parte."
                   ).pack(anchor="w", padx=8)
 
         fila = ttk.Frame(pb)
@@ -1863,8 +1749,16 @@ class EditorApp(tk.Tk):
 
         rotulo(pb, "Narración de los hechos", "factBlocks[].paragraphs[]",
                '<div class="fact-block"> → <p>',
-               "Un párrafo por bloque de texto: DEJA UNA LÍNEA EN BLANCO entre párrafo y párrafo. "
-               "Se admiten etiquetas HTML sencillas, por ejemplo <strong>texto en negrita</strong>."
+               "Cada vez que pulsas ENTER empieza un párrafo nuevo en la página (la línea en blanco "
+               "entre párrafos es opcional). Con los botones de arriba (o con Ctrl+B, Ctrl+I, "
+               "Ctrl+U, Ctrl+T y Ctrl+R) se pone en negrita, cursiva, subrayado, tachado, "
+               "resaltado y otro tamaño de letra lo que esté seleccionado. «Just.» (Ctrl+J) "
+               "justifica —ajusta al ancho de la línea— el párrafo donde esté el cursor o los "
+               "seleccionados; «Izq.» (Ctrl+L) quita el justificado. «Sang+» (tecla Tab) mete "
+               "el párrafo más hacia dentro que el anterior, hasta tres niveles, y «Sang-» "
+               "(Mayús+Tab) lo saca. El menú «Fuente» cambia la tipografía de lo seleccionado. "
+               "Los párrafos justificados se ven aquí con fondo azulado y justificados en la "
+               "página; las tipografías se ven aquí de forma aproximada."
                ).pack(anchor="w", padx=8, pady=(8, 2))
         marco, self.txt_bloque_parr = caja_texto(pb, alto=9)
         marco.pack(fill="both", expand=True, padx=8)
@@ -1880,6 +1774,8 @@ class EditorApp(tk.Tk):
         ttk.Checkbutton(filac, variable=self.var_bloque_hidden, command=self._tocado,
                         text="No mostrar este bloque  ·  factBlocks[].hidden  →  "
                              "(se guarda en el archivo pero la página no lo pinta)").pack(anchor="w")
+        self.lbl_bloque_vinculos = ttk.Label(filac, text="", style="Tec.TLabel")
+        self.lbl_bloque_vinculos.pack(anchor="w", pady=(6, 0))
 
         # ---------- línea de tiempo ----------
         pt = ttk.Frame(interno)
@@ -2059,7 +1955,8 @@ class EditorApp(tk.Tk):
             marca = "⚠ " if b["red"] else "📋 "
             if b["hidden"]:
                 marca = "👁 "
-            self.lst_bloques.insert("end", marca + resumen(b["title"], 44))
+            self.lst_bloques.insert("end", "%-4s %s%s" % (b.get("id", ""), marca,
+                                                          resumen(b["title"], 40)))
         if seleccionar is None:
             seleccionar = self.i_bloque
         if bloques:
@@ -2096,14 +1993,34 @@ class EditorApp(tk.Tk):
         poner_texto(self.txt_bloque_parr, "" if b is None else "\n\n".join(b["paragraphs"]))
         self.var_bloque_red.set(bool(b and b["red"]))
         self.var_bloque_hidden.set(bool(b and b["hidden"]))
+        self._pintar_vinculos_bloque()
+
+    def _pintar_vinculos_bloque(self):
+        """Cuántas preguntas se apoyan en este hecho concreto (modo foco)."""
+        if not hasattr(self, "lbl_bloque_vinculos"):
+            return
+        e = self.enunciado_actual()
+        b = self.bloque_actual()
+        if e is None or b is None:
+            self.lbl_bloque_vinculos.config(text="")
+            return
+        cuantas = sum(1 for q in self.datos["preguntas"]
+                      if q["statementId"] == e["id"] and b["id"] in q.get("factIds", []))
+        self.lbl_bloque_vinculos.config(
+            text="factBlocks[].id = %s   ·   %s (modo foco; se vincula en la pestaña "
+                 "«4 · Preguntas»)"
+                 % (b["id"], "sin preguntas vinculadas" if not cuantas
+                    else "%d pregunta(s) vinculada(s)" % cuantas))
 
     def volcar_bloque(self):
         b = self.bloque_actual()
         if b is None:
             return
+        if not b.get("id"):
+            b["id"] = nuevo_id_hecho(self.enunciado_actual() or {})
         b["title"] = self.var_bloque_titulo.get().strip()
         crudo = sacar_texto(self.txt_bloque_parr)
-        b["paragraphs"] = [p.strip() for p in re.split(r"\n\s*\n", crudo) if p.strip()]
+        b["paragraphs"] = partir_parrafos(crudo)
         b["red"] = bool(self.var_bloque_red.get())
         b["hidden"] = bool(self.var_bloque_hidden.get())
 
@@ -2113,7 +2030,7 @@ class EditorApp(tk.Tk):
             messagebox.showinfo("Sin enunciado", "Primero añade un enunciado.", parent=self)
             return
         self.volcar_bloque()
-        e["factBlocks"].append(bloque_hechos_vacio())
+        e["factBlocks"].append(bloque_hechos_vacio(nuevo_id_hecho(e)))
         self.refrescar_lista_bloques(len(e["factBlocks"]) - 1)
         self._tocado()
 
@@ -2122,12 +2039,23 @@ class EditorApp(tk.Tk):
         b = self.bloque_actual()
         if b is None:
             return
+        vinculadas = [q for q in self.datos["preguntas"]
+                      if q["statementId"] == e["id"] and b["id"] in q.get("factIds", [])]
+        aviso = ("" if not vinculadas else
+                 "\n\n%d pregunta(s) están vinculadas a este hecho para el modo foco: "
+                 "perderán el vínculo y volverán a mostrar el enunciado entero."
+                 % len(vinculadas))
         if not messagebox.askyesno("Borrar bloque",
-                                   "¿Borrar el bloque «%s»?" % resumen(b["title"], 40),
+                                   "¿Borrar el bloque «%s»?%s"
+                                   % (resumen(b["title"], 40), aviso),
                                    parent=self):
             return
+        for q in vinculadas:
+            q["factIds"] = [x for x in q["factIds"] if x != b["id"]]
         del e["factBlocks"][self.i_bloque]
         self.refrescar_lista_bloques(max(0, self.i_bloque - 1))
+        if hasattr(self, "lst_factlink"):
+            self.refrescar_lista_factlink()
         self._tocado()
 
     def mover_bloque(self, paso):
@@ -2196,7 +2124,7 @@ class EditorApp(tk.Tk):
         if h is None:
             return
         h["date"] = self.var_hito_fecha.get().strip()
-        h["text"] = " ".join(sacar_texto(self.txt_hito_texto).split())
+        h["text"] = limpiar_texto(sacar_texto(self.txt_hito_texto))
         h["red"] = bool(self.var_hito_red.get())
         h["hidden"] = bool(self.var_hito_hidden.get())
 
@@ -2307,6 +2235,30 @@ class EditorApp(tk.Tk):
         self.combo_stmt.pack(fill="x", padx=10, pady=(0, 4))
         self.combo_stmt.bind("<<ComboboxSelected>>", self._cambio_stmt)
 
+        rotulo(caja, "Partes del enunciado de las que depende (modo foco)",
+               "preguntas[].factIds",
+               'factBlocks[].id  →  <div class="fact-block"> que se muestran en modo foco',
+               "Marca aquí el hecho (o los hechos) desencadenantes concretos de los que "
+               "depende esta pregunta. Con el MODO FOCO encendido en el panel ⚙ —y las "
+               "preguntas de una en una—, esta pregunta mostrará SOLO esos bloques de "
+               "hechos en vez del enunciado entero, con un botón para desplegarlo completo. "
+               "Si no marcas ninguno, la pregunta enseña siempre el enunciado entero. "
+               "Con Ctrl+clic se marcan y desmarcan varios."
+               ).pack(anchor="w", padx=10, pady=(8, 2))
+        marco_fl = ttk.Frame(caja, style="Panel.TFrame")
+        marco_fl.pack(fill="x", padx=10, pady=(0, 2))
+        self.lst_factlink = tk.Listbox(marco_fl, font=("Consolas", 9), height=5,
+                                       selectmode="extended", activestyle="none",
+                                       exportselection=False)
+        self.lst_factlink.pack(side="left", fill="both", expand=True)
+        self.lst_factlink.bind("<<ListboxSelect>>", self._sel_factlink)
+        colf = ttk.Frame(marco_fl, style="Panel.TFrame")
+        colf.pack(side="left", padx=(6, 0))
+        ttk.Button(colf, text="Ninguno", width=11,
+                   command=self.limpiar_factlink).pack(pady=1)
+        self.lbl_factlink = ttk.Label(caja, text="", style="Tec.TLabel")
+        self.lbl_factlink.pack(anchor="w", padx=10, pady=(0, 4))
+
         rotulo(caja, "Etiqueta de materia (q-tag)", "preguntas[].tag",
                '<span class="q-tag">',
                "Línea pequeña en mayúsculas encima de la pregunta (por ejemplo: "
@@ -2325,31 +2277,68 @@ class EditorApp(tk.Tk):
         self._vigilar(self.txt_preg_q)
 
         # --- respuestas ---
-        caja = ttk.LabelFrame(m, text=" Respuestas — marca cuál es la correcta ")
+        caja = ttk.LabelFrame(m, text=" Respuestas — marca cuál (o cuáles) es la correcta ")
         caja.pack(fill="x", padx=10, pady=6)
-        rotulo(caja, "Las cuatro opciones", "preguntas[].a[0..3]",
-               '<div class="option"> → <span class="opt-letter">A/B/C/D</span>',
-               "El punto de la izquierda marca la opción correcta (preguntas[].c). "
-               "OJO: la página baraja las opciones en cada intento, así que la correcta "
-               "no siempre saldrá en la letra que ocupa aquí."
+        rotulo(caja, "Las opciones de esta pregunta", "preguntas[].a[]",
+               '<div class="option"> → <span class="opt-letter">A…G</span>',
+               "De 2 a 7 opciones; lo normal son cuatro. La casilla de la izquierda marca "
+               "la correcta (preguntas[].correctas). OJO: la página baraja las opciones en "
+               "cada intento, así que la correcta no saldrá siempre en la letra que ocupa aquí."
                ).pack(anchor="w", padx=10, pady=(8, 6))
 
-        self.var_preg_c = tk.IntVar(value=0)
+        # Respuesta múltiple
+        self.var_preg_multiple = tk.BooleanVar(value=False)
+        ttk.Checkbutton(caja, variable=self.var_preg_multiple, command=self._cambio_multiple,
+                        text="Respuesta múltiple  ·  preguntas[].multiple  →  hay que marcar "
+                             "TODAS las que procedan (solo cuenta si se aciertan todas)"
+                        ).pack(anchor="w", padx=10, pady=(0, 8))
+
+        # Filas de opciones: se crean las siete y se enseñan las que tenga
+        # la pregunta. Así añadir o quitar una es solo mostrar u ocultar.
+        self.var_preg_ok = []
+        self.filas_opcion = []
         self.txt_opciones = []
-        for i in range(4):
+        for i in range(MAX_OPCIONES):
             fila = ttk.Frame(caja, style="Panel.TFrame")
-            fila.pack(fill="x", padx=10, pady=2)
-            ttk.Radiobutton(fila, text="  %s  " % "ABCD"[i], value=i,
-                            variable=self.var_preg_c,
-                            command=self._marcar_correcta).pack(side="left", anchor="n", pady=4)
+            var = tk.BooleanVar(value=(i == 0))
+            ttk.Checkbutton(fila, text="  %s  " % LETRAS[i], variable=var,
+                            command=lambda n=i: self._marcar_correcta(n)
+                            ).pack(side="left", anchor="n", pady=4)
             marco, txt = caja_texto(fila, alto=3, ancho=70)
             marco.pack(side="left", fill="x", expand=True)
             self._vigilar(txt)
+            self.var_preg_ok.append(var)
+            self.filas_opcion.append(fila)
             self.txt_opciones.append(txt)
 
-        self.lbl_correcta = ttk.Label(caja, text="Correcta: A", font=("Consolas", 10, "bold"),
+        linea = ttk.Frame(caja, style="Panel.TFrame")
+        linea.pack(fill="x", padx=10, pady=(6, 2))
+        ttk.Button(linea, text="＋ Añadir respuesta", width=20, style="Accion.TButton",
+                   command=self.anadir_opcion).pack(side="left")
+        ttk.Button(linea, text="🗑 Quitar la última", width=20,
+                   command=self.quitar_opcion).pack(side="left", padx=(6, 0))
+        self.lbl_correcta = ttk.Label(linea, text="", font=("Consolas", 10, "bold"),
                                       foreground=C_VERDE, background=C_FONDO)
-        self.lbl_correcta.pack(anchor="w", padx=10, pady=(4, 10))
+        self.lbl_correcta.pack(side="left", padx=(16, 0))
+
+        rotulo(caja, "Cuántas de estas respuestas salen en el examen",
+               "preguntas[].respuestas",
+               'nº de <div class="option"> de ESTA pregunta',
+               "Normalmente, lo que hayas puesto en la pestaña 1 para todo el examen. Aquí "
+               "se le puede dar un número propio a una pregunta suelta: por ejemplo, escribir "
+               "siete opciones y que salgan solo cuatro (la correcta y tres distractores "
+               "sorteados en cada intento). Nunca se recorta por debajo de las correctas."
+               ).pack(anchor="w", padx=10, pady=(10, 2))
+        self.var_preg_respuestas = tk.StringVar()
+        self._etiquetas_preg_resp = ["Las que diga la pestaña 1 (todo el examen)"] + \
+                                    ["%d respuestas" % n for n in range(MIN_OPCIONES, MAX_OPCIONES + 1)]
+        self._valores_preg_resp = [0] + list(range(MIN_OPCIONES, MAX_OPCIONES + 1))
+        combo = ttk.Combobox(caja, textvariable=self.var_preg_respuestas, state="readonly",
+                             font=("Georgia", 10), values=self._etiquetas_preg_resp)
+        combo.pack(fill="x", padx=10, pady=(0, 4))
+        combo.bind("<<ComboboxSelected>>", lambda e: self._tocado())
+        self.lbl_aviso_resp = ttk.Label(caja, text="", style="Tec.TLabel")
+        self.lbl_aviso_resp.pack(anchor="w", padx=10, pady=(0, 10))
 
         # --- corrección ---
         caja = ttk.LabelFrame(m, text=" Solución y motivación ")
@@ -2443,8 +2432,169 @@ class EditorApp(tk.Tk):
         self.refrescar_lista_preg(self.i_preg)
         self._tocado()
 
-    def _marcar_correcta(self):
-        self.lbl_correcta.config(text="Correcta: %s" % "ABCD"[self.var_preg_c.get()])
+    # ---------- vínculo con los bloques de hechos (modo foco) ----------
+    def refrescar_lista_factlink(self):
+        """Rellena la lista de bloques de hechos del enunciado de la pregunta
+        actual y marca los que tenga vinculados."""
+        if not hasattr(self, "lst_factlink"):
+            return
+        self._silencio_fact = True
+        self.lst_factlink.delete(0, "end")
+        p = self.pregunta_actual()
+        enun = None
+        if p and p.get("statementId"):
+            enun = next((e for e in self.datos["enunciados"]
+                         if e["id"] == p["statementId"]), None)
+        hechos = enun["factBlocks"] if enun else []
+        self._ids_factlink = [h["id"] for h in hechos]
+        for h in hechos:
+            marca = "⚠" if h["red"] else "📋"
+            if h["hidden"]:
+                marca = "👁"
+            self.lst_factlink.insert("end", "%-4s %s %s" % (h["id"], marca,
+                                                            resumen(h["title"], 44)))
+        if p is not None:
+            # Se descartan los vínculos que ya no existan en ese enunciado
+            p["factIds"] = [x for x in p.get("factIds", []) if x in self._ids_factlink]
+            for i, ident in enumerate(self._ids_factlink):
+                if ident in p["factIds"]:
+                    self.lst_factlink.selection_set(i)
+        self._silencio_fact = False
+
+        if p is None:
+            texto = ""
+        elif not p.get("statementId"):
+            texto = "Esta pregunta no depende de ningún enunciado: el modo foco no le afecta."
+        elif not hechos:
+            texto = ("El enunciado %s todavía no tiene bloques de hechos (pestaña 3)."
+                     % p["statementId"])
+        elif not p["factIds"]:
+            texto = "Sin vincular: en modo foco esta pregunta muestra el enunciado entero."
+        else:
+            texto = ("En modo foco se mostrarán solo: %s." % ", ".join(p["factIds"]))
+        self.lbl_factlink.config(text=texto)
+
+    def _sel_factlink(self, _e=None):
+        if getattr(self, "_silencio_fact", False) or self._silencio:
+            return
+        p = self.pregunta_actual()
+        if p is None or not getattr(self, "_ids_factlink", None):
+            return
+        p["factIds"] = [self._ids_factlink[i] for i in self.lst_factlink.curselection()
+                        if i < len(self._ids_factlink)]
+        self.lbl_factlink.config(
+            text="Sin vincular: en modo foco esta pregunta muestra el enunciado entero."
+                 if not p["factIds"]
+                 else "En modo foco se mostrarán solo: %s." % ", ".join(p["factIds"]))
+        self._pintar_vinculos_bloque()
+        self._tocado()
+
+    def limpiar_factlink(self):
+        """Quita todos los vínculos de la pregunta actual."""
+        p = self.pregunta_actual()
+        if p is None:
+            return
+        p["factIds"] = []
+        self.refrescar_lista_factlink()
+        self._pintar_vinculos_bloque()
+        self._tocado()
+
+    def _marcar_correcta(self, n=None):
+        """Al marcar una casilla: si la pregunta NO es de respuesta múltiple,
+        marcar una desmarca las demás (se comporta como un botón de radio)."""
+        if n is not None and not self.var_preg_multiple.get() and self.var_preg_ok[n].get():
+            for i, var in enumerate(self.var_preg_ok):
+                if i != n:
+                    var.set(False)
+        if n is not None and not any(v.get() for v in self.var_preg_ok):
+            # Siempre tiene que haber al menos una correcta
+            self.var_preg_ok[n].set(True)
+        self._pintar_correctas()
+        self._tocado()
+
+    def _cambio_multiple(self):
+        """Al dejar de ser múltiple, se queda solo la primera correcta."""
+        if not self.var_preg_multiple.get():
+            visto = False
+            for var in self.var_preg_ok:
+                if var.get():
+                    if visto:
+                        var.set(False)
+                    visto = True
+        self._pintar_correctas()
+        self._tocado()
+
+    def _n_opciones(self):
+        """Cuántas filas de respuesta hay a la vista."""
+        return sum(1 for f in self.filas_opcion if f.winfo_manager())
+
+    def _pintar_filas_opciones(self, cuantas):
+        cuantas = max(MIN_OPCIONES, min(MAX_OPCIONES, cuantas))
+        for i, fila in enumerate(self.filas_opcion):
+            if i < cuantas:
+                fila.pack(fill="x", padx=10, pady=2)
+            else:
+                fila.pack_forget()
+                self.var_preg_ok[i].set(False)
+        return cuantas
+
+    def _pintar_correctas(self):
+        marcadas = [LETRAS[i] for i, v in enumerate(self.var_preg_ok)
+                    if v.get() and self.filas_opcion[i].winfo_manager()]
+        if not marcadas:
+            texto = "⚠ sin respuesta correcta marcada"
+        elif len(marcadas) == 1:
+            texto = "Correcta: %s" % marcadas[0]
+        else:
+            texto = "Correctas: %s" % ", ".join(marcadas)
+        self.lbl_correcta.config(text=texto)
+        self._pintar_aviso_respuestas()
+
+    def _pintar_aviso_respuestas(self):
+        """Explica, en cristiano, cuántas respuestas verá el alumno."""
+        if not hasattr(self, "lbl_aviso_resp"):
+            return
+        escritas = self._n_opciones()
+        propio = next((v for v, t in zip(self._valores_preg_resp, self._etiquetas_preg_resp)
+                       if t == self.var_preg_respuestas.get()), 0)
+        general = self.datos["config"].get("respuestas", 0)
+        cuantas = propio or general or escritas
+        correctas = sum(1 for i, v in enumerate(self.var_preg_ok)
+                        if v.get() and i < escritas)
+        minimo = correctas + (1 if escritas > correctas else 0)
+        cuantas = min(escritas, max(cuantas, minimo))
+        if cuantas >= escritas:
+            texto = "Salen las %d opciones escritas." % escritas
+        else:
+            texto = ("De las %d escritas saldrán %d: la(s) correcta(s) y %d distractor(es) "
+                     "sorteados en cada intento." % (escritas, cuantas, cuantas - correctas))
+        self.lbl_aviso_resp.config(text=texto)
+
+    def anadir_opcion(self):
+        cuantas = self._n_opciones()
+        if cuantas >= MAX_OPCIONES:
+            self.estado("Una pregunta admite como mucho %d respuestas." % MAX_OPCIONES)
+            return
+        self._pintar_filas_opciones(cuantas + 1)
+        poner_texto(self.txt_opciones[cuantas], "")
+        self._pintar_correctas()
+        self.txt_opciones[cuantas].focus_set()
+        self._tocado()
+
+    def quitar_opcion(self):
+        cuantas = self._n_opciones()
+        if cuantas <= MIN_OPCIONES:
+            self.estado("Una pregunta necesita al menos %d respuestas." % MIN_OPCIONES)
+            return
+        if sacar_texto(self.txt_opciones[cuantas - 1]).strip() and not messagebox.askyesno(
+                "Quitar respuesta",
+                "La respuesta %s tiene texto escrito. ¿Quitarla igualmente?" % LETRAS[cuantas - 1],
+                parent=self):
+            return
+        self._pintar_filas_opciones(cuantas - 1)
+        if not any(v.get() for v in self.var_preg_ok):
+            self.var_preg_ok[0].set(True)
+        self._pintar_correctas()
         self._tocado()
 
     # ---------- lista de preguntas ----------
@@ -2453,8 +2603,11 @@ class EditorApp(tk.Tk):
         self.lst_preg.delete(0, "end")
         for i, p in enumerate(self.datos["preguntas"]):
             marca = "📝" if self.tipo_de_bloque(p["bloqueId"]) == "test" else "📁"
-            etiqueta = "%02d %s%-3s %-3s %s" % (i + 1, marca, p["bloqueId"],
-                                                p["statementId"] or "--", resumen(p["q"], 26))
+            foco = "🔎" if p.get("factIds") else " "
+            varias = "☑" if p.get("multiple") else " "
+            etiqueta = "%02d %s%-3s %-3s%s%s %s" % (i + 1, marca, p["bloqueId"],
+                                                    p["statementId"] or "--", foco, varias,
+                                                    resumen(p["q"], 22))
             self.lst_preg.insert("end", etiqueta)
         if seleccionar is None:
             seleccionar = self.i_preg
@@ -2494,31 +2647,60 @@ class EditorApp(tk.Tk):
         p = self.pregunta_actual()
         self.var_preg_tag.set("" if p is None else p["tag"])
         poner_texto(self.txt_preg_q, "" if p is None else p["q"])
-        for i in range(4):
-            poner_texto(self.txt_opciones[i], "" if p is None else p["a"][i])
-        self.var_preg_c.set(0 if p is None else p["c"])
+
+        opciones = (p["a"] if p else [])[:MAX_OPCIONES]
+        cuantas = self._pintar_filas_opciones(len(opciones) or OPCIONES_POR_DEFECTO)
+        correctas = set(p["correctas"]) if p else {0}
+        for i in range(MAX_OPCIONES):
+            poner_texto(self.txt_opciones[i], opciones[i] if i < len(opciones) else "")
+            self.var_preg_ok[i].set(i in correctas and i < cuantas)
+        self.var_preg_multiple.set(bool(p and p.get("multiple")))
+        propio = p.get("respuestas", 0) if p else 0
+        pos = self._valores_preg_resp.index(propio) if propio in self._valores_preg_resp else 0
+        self.var_preg_respuestas.set(self._etiquetas_preg_resp[pos])
+
         poner_texto(self.txt_preg_law, "" if p is None else p["law"])
         poner_texto(self.txt_preg_tip, "" if p is None else p["tip"])
-        self.lbl_correcta.config(text="Correcta: %s" % "ABCD"[self.var_preg_c.get()])
+        self._pintar_correctas()
         self._sincronizar_combo_bloque()
         self._sincronizar_combo()
+        self.refrescar_lista_factlink()
 
     def volcar_pregunta(self):
         p = self.pregunta_actual()
         if p is None:
             return
         p["tag"] = self.var_preg_tag.get().strip()
-        p["q"] = " ".join(sacar_texto(self.txt_preg_q).split())
-        p["a"] = [" ".join(sacar_texto(t).split()) for t in self.txt_opciones]
-        p["c"] = int(self.var_preg_c.get())
-        p["law"] = sacar_texto(self.txt_preg_law).strip()
-        p["tip"] = sacar_texto(self.txt_preg_tip).strip()
+        p["q"] = limpiar_texto(sacar_texto(self.txt_preg_q))
+
+        # Solo cuentan las filas de respuesta que estén a la vista
+        cuantas = self._n_opciones()
+        p["a"] = [limpiar_texto(sacar_texto(self.txt_opciones[i])) for i in range(cuantas)]
+        correctas = [i for i in range(cuantas) if self.var_preg_ok[i].get()]
+        p["correctas"] = correctas or [0]
+        p["c"] = p["correctas"][0]
+        p["multiple"] = bool(self.var_preg_multiple.get())
+        etiqueta = self.var_preg_respuestas.get()
+        p["respuestas"] = next((v for v, t in zip(self._valores_preg_resp,
+                                                  self._etiquetas_preg_resp) if t == etiqueta), 0)
+
+        p["law"] = limpiar_texto(sacar_texto(self.txt_preg_law))
+        p["tip"] = limpiar_texto(sacar_texto(self.txt_preg_tip))
         if getattr(self, "_ids_bloque", None) and self.combo_bloque["values"]:
             p["bloqueId"] = self._ids_bloque[self.combo_bloque.current()]
         if hasattr(self, "_ids_combo") and self.combo_stmt["values"]:
             p["statementId"] = self._ids_combo[self.combo_stmt.current()]
         if self.tipo_de_bloque(p["bloqueId"]) == "test":
             p["statementId"] = None
+        # Vínculos con partes del enunciado (modo foco): solo se conservan
+        # mientras la pregunta siga colgando de ese enunciado.
+        if not p["statementId"]:
+            p["factIds"] = []
+        else:
+            propios = next((set(h["id"] for h in e["factBlocks"])
+                            for e in self.datos["enunciados"]
+                            if e["id"] == p["statementId"]), set())
+            p["factIds"] = [x for x in p.get("factIds", []) if x in propios]
 
     def anadir_pregunta(self):
         self.volcar_pregunta()
@@ -2660,18 +2842,114 @@ class EditorApp(tk.Tk):
             ttk.Label(rejilla, text="envio.%s   ·   %s" % (clave, que), style="Tec.TLabel"
                       ).grid(row=fila, column=2, sticky="w")
 
-        ttk.Label(caja, text="Casillas de cada bloque", style="Campo.TLabel"
+        # ── Total absoluto: todos los bloques sumados como uno solo ──
+        self.var_enviar_total = tk.BooleanVar(value=True)
+        ttk.Checkbutton(
+            caja, variable=self.var_enviar_total, command=self._tocado,
+            text="Enviar el TOTAL de todos los bloques (recuento absoluto)"
+            ).pack(anchor="w", padx=10, pady=(14, 0))
+        ttk.Label(caja, style="Tec.TLabel",
+                  text="envio.enviarTotal  ·  envio.total{}   ·   suma las preguntas, "
+                       "aciertos, fallos, en blanco y puntos de TODOS los bloques del "
+                       "intento").pack(anchor="w", padx=10)
+        ttk.Label(caja, style="Ayuda.TLabel", wraplength=860, justify="left",
+                  text="Es lo normal cuando el examen tiene varios bloques pero un solo "
+                       "formulario: se manda una única cifra para todo el examen. Si una "
+                       "casilla de aquí coincidiera con la de algún bloque, manda el total."
+                  ).pack(anchor="w", padx=10, pady=(0, 4))
+        rejilla_total = ttk.Frame(caja, style="Panel.TFrame")
+        rejilla_total.pack(fill="x", padx=10, pady=(0, 6))
+        self.w_envio_total = {}
+        for col, (clave, etiqueta) in enumerate(CAMPOS_ENVIO_BLOQUE):
+            ttk.Label(rejilla_total, text=etiqueta, style="Tec.TLabel"
+                      ).grid(row=0, column=col, sticky="w", padx=(0 if col == 0 else 6, 0))
+            var = tk.StringVar()
+            ent = ttk.Entry(rejilla_total, textvariable=var, font=("Consolas", 9), width=16)
+            ent.grid(row=1, column=col, sticky="w", padx=(0 if col == 0 else 6, 0), pady=2)
+            self._vigilar(ent)
+            self.w_envio_total[clave] = var
+
+        ttk.Label(caja, text="Casillas de cada bloque (opcional)", style="Campo.TLabel"
                   ).pack(anchor="w", padx=10, pady=(14, 0))
         ttk.Label(caja, style="Tec.TLabel",
                   text="bloques[].envio   ·   se envían solo los bloques que hayan salido "
                        "en ese intento").pack(anchor="w", padx=10)
         ttk.Label(caja, style="Ayuda.TLabel", wraplength=860, justify="left",
                   text="Un juego de casillas por bloque, para llevar al formulario cuántas "
-                       "preguntas tuvo cada sección y cómo fue en ella."
+                       "preguntas tuvo cada sección y cómo fue en ella. Vienen en blanco: "
+                       "úsalas solo si el formulario tiene casillas para cada bloque."
                   ).pack(anchor="w", padx=10, pady=(0, 6))
         self.marco_envio_bloques = ttk.Frame(caja, style="Panel.TFrame")
         self.marco_envio_bloques.pack(fill="x", padx=10, pady=(0, 14))
         self.w_envio_bloque = {}
+
+        # ---------- D. segundo formulario: detalle pregunta a pregunta ----------
+        caja = ttk.LabelFrame(m, text=" Envío automático del detalle pregunta a pregunta ")
+        caja.pack(fill="x", padx=16, pady=(6, 18))
+
+        ttk.Label(caja, style="Ayuda.TLabel", wraplength=860, justify="left",
+                  text="Este segundo formulario NO sustituye al de arriba: es un complemento "
+                       "y se manda solo, sin que el alumno tenga que pulsar nada, en cuanto "
+                       "corrige el examen (o se le agota el tiempo). Lleva el nombre del "
+                       "supuesto, la fecha y hora del envío, los aciertos y los fallos en "
+                       "bruto (sin baremo) y, de cada pregunta, si la acertó y qué opción "
+                       "marcó: «Correcta: …» o «Incorrecta: …», y «En blanco» si no la "
+                       "contestó.\n\n"
+                       "Cada pregunta va SIEMPRE a la casilla de su número de orden en la "
+                       "pestaña «4 · Preguntas» (la 1ª a «Pregunta 1», y así hasta 80), "
+                       "aunque el intento salga aleatorizado o solo con parte de ellas. Las "
+                       "preguntas que no salgan en el intento dejan su casilla vacía.\n\n"
+                       "Viene ya configurado con el formulario del proyecto: no hace falta "
+                       "tocar nada."
+                  ).pack(anchor="w", padx=10, pady=(10, 8))
+
+        rotulo(caja, "Dirección del formulario del detalle", "envioDetalle.url",
+               "formulario que se manda solo al corregir",
+               "Igual que la de arriba: la del formulario, terminada en /formResponse. "
+               "Si se deja vacía, no se manda nada."
+               ).pack(anchor="w", padx=10, pady=(0, 2))
+        self.var_detalle_url = tk.StringVar()
+        ent = ttk.Entry(caja, textvariable=self.var_detalle_url, font=("Consolas", 9))
+        ent.pack(fill="x", padx=10, pady=(0, 8))
+        self._vigilar(ent)
+
+        rejilla = ttk.Frame(caja, style="Panel.TFrame")
+        rejilla.pack(fill="x", padx=10)
+        self.w_detalle = {}
+        for fila, (clave, visible, que) in enumerate(CAMPOS_ENVIO_DETALLE):
+            ttk.Label(rejilla, text=visible, style="Campo.TLabel"
+                      ).grid(row=fila, column=0, sticky="w", pady=2)
+            var = tk.StringVar()
+            e = ttk.Entry(rejilla, textvariable=var, font=("Consolas", 9), width=22)
+            e.grid(row=fila, column=1, sticky="w", padx=10)
+            self._vigilar(e)
+            self.w_detalle[clave] = var
+            ttk.Label(rejilla, text="envioDetalle.%s   ·   %s" % (clave, que),
+                      style="Tec.TLabel").grid(row=fila, column=2, sticky="w")
+
+        ttk.Label(caja, text="Casillas de las %d preguntas" % len(ENTRADAS_PREGUNTA_DETALLE), style="Campo.TLabel"
+                  ).pack(anchor="w", padx=10, pady=(14, 0))
+        ttk.Label(caja, style="Tec.TLabel",
+                  text="envioDetalle.preguntas   ·   una casilla por línea, en orden: "
+                       "Pregunta 1, Pregunta 2 …").pack(anchor="w", padx=10)
+        ttk.Label(caja, style="Ayuda.TLabel", wraplength=860, justify="left",
+                  text="Solo hay que tocarlas si algún día cambia el formulario. Si se "
+                       "borran todas, se vuelven a poner las del proyecto."
+                  ).pack(anchor="w", padx=10, pady=(0, 6))
+        marco_cas = ttk.Frame(caja, style="Panel.TFrame")
+        marco_cas.pack(fill="x", padx=10, pady=(0, 6))
+        self.txt_detalle_preguntas = tk.Text(
+            marco_cas, height=8, wrap="none", font=("Consolas", 9), relief="solid",
+            borderwidth=1, background="white", foreground="#111827",
+            insertbackground="#111827", padx=6, pady=4)
+        barra_cas = ttk.Scrollbar(marco_cas, orient="vertical",
+                                  command=self.txt_detalle_preguntas.yview)
+        self.txt_detalle_preguntas.configure(yscrollcommand=barra_cas.set)
+        self.txt_detalle_preguntas.pack(side="left", fill="both", expand=True)
+        barra_cas.pack(side="right", fill="y")
+        self._vigilar(self.txt_detalle_preguntas)
+        ttk.Button(caja, text="↺  Restaurar las casillas del proyecto",
+                   command=self.restaurar_casillas_detalle).pack(anchor="w", padx=10, pady=(0, 14))
 
     def _fila_interfaz(self, padre, clave, visible, html, ayuda, rotulo_texto,
                        compacto=False):
@@ -2785,7 +3063,18 @@ class EditorApp(tk.Tk):
         self.var_envio_url.set(envio.get("url", ""))
         for clave, var in self.w_envio.items():
             var.set(envio.get(clave, ""))
+        self.var_enviar_total.set(bool(envio.get("enviarTotal", True)))
+        total = envio.get("total") if isinstance(envio.get("total"), dict) else {}
+        for clave, var in self.w_envio_total.items():
+            var.set(total.get(clave, ""))
         self.refrescar_envio_bloques()
+
+        detalle = self.datos.get("envioDetalle") or envio_detalle_por_defecto()
+        self.var_detalle_url.set(detalle.get("url", ""))
+        for clave, var in self.w_detalle.items():
+            var.set(detalle.get(clave, ""))
+        self._poner_casillas_detalle(detalle.get("preguntas")
+                                     or ENTRADAS_PREGUNTA_DETALLE)
 
     def volcar_botones(self):
         if not getattr(self, "w_ui", None):
@@ -2806,8 +3095,30 @@ class EditorApp(tk.Tk):
         envio = {"url": self.var_envio_url.get().strip()}
         for clave, var in self.w_envio.items():
             envio[clave] = var.get().strip()
+        envio["enviarTotal"] = bool(self.var_enviar_total.get())
+        envio["total"] = {clave: var.get().strip()
+                          for clave, var in self.w_envio_total.items()}
         self.datos["envio"] = envio
         self.volcar_envio_bloques()
+
+        detalle = {"url": self.var_detalle_url.get().strip()}
+        for clave, var in self.w_detalle.items():
+            detalle[clave] = var.get().strip()
+        casillas = [l.strip() for l in
+                    self.txt_detalle_preguntas.get("1.0", "end").splitlines()]
+        casillas = [c for c in casillas if c]
+        detalle["preguntas"] = (normalizar_casillas_detalle(casillas) if casillas
+                                else list(ENTRADAS_PREGUNTA_DETALLE))
+        self.datos["envioDetalle"] = detalle
+
+    # ---------- casillas del segundo formulario ----------
+    def _poner_casillas_detalle(self, casillas):
+        self.txt_detalle_preguntas.delete("1.0", "end")
+        self.txt_detalle_preguntas.insert("1.0", "\n".join(casillas))
+
+    def restaurar_casillas_detalle(self):
+        self._poner_casillas_detalle(ENTRADAS_PREGUNTA_DETALLE)
+        self._tocado()
     def _pestana_comprobar(self):
         panel = ttk.Frame(self.cuaderno)
         self.cuaderno.add(panel, text="  6 · Comprobar  ")
@@ -2825,7 +3136,7 @@ class EditorApp(tk.Tk):
                        "separadas, identificadores duplicados…"
                   ).pack(anchor="w", padx=10)
 
-        marco, self.txt_informe = caja_texto(panel, alto=30)
+        marco, self.txt_informe = caja_texto(panel, alto=30, formato=False)
         marco.pack(fill="both", expand=True, padx=10, pady=8)
         self.txt_informe.configure(font=("Consolas", 9))
 
@@ -2848,9 +3159,14 @@ class EditorApp(tk.Tk):
             vistos.add(e["id"])
             if not e["factBlocks"]:
                 avisos.append("El enunciado %s no tiene ningún bloque de hechos." % e["id"])
+            ids_hechos = set()
             for j, b in enumerate(e["factBlocks"], 1):
                 if not b["paragraphs"]:
                     avisos.append("Enunciado %s, bloque %d: no tiene texto." % (e["id"], j))
+                if b["id"] in ids_hechos:
+                    errores.append("Enunciado %s: código de bloque de hechos repetido «%s»."
+                                   % (e["id"], b["id"]))
+                ids_hechos.add(b["id"])
 
         if not d["preguntas"]:
             errores.append("El supuesto no tiene ninguna pregunta.")
@@ -2874,19 +3190,89 @@ class EditorApp(tk.Tk):
                 avisos.append("El bloque «%s» mezcla preguntas con y sin enunciado (%d sueltas)."
                               % (b["titulo"], len(sin_enunciado)))
 
+        # ── opciones del panel de la página que dejan cosas sin usar ──
+        interfaz = d.get("interfaz") or {}
+        opcion_una = interfaz.get("opcionUnaEnUna") or {}
+        opcion_foco = interfaz.get("opcionFoco") or {}
+        con_casilla = [b for b in d["bloques"] if b.get("opcionUnaEnUna", True)]
+        if opcion_una.get("visible") is False:
+            avisos.append("La opción «ver las preguntas de una en una» está OCULTA (pestaña 5): "
+                          "el alumno no verá las casillas de cada bloque y cada uno se quedará "
+                          "como diga su modo en la pestaña 2.")
+        elif not con_casilla:
+            avisos.append("Ningún bloque saca su casilla en el panel ⚙ (pestaña 2): la opción "
+                          "«ver las preguntas de una en una» no aparecerá.")
+
+        vinculadas = [q for q in d["preguntas"] if q.get("factIds")]
+        if opcion_foco.get("visible") is not False and not vinculadas and d["enunciados"]:
+            avisos.append("El modo foco está a la vista pero ninguna pregunta tiene hechos "
+                          "vinculados (pestaña 4): encenderlo no cambiará nada.")
+        if vinculadas:
+            if opcion_foco.get("visible") is False and not opcion_foco.get("activa"):
+                avisos.append("Hay %d pregunta(s) con hechos vinculados, pero el modo foco está "
+                              "oculto y no arranca activado: nunca se usarán." % len(vinculadas))
+            alcanzable = [b for b in d["bloques"]
+                          if b["tipo"] != "test" and (b["modo"] == "individual"
+                                                      or opcion_una.get("activa")
+                                                      or (b.get("opcionUnaEnUna", True)
+                                                          and opcion_una.get("visible") is not False))]
+            if not alcanzable:
+                avisos.append("Hay preguntas con hechos vinculados, pero ningún bloque de "
+                              "supuesto puede verse de una en una: el modo foco no llegará a "
+                              "aplicarse (solo actúa de una en una, nunca en cadena).")
+
+        hechos_de = {e["id"]: {b["id"] for b in e["factBlocks"]} for e in d["enunciados"]}
+        ocultos_de = {e["id"]: {b["id"] for b in e["factBlocks"] if b["hidden"]}
+                      for e in d["enunciados"]}
+
         for i, p in enumerate(d["preguntas"], 1):
             if not p["q"].strip():
                 errores.append("Pregunta %d: falta el texto de la pregunta." % i)
             if p["statementId"] and p["statementId"] not in vistos:
                 errores.append("Pregunta %d: apunta al enunciado «%s», que no existe."
                                % (i, p["statementId"]))
+            if p.get("factIds"):
+                propios = hechos_de.get(p["statementId"] or "", set())
+                perdidos = [x for x in p["factIds"] if x not in propios]
+                if perdidos:
+                    avisos.append("Pregunta %d: vinculada a hechos que no están en su "
+                                  "enunciado (%s): en modo foco mostrará el enunciado entero."
+                                  % (i, ", ".join(perdidos)))
+                escondidos = ocultos_de.get(p["statementId"] or "", set())
+                ocultos = [x for x in p["factIds"] if x in escondidos]
+                if ocultos:
+                    avisos.append("Pregunta %d: vinculada a hechos marcados como «no "
+                                  "mostrar» (%s)." % (i, ", ".join(ocultos)))
             vacias = [n for n, t in enumerate(p["a"]) if not t.strip()]
             if vacias:
                 errores.append("Pregunta %d: opciones vacías (%s)."
-                               % (i, ", ".join("ABCD"[n] for n in vacias)))
+                               % (i, ", ".join(LETRAS[n] for n in vacias)))
+            if len(p["a"]) < MIN_OPCIONES:
+                errores.append("Pregunta %d: solo tiene %d respuesta(s); hacen falta al menos %d."
+                               % (i, len(p["a"]), MIN_OPCIONES))
             normal = [" ".join(t.lower().split()) for t in p["a"] if t.strip()]
             if len(set(normal)) != len(normal):
                 avisos.append("Pregunta %d: hay dos opciones con el mismo texto." % i)
+
+            correctas = p.get("correctas") or []
+            if not correctas:
+                errores.append("Pregunta %d: no tiene marcada ninguna respuesta correcta." % i)
+            if p.get("multiple") and len(correctas) < 2:
+                avisos.append("Pregunta %d: está marcada como de respuesta múltiple pero solo "
+                              "tiene una correcta." % i)
+            if not p.get("multiple") and len(correctas) > 1:
+                avisos.append("Pregunta %d: tiene %d correctas pero NO es de respuesta múltiple: "
+                              "solo se dará por buena la primera." % (i, len(correctas)))
+
+            # Cuántas respuestas verá el alumno en esta pregunta
+            cuantas = p.get("respuestas") or d["config"].get("respuestas") or len(p["a"])
+            if cuantas < len(correctas) + (1 if len(p["a"]) > len(correctas) else 0):
+                avisos.append("Pregunta %d: se pide que salgan %d respuestas, pero tiene %d "
+                              "correctas: saldrán más para que quepan todas."
+                              % (i, cuantas, len(correctas)))
+            elif p.get("respuestas") and p["respuestas"] > len(p["a"]):
+                avisos.append("Pregunta %d: se piden %d respuestas y solo tiene %d escritas: "
+                              "saldrán las %d." % (i, p["respuestas"], len(p["a"]), len(p["a"])))
             if not p["law"].strip():
                 avisos.append("Pregunta %d: sin motivación legal (la corrección saldrá vacía)." % i)
 
@@ -2897,7 +3283,7 @@ class EditorApp(tk.Tk):
             if not orden or orden[-1] != sid:
                 if sid and sid in bloques_vistos:
                     avisos.append("Las preguntas del enunciado «%s» no van todas seguidas: "
-                                  "el panel de hechos se repintará varias veces." % sid)
+                                  "el enunciado se repetirá, uno delante de cada grupo." % sid)
                 orden.append(sid)
                 if sid:
                     bloques_vistos.add(sid)
@@ -2909,6 +3295,15 @@ class EditorApp(tk.Tk):
         lineas.append("Enunciados  : %d" % len(d["enunciados"]))
         lineas.append("Preguntas   : %d" % len(d["preguntas"]))
         lineas.append("APTO desde  : %s%% de la puntuación" % nUm(d["config"]["aptoPorcentaje"]))
+        general = d["config"].get("respuestas", 0)
+        lineas.append("Respuestas  : %s"
+                      % ("las que tenga escritas cada pregunta" if not general
+                         else "%d por pregunta (el resto se sortean)" % general))
+        multiples = sum(1 for q in d["preguntas"] if q.get("multiple"))
+        propias = sum(1 for q in d["preguntas"] if q.get("respuestas"))
+        if multiples or propias:
+            lineas.append("              %d de respuesta múltiple · %d con nº propio de respuestas"
+                          % (multiples, propias))
         cambiados = [c for c in TEMA_DEFECTO if d["tema"][c] != TEMA_DEFECTO[c]]
         lineas.append("Colores     : %s"
                       % ("los originales de la plantilla" if not cambiados
@@ -2926,9 +3321,19 @@ class EditorApp(tk.Tk):
             lineas.append("     %d preguntas · máximo %s puntos" % (len(suyas), nUm(maximo)))
             lineas.append("     +%s por acierto · −%s por fallo · −%s en blanco"
                           % (nUm(b["acierto"]), nUm(b["fallo"]), nUm(b["blanco"])))
-            lineas.append("     se ven %s · en el aleatorio salen %s"
+            lineas.append("     empiezan %s (%s) · en el aleatorio salen %s"
                           % ("todas seguidas" if b["modo"] == "cadena" else "de una en una",
+                             "el alumno puede cambiarlo" if b.get("opcionUnaEnUna", True)
+                             else "sin casilla en el panel: no se puede cambiar",
                              "todas" if not b["porIntento"] else "%d al azar" % b["porIntento"]))
+            if b["tipo"] != "test":
+                con_foco = sum(1 for q in suyas if q.get("factIds"))
+                lineas.append("     barra del bloque %s · %s"
+                              % ("encima del enunciado"
+                                 if b.get("cabeceraSobreEnunciado", True) is not False
+                                 else "delante de la primera pregunta",
+                                 "sin preguntas vinculadas al modo foco" if not con_foco
+                                 else "%d pregunta(s) vinculadas al modo foco" % con_foco))
         lineas.append("  ----------------------------------------")
         lineas.append("  Puntuación máxima del examen: %s puntos" % nUm(maximo_total))
         lineas.append("  APTO a partir de %s puntos"
@@ -3032,7 +3437,7 @@ class EditorApp(tk.Tk):
         self.datos, self.modo, self.html_base = leer_html(base)
         self.datos["preguntas"] = []
         self.datos["enunciados"] = []
-        self.datos["bloques"] = [bloque_vacio("supuesto", "B1", primero=True)]
+        self.datos["bloques"] = [bloque_vacio("supuesto", "B1")]
         self.datos["config"] = datos_vacios()["config"]
         self.ruta = None
         self.hay_cambios = False
@@ -3071,6 +3476,12 @@ class EditorApp(tk.Tk):
                 parent=self)
         elif self.modo == "js":
             self.estado(self.lbl_estado.cget("text") + "   ·   formato JavaScript (plantilla clásica)")
+        else:
+            plantilla = self._plantilla_base()
+            if plantilla and version_motor(self.html_base) < version_motor(plantilla):
+                self.estado(self.lbl_estado.cget("text") +
+                            "   ·   página de una versión anterior: al guardar se ofrecerá "
+                            "ponerla al día")
 
     def _nombre_sugerido(self):
         texto = self.datos["config"]["titulo"].lower()
@@ -3103,7 +3514,11 @@ class EditorApp(tk.Tk):
 
         Sirve para modernizar los supuestos antiguos (los que llevan el
         título escrito a mano dentro del HTML): a partir de la conversión,
-        los datos generales también se editan desde el programa."""
+        los datos generales también se editan desde el programa.
+
+        Para los archivos que YA usan la plantilla nueva no hace falta:
+        al guardar, el editor detecta solo si la página se quedó en una
+        versión anterior y ofrece rehacerla."""
         self.volcar_todo()
         base = Path(__file__).resolve().parent / PLANTILLA_BASE
         if not base.exists():
@@ -3126,11 +3541,59 @@ class EditorApp(tk.Tk):
                 "Convertido",
                 "Supuesto guardado con la plantilla nueva.\n\n"
                 "A partir de ahora también se pueden cambiar desde el programa el "
-                "título, la referencia, el ámbito y los minutos.", parent=self)
+                "título, la referencia, el ámbito y los minutos, y la página estrena "
+                "el motor actual de la plantilla.", parent=self)
             return True
         return False
 
+    def _plantilla_base(self):
+        """La plantilla que viene junto al programa, si está."""
+        base = Path(__file__).resolve().parent / PLANTILLA_BASE
+        if not base.exists():
+            return None
+        try:
+            return base.read_text(encoding="utf-8")
+        except OSError:
+            return None
+
+    def _poner_motor_al_dia(self):
+        """Si el archivo abierto se quedó con una versión anterior de la
+        PÁGINA, ofrece rehacerla con la plantilla actual.
+
+        Al guardar solo se sustituyen los datos dentro del HTML, así que un
+        supuesto creado hace meses conserva su página tal cual, sin las
+        mejoras posteriores de la plantilla. Aquí se detecta y se arregla,
+        que es justo lo que uno espera al guardar."""
+        if self.modo != "json":
+            return          # las plantillas antiguas van por «⇪ Pasar a plantilla nueva…»
+        plantilla = self._plantilla_base()
+        if plantilla is None:
+            return
+        nueva = version_motor(plantilla)
+        vieja = version_motor(self.html_base)
+        if vieja >= nueva:
+            return          # ya está al día
+
+        if not messagebox.askyesno(
+                "Poner la página al día",
+                "Este supuesto se creó con una versión anterior de la plantilla, así que "
+                "su página no tiene las mejoras que sí trae la plantilla que acompaña al "
+                "programa.\n\n"
+                "Si NO se actualiza, se guardarán los datos nuevos pero la página seguirá "
+                "comportándose como el día en que se creó el archivo: es lo que hace que "
+                "opciones nuevas del editor no se noten al abrir el supuesto.\n\n"
+                "¿Rehacer la página con la plantilla actual?\n"
+                "(No se toca ni una pregunta: solo se cambia el armazón. Del archivo "
+                "anterior queda una copia .bak.)", parent=self):
+            self.estado("Guardado SIN actualizar la página: las novedades de la plantilla "
+                        "no se verán en este archivo.")
+            return
+
+        self.html_base = plantilla
+        self.estado("Página rehecha con la plantilla actual (versión %d)." % nueva)
+
     def _escribir(self, destino):
+        self._poner_motor_al_dia()
         if self.modo != "json" and bloques_se_pierden(self.datos):
             seguir = messagebox.askyesno(
                 "La plantilla clásica no tiene bloques",
@@ -3153,7 +3616,86 @@ class EditorApp(tk.Tk):
         self._pintar_titulo()
         self.estado("Guardado en %s   (%d preguntas)"
                     % (self.ruta, len(self.datos["preguntas"])))
+        self._alta_en_menu()
+        self.refrescar_para_subir()
         return True
+
+    def refrescar_para_subir(self):
+        """Tras guardar: deja la carpeta PARA_SUBIR al día con lo que se ha cambiado."""
+        res = sincronizar_local.refrescar_silencioso(self.ruta) if self.ruta else None
+        if res:
+            self.estado(self.lbl_estado.cget("text") + "   ·   " + sincronizar_local.resumen(*res))
+
+    def _alta_en_menu(self):
+        """Mantiene al día la tarjeta del supuesto en el menú principal
+        (supuestos-datos.js). Si el supuesto ya estaba, solo actualiza su
+        título, referencia y descripción; si es nuevo, pregunta en qué grupo
+        ponerlo. No hace nada si el archivo no está en «supuestos/»."""
+        try:
+            ruta_menu = ruta_menu_de(self.ruta)
+            if ruta_menu is None:
+                return
+            texto, menu = leer_menu(ruta_menu)
+            archivo = self.ruta.stem
+            grupo = grupo_en_menu(menu, archivo)
+            if grupo:
+                for it in lista_de_grupo(menu, grupo):
+                    if it.get("archivo") == archivo:
+                        it.update({k: v for k, v in ficha_menu(archivo, self.datos).items()
+                                   if k != "letra"})
+                escribir_menu(ruta_menu, texto, menu)
+                self.estado(self.lbl_estado.cget("text") + "   ·   menú actualizado")
+                return
+            self._destinos_menu = menu_datos.destinos(menu)
+            elegido = self._pedir_grupo_menu(archivo)
+            if not elegido:
+                self.estado(self.lbl_estado.cget("text") + "   ·   sin añadir al menú")
+                return
+            clave, letra = elegido
+            lista_de_grupo(menu, clave).append(ficha_menu(archivo, self.datos, letra))
+            escribir_menu(ruta_menu, texto, menu)
+            self.estado(self.lbl_estado.cget("text") + "   ·   añadido al menú (%s)" % clave)
+        except (OSError, ValueError) as err:
+            messagebox.showwarning(
+                "Menú principal",
+                "El supuesto se ha guardado, pero no he podido tocar %s:\n\n%s\n\n"
+                "Añade su tarjeta a mano (las instrucciones están al principio de ese archivo)."
+                % (ARCHIVO_MENU, err), parent=self)
+
+    def _pedir_grupo_menu(self, archivo):
+        """Pequeño diálogo: ¿en qué grupo del menú va este supuesto?
+        Devuelve (grupo, letra) o None si se cancela."""
+        ventana = tk.Toplevel(self)
+        ventana.title("Añadir al menú principal")
+        ventana.transient(self)
+        ventana.resizable(False, False)
+        marco = ttk.Frame(ventana, padding=16)
+        marco.pack(fill="both", expand=True)
+        ttk.Label(marco, wraplength=380, justify="left",
+                  text="«%s» todavía no está en el menú principal de la web.\n"
+                       "¿En qué sección y grupo lo pongo?" % archivo).pack(anchor="w", pady=(0, 8))
+        sitios = self._destinos_menu or list(GRUPOS_MENU)
+        grupo = tk.StringVar(value="generales/avanzados" if any(c == "generales/avanzados" for c, _ in sitios) else sitios[0][0])
+        for clave, etiqueta in sitios:
+            ttk.Radiobutton(marco, text=etiqueta, value=clave, variable=grupo).pack(anchor="w")
+        fila = ttk.Frame(marco)
+        fila.pack(fill="x", pady=(10, 0))
+        ttk.Label(fila, text="Texto del círculo (1-4 caracteres):").pack(side="left")
+        letra = tk.StringVar(value=archivo.replace("supuesto_", "").upper()[:4])
+        ttk.Entry(fila, textvariable=letra, width=6).pack(side="left", padx=6)
+        resultado = []
+
+        def aceptar():
+            resultado.append((grupo.get(), (letra.get().strip() or "?")[:4]))
+            ventana.destroy()
+
+        botones = ttk.Frame(marco)
+        botones.pack(fill="x", pady=(14, 0))
+        ttk.Button(botones, text="Añadir al menú", command=aceptar).pack(side="right")
+        ttk.Button(botones, text="Ahora no", command=ventana.destroy).pack(side="right", padx=(0, 6))
+        ventana.grab_set()
+        self.wait_window(ventana)
+        return resultado[0] if resultado else None
 
     def ver_navegador(self):
         if self.ruta is None or self.hay_cambios:
@@ -3184,6 +3726,11 @@ class EditorApp(tk.Tk):
 # ══════════════════════════════════════════════════════════════════════
 
 def main():
+    try:                       # la primera vez, lo que hay ahora cuenta como «lo descargado de GitHub»
+        if sincronizar_local.es_proyecto(sincronizar_local.RAIZ_DEFECTO):
+            sincronizar_local.asegurar_base(sincronizar_local.RAIZ_DEFECTO)
+    except OSError:
+        pass
     app = EditorApp()
     app.mainloop()
 

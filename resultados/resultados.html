@@ -3,8 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#3d2a20">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Supuestos C1">
+    <link rel="manifest" href="../manifest.webmanifest">
+    <link rel="icon" href="../icons/icon-192.png">
+    <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+    <script src="../prefs.js"></script>
+    <script src="../pwa.js" defer></script>
     <title>Resultados | Comunidad ECAP ASS C1</title>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,600;1,8..60,300&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../fuentes/fuentes.css">
 
     <style>
         :root {
@@ -281,6 +290,7 @@
             .category-btn { flex: 1 1 auto; text-align: center; padding: 13px 10px; }
         }
     </style>
+    <link rel="stylesheet" href="../tema-resultados.css">
 </head>
 <body>
 
@@ -288,7 +298,7 @@
     <div class="hero-inner">
         <div class="logo-wrap">
             <img src="https://academia.ecap.es/pluginfile.php?file=%2F1%2Fcore_admin%2Flogo%2F0x200%2F1782109950%2FACADEMIA%20VIRTUAL%20%281%29.png" alt="ECAP - Escuela Ciudadana de Administración Pública">
-            <span class="logo-subtitle">Comunidad ECAP ASS C1</span>
+            <span class="logo-subtitle">Comunidad ECAP ASS C1 | NO RELACIONADO CON LA PLATFORMA OFICIAL </span>
         </div>
         <h1>Tabla de<strong>resultados</strong></h1>
         <p>Clasificación dinámica de las puntuaciones de la comunidad</p>
@@ -328,7 +338,7 @@
         </div>
     </div>
 
-    <footer>DATOS CARGADOS EN TIEMPO REAL DESDE GOOGLE SHEETS · ECAP ASS C1</footer>
+    <footer>DATOS CARGADOS EN TIEMPO REAL DESDE GOOGLE SHEETS · REALIZADO DESDE LA COMUNIDAD DE ECAP · NO RELACIONADO CON LA PLATFORMA OFICIAL</footer>
 
 </div>
 
@@ -336,11 +346,13 @@
 (function () {
     var SHEET_ID = '19HZy6JZlljrvuEWdryuxWFqGHMf15qjsCVFe6OvLtLo';
 
-    // Tres pestañas de la misma hoja de cálculo, cada una con su propio botón superior
+    // Tres pestañas de la misma hoja de cálculo, cada una con su propio botón
+    // superior. La tercera recoge tanto los simulacros como los exámenes
+    // oficiales completos (sección «Exámenes / Simulacros» del menú).
     var CATEGORIES = {
         supuestos:  { label: 'Supuestos',  gid: '408413850', format: 'simple' },
-        test:       { label: 'Test',       sheetName: 'Respuestas de formulario 2', format: 'simple' },
-        simulacros: { label: 'Simulacros', sheetName: 'Respuestas de formulario 3', format: 'combined' }
+        test:       { label: 'Test',       sheetName: 'Test', format: 'simple' },
+        simulacros: { label: 'Exámenes/Simulacros', sheetName: 'Simulacros', format: 'combined' }
     };
     var CATEGORY_ORDER = ['supuestos', 'test', 'simulacros'];
     var selectedCategory = 'supuestos';
@@ -714,5 +726,6 @@
 })();
 </script>
 
+<script src="../app-menu.js" defer></script>
 </body>
 </html>
