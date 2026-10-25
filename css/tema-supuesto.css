@@ -243,3 +243,14 @@ kbd { font-family: 'JetBrains Mono', monospace; font-size: 0.8em; background: rg
 
 /* Deslizar para cambiar de pregunta: evita que el navegador lo tome por «atrás / adelante» */
 html, body { overscroll-behavior-x: none; }
+
+/* El texto de la pregunta ocupa todo el ancho de la tarjeta, debajo del número, la etiqueta y los botones
+   (en móvil la cabecera ya va en columna y no hace falta) */
+@media (min-width: 601px) {
+    .q-header { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "n t a" "x x x"; align-items: start; column-gap: 18px; row-gap: 12px; }
+    .q-header .q-body { display: contents; }
+    .q-header .q-num { grid-area: n; }
+    .q-header .q-tag { grid-area: t; margin-bottom: 0; }
+    .q-header .q-acciones { grid-area: a; margin-left: 0; }
+    .q-header .q-text { grid-area: x; }
+}
