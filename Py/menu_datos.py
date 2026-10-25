@@ -19,7 +19,7 @@ import json
 import re
 from pathlib import Path
 
-ARCHIVO_MENU = "supuestos-datos.js"
+ARCHIVO_MENU = "datos/supuestos-datos.js"
 
 # Valores por defecto de una instalación nueva
 SECCIONES_BASE = [
