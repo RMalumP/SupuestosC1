@@ -1,8 +1,8 @@
 // La lista de supuestos se lee de supuestos-datos.js (el mismo archivo que pinta el menú):
 // dar de alta un supuesto ahí basta para que funcione sin conexión. Si ese archivo cambia,
 // el navegador detecta una versión nueva de este service worker por sí solo.
-importScripts("datos/supuestos-datos.js");
-const VERSION = "v27";
+importScripts("datos/supuestos-datos.js", "config/version.js");
+const VERSION = self.SUPC1_VERSION;
 const CACHE = "supuestos-c1-" + VERSION;
 const PRECACHE_BASE = [
   "./",
@@ -21,6 +21,7 @@ const PRECACHE_BASE = [
   "js/app-estudio.js",
   "js/app-sync.js",
   "config/sync-config.js",
+  "config/version.js",
   "datos/normas-datos.js",
   "mi-estudio.html",
   "privacidad.html",

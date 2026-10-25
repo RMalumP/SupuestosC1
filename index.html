@@ -214,6 +214,11 @@
             .hero h1 { font-size: 1.7rem; }
             .supuestos-grid { grid-template-columns: 1fr; }
         }
+        .creditos { max-width: 360px; margin: 22px auto 0; padding: 14px 18px; background: var(--t-surface, #fff); border: 1px solid var(--t-line, rgba(0,0,0,.1)); border-radius: 12px; font-size: 0.85rem; line-height: 1.7; }
+        .creditos h2 { margin: 0 0 6px; font-size: 0.8rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--brown-mid); }
+        .creditos dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 14px; margin: 0; }
+        .creditos dt { font-weight: 700; color: #2f6f93; }
+        .creditos dd { margin: 0; color: var(--t-ink, inherit); }
         .enlace-privacidad { text-align: center; margin: 10px 0 0; font-size: 0.8rem; }
         .enlace-privacidad a { color: var(--brown-mid); text-decoration: underline; text-underline-offset: 3px; }
         .enlace-privacidad a:hover { color: var(--brown); }
@@ -297,12 +302,24 @@
 
     </div>
     
+    <section class="creditos" aria-labelledby="creditos-titulo">
+        <h2 id="creditos-titulo">Créditos</h2>
+        <dl>
+            <dt>Dirección:</dt><dd>R.M.P.</dd>
+            <dt>Desarrollo:</dt><dd>Vibe Coding con Claude</dd>
+            <dt>Derechos:</dt><dd>Licencia CC BY-SA</dd>
+            <dt>Versión:</dt><dd id="version-app">—</dd>
+        </dl>
+    </section>
+
     <footer>REALIZADO DESDE LA COMUNIDAD DE ECAP · NO RELACIONADO CON LA PLATAFORMA OFICIAL</footer>
     <p class="enlace-privacidad"><a href="privacidad.html">Política de privacidad</a></p>
 
 </div>
 
 <script src="datos/supuestos-datos.js"></script>
+<script src="config/version.js"></script>
+<script>(function () { var v = document.getElementById("version-app"); if (v && self.SUPC1_VERSION) v.textContent = self.SUPC1_VERSION; })();</script>
 <script src="config/telemetria-config.js"></script>
 <script src="config/sync-config.js"></script>
 <script src="js/app-menu.js" defer></script>
