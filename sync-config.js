@@ -26,6 +26,6 @@
    Mientras «clientId» esté vacío, la opción NO aparece en «Mi estudio».
 ════════════════════════════════════════════════════════════════ */
 window.SUPC1_SYNC = {
-    clientId: "",                         // 1234567890-abc...apps.googleusercontent.com
+    clientId: "592644810471-sahcfa82q4vlaql6a01m1psh4vm3td7q.apps.googleusercontent.com",                       // 1234567890-abc...apps.googleusercontent.com
     archivo: "supc1-sync.json"            // nombre del archivo dentro de la carpeta oculta de Drive
 };
