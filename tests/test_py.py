@@ -25,7 +25,7 @@ def copia_del_proyecto():
     d = Path(tempfile.mkdtemp(prefix="supc1_"))
     shutil.copytree(PY, d / "Py", ignore=shutil.ignore_patterns("__pycache__", "*.bak"))
     shutil.copytree(RAIZ / "supuestos", d / "supuestos")
-    for f in ("supuestos-datos.js", "sw.js", "index.html", "mi-estudio.html"):
+    for f in ("supuestos-datos.js", "sw.js", "index.html", "mi-estudio.html", "privacidad.html"):
         shutil.copy(RAIZ / f, d / f)
     for f in list(RAIZ.glob("*.js")) + list(RAIZ.glob("*.css")) + [RAIZ / "manifest.webmanifest"]:
         if f.is_file():

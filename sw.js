@@ -2,7 +2,7 @@
 // dar de alta un supuesto ahí basta para que funcione sin conexión. Si ese archivo cambia,
 // el navegador detecta una versión nueva de este service worker por sí solo.
 importScripts("supuestos-datos.js");
-const VERSION = "v21";
+const VERSION = "v22";
 const CACHE = "supuestos-c1-" + VERSION;
 const PRECACHE_BASE = [
   "./",
@@ -23,6 +23,7 @@ const PRECACHE_BASE = [
   "sync-config.js",
   "normas-datos.js",
   "mi-estudio.html",
+  "privacidad.html",
   "pwa.js",
   "app-menu.js",
   "app-supuesto.js",
