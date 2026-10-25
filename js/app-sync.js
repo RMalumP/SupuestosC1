@@ -341,9 +341,11 @@
         var ult = S.get(K_ULT, null), acc = el('div', 'sync-acciones');
         var ayuda = el('button', 'btn-link', '¿Cómo funciona?'); ayuda.type = 'button'; ayuda.addEventListener('click', function () { explicacion(ejecutar); });
         if (sesion()) {
+            t.className = 'sync-tarjeta sync-compacta';
             var e = estado === 'fuera' ? 'ok' : estado;
-            var ic = el('strong', 'sync-conectado', ICONO_ESTADO[e] + ' Conectado a Google Drive'); ic.id = 'sync-icono-tarjeta'; txt.appendChild(ic);
-            txt.appendChild(el('span', null, TEXTO_ESTADO[e] + (ult ? ' · última vez: ' + hace(ult) : '') + '. Se sincroniza solo, también los tests a medias.'));
+            var ic = el('strong', 'sync-conectado', ICONO_ESTADO[e] + ' Conectado'); ic.id = 'sync-icono-tarjeta';
+            ic.title = TEXTO_ESTADO[e] + (ult ? ' · última vez: ' + hace(ult) : '') + '. Se sincroniza solo, también los tests a medias.';
+            txt.appendChild(ic);
             var ahora = el('button', 'btn-link', e === 'reconectar' ? 'Reconectar' : 'Sincronizar ahora'); ahora.type = 'button'; ahora.id = 'sync-ahora';
             ahora.addEventListener('click', function () { if (e === 'reconectar') ejecutar(); else auto(); });
             var salir = el('button', 'btn-practicar', 'Cerrar sesión'); salir.type = 'button'; salir.id = 'sync-salir'; salir.addEventListener('click', cerrarSesion);
@@ -356,6 +358,28 @@
         }
         acc.appendChild(ayuda);
         t.appendChild(txt); t.appendChild(acc); cont.appendChild(t);
+        pintarBarra();
+    }
+    // Con la sesión iniciada: el aviso de privacidad pasa a ser un botón junto a «Volver al menú» y el estado de Drive
+    // (símbolo + botones) se queda en esa misma fila, a su derecha
+    function pintarBarra() {
+        var cont = $('estudio-sync'), aviso = doc.querySelector('.aviso-privado'), volver = doc.querySelector('.back-link.boton');
+        if (!cont) return;
+        var b1 = $('sync-btn-aviso');
+        if (!sesion() || !volver) {
+            if (b1) b1.remove();
+            cont.classList.remove('en-barra'); if (aviso) aviso.hidden = false;
+            if (volver && volver.parentNode && cont.previousElementSibling !== aviso && aviso) aviso.insertAdjacentElement('afterend', cont);
+            return;
+        }
+        if (aviso && !b1) {
+            b1 = el('button', 'btn-barra', '🔒 Datos solo tuyos'); b1.type = 'button'; b1.id = 'sync-btn-aviso';
+            b1.setAttribute('aria-expanded', 'false');
+            b1.addEventListener('click', function () { aviso.hidden = !aviso.hidden; b1.setAttribute('aria-expanded', String(!aviso.hidden)); });
+            volver.insertAdjacentElement('afterend', b1); aviso.hidden = true;
+        }
+        if (b1) b1.insertAdjacentElement('afterend', cont); else volver.insertAdjacentElement('afterend', cont);
+        cont.classList.add('en-barra');
     }
     // Icono flotante en las páginas que no son «Mi estudio» (ahí ya está la tarjeta)
     function pintarIcono() {

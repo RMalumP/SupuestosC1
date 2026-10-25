@@ -494,7 +494,7 @@ async function sync() {
         const drive = driveFalso();
         const ca = await dispositivo(drive, SIEMBRA_A); const a = await abrir(ca, 'mi-estudio.html');
         await pulsarSync(a); await a.check('#sync-no-mas'); await a.click('.sync-explicacion .btn-primary'); await hecho(a);
-        await a.reload(); await a.waitForSelector('#sync-salir');       // la sesión se recuerda: no pide nada
+        await a.reload(); await a.waitForSelector('#sync-ahora');       // la sesión se recuerda: no pide nada
         await a.click('#sync-salir'); await a.waitForSelector('#sync-boton');
         await pulsarSync(a); const sinExplicacion = (await hay(a, '.sync-explicacion')) === 0; await hecho(a);
         // borro la nota en A y sincronizo; B (con la nota) la pierde
@@ -520,8 +520,9 @@ async function sync() {
         const drive = driveFalso();
         const ca = await dispositivo(drive, SIEMBRA_A); const a = await abrir(ca, 'mi-estudio.html');
         await pulsarSync(a); await a.click('.sync-explicacion .btn-primary'); await hecho(a);
-        await a.reload(); await a.waitForSelector('#sync-salir');
-        const sinBoton = (await hay(a, '#sync-boton')) === 0, icono = await hay(a, '#sync-icono-tarjeta');
+        await a.reload(); await a.waitForSelector('#sync-ahora');
+        const sinBoton = (await hay(a, '#sync-boton')) === 0, icono = await hay(a, '#sync-icono-tarjeta'), avisoOculto = await a.evaluate(() => document.querySelector('.aviso-privado').hidden);
+        await a.click('#sync-btn-aviso'); const avisoVisible = await a.evaluate(() => !document.querySelector('.aviso-privado').hidden); await a.click('#sync-btn-aviso');
         // un test a medias en A se sube solo
         await a.evaluate(() => SupC1.set('curso:supuesto_T2I', { v: 1, ts: Date.now(), a: { 0: 1 } }));
         await a.waitForTimeout(6000);
@@ -534,9 +535,10 @@ async function sync() {
         await b.reload(); await b.waitForSelector('#sync-ahora'); await b.waitForTimeout(2000);
         const bSigue = await b.evaluate(() => !!SupC1.get('curso:supuesto_T2I', null));
         await a.click('#sync-salir'); await a.waitForSelector('#sync-boton');
+        const avisoVuelve = await a.evaluate(() => !document.querySelector('.aviso-privado').hidden && (document.querySelectorAll('.btn-barra').length === 0));
         const salida = await a.evaluate(() => SupC1.get('sync-sesion', null));
         await ca.close(); await cb.close();
-        return (sinBoton && icono === 1 && bTiene && !bSigue && salida === null) || JSON.stringify({ sinBoton, icono, bTiene, bSigue, salida });
+        return (sinBoton && icono === 1 && avisoOculto && avisoVisible && avisoVuelve && bTiene && !bSigue && salida === null) || JSON.stringify({ sinBoton, icono, avisoOculto, avisoVisible, avisoVuelve, bTiene, bSigue, salida });
     });
     await caso('si Google no concede el permiso, el mensaje es claro y no se toca nada', async () => {
         const drive = driveFalso(), ctx = await dispositivo(drive, SIEMBRA_A, { deniega: true }); const pg = await abrir(ctx, 'mi-estudio.html');
