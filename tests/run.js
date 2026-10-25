@@ -374,7 +374,7 @@ async function menu() {
         const r = await pg.evaluate(() => ({ datos: document.querySelectorAll('.dato').length, evo: document.querySelectorAll('.supuesto-card.evo').length, spark: document.querySelectorAll('.spark').length,
             falladas: document.querySelectorAll('#estudio-falladas .item').length, notas: document.querySelectorAll('#estudio-marcadas .item-nota').length,
             volver: document.querySelectorAll('.back-link.boton').length, aviso: !!document.querySelector('.aviso-privado'),
-            enlace: (document.querySelector('.btn-practicar') || {}).getAttribute && document.querySelector('.btn-practicar').getAttribute('href') }));
+            enlace: (document.querySelector('a.btn-practicar') || {}).getAttribute && document.querySelector('a.btn-practicar').getAttribute('href') }));
         const err = pg.errores.join(); await ctx.close();
         return (r.datos === 4 && r.evo === 1 && r.spark === 1 && r.falladas === 1 && r.notas === 1 && /practicar=falladas/.test(r.enlace) && r.volver === 2 && r.aviso && !err) || JSON.stringify(r) + err;
     });
