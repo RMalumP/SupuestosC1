@@ -220,7 +220,7 @@
     function alCorregir() {
         questions.forEach(anotarResultado);
         if (!parcial) registrar();
-        S.del(K_CURSO);
+        borrarCurso();
         quitarBotonesExtra();
         if (parcial) botonExtra('completo-btn', '↩ Intento completo', intentoCompleto);
         var fall = questions.filter(function (q, i) { return !esAcierto(i); }).length;
@@ -242,6 +242,8 @@
     }
 
     /* ── Intento a medias ── */
+    // Al borrarlo se deja una lápida con la fecha para que la sincronización lo quite también en los otros dispositivos
+    function borrarCurso() { S.del(K_CURSO); S.set('cursoborr:' + ID, Date.now()); }
     function guardar() {
         anotarReveladas();
         if (evaluated || !Object.keys(userAns).length) return;
@@ -299,8 +301,8 @@
             var r = e.target.getAttribute && e.target.getAttribute('data-r');
             if (!r) return;
             fondo.remove();
-            if (r === 'si') { try { restaurar(st); } catch (err) { S.del(K_CURSO); } }
-            else S.del(K_CURSO);
+            if (r === 'si') { try { restaurar(st); } catch (err) { borrarCurso(); } }
+            else borrarCurso();
             timerPaused = false;
         });
         document.body.appendChild(fondo);
@@ -395,5 +397,5 @@
     if (st && st.v === 1 && st.n === QUESTIONS_BANK.length && Date.now() - st.ts < TRES_DIAS &&
         !evaluated && st.q && st.o && st.q.length === st.o.length && st.q.every(function (i) { return QUESTIONS_BANK[i]; })) {
         modalContinuar(st);
-    } else if (st) S.del(K_CURSO);
+    } else if (st) borrarCurso();
 })();

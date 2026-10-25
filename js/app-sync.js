@@ -50,9 +50,26 @@
         // Aproximación: los intentos de cada dispositivo son distintos, así que se cuentan las fechas distintas
         return { intentos: Math.max(a.intentos || 0, b.intentos || 0, hist.length), mejor: mejor, ultima: ultima, hist: hist };
     }
+    /* Intentos a medias («curso»): gana el más reciente; al terminar o descartar uno se deja una
+       lápida con la fecha, para que no reaparezca en el otro dispositivo. Pasada una semana sin tocarlos se descartan. */
+    var SIETE_DIAS = 7 * 24 * 3600 * 1000;
+    function mezclarCurso(a, b, ba, bb, ahora) {
+        a = a || {}; b = b || {}; ba = ba || {}; bb = bb || {}; ahora = ahora || Date.now();
+        var out = { curso: {}, cursoBorr: {} }, ids = {};
+        [a, b, ba, bb].forEach(function (m) { Object.keys(m).forEach(function (k) { ids[k] = 1; }); });
+        Object.keys(ids).sort().forEach(function (k) {
+            var ea = a[k], eb = b[k], mejor = ea;
+            if (eb && (!mejor || (eb.ts || 0) > (mejor.ts || 0))) mejor = eb;
+            var lapida = Math.max(ba[k] || 0, bb[k] || 0);
+            if (mejor && (mejor.ts || 0) > lapida) { if (ahora - (mejor.ts || 0) < SIETE_DIAS) out.curso[k] = mejor; }
+            else if (lapida && ahora - lapida < NOVENTA_DIAS) out.cursoBorr[k] = lapida;
+        });
+        return out;
+    }
     function mezclarTodo(local, remoto, ahora) {
         local = local || {}; remoto = remoto || {};
-        var out = { v: 1, banco: mezclarBanco(local.banco, remoto.banco, ahora), prog: {} };
+        var mc = mezclarCurso(local.curso, remoto.curso, local.cursoBorr, remoto.cursoBorr, ahora);
+        var out = { v: 1, banco: mezclarBanco(local.banco, remoto.banco, ahora), prog: {}, curso: mc.curso, cursoBorr: mc.cursoBorr };
         var claves = {};
         Object.keys(local.prog || {}).concat(Object.keys(remoto.prog || {})).forEach(function (k) { claves[k] = 1; });
         Object.keys(claves).forEach(function (k) {
@@ -63,10 +80,13 @@
     }
     // Qué trae la copia fusionada que no estuviera ya en este dispositivo (para decírselo a la persona)
     function novedades(local, fusion) {
-        local = local || {}; var lb = normBanco(local.banco), fb = fusion.banco, r = { falladas: 0, marcadas: 0, notas: 0, favoritas: 0, subrayados: 0, intentos: 0, quitadas: 0 };
+        local = local || {}; var lb = normBanco(local.banco), fb = fusion.banco, r = { falladas: 0, marcadas: 0, notas: 0, favoritas: 0, subrayados: 0, intentos: 0, quitadas: 0, cursos: 0 };
         COLECCIONES.forEach(function (c) {
             Object.keys(fb[c]).forEach(function (k) { if (!lb[c][k] || (lb[c][k].ts || 0) < (fb[c][k].ts || 0)) r[c]++; });
             Object.keys(lb[c]).forEach(function (k) { if (!fb[c][k]) r.quitadas++; });
+        });
+        Object.keys(fusion.curso || {}).forEach(function (k) {
+            var l = (local.curso || {})[k]; if (!l || (l.ts || 0) < (fusion.curso[k].ts || 0)) r.cursos++;
         });
         Object.keys(fusion.prog).forEach(function (k) {
             var l = (local.prog || {})[k]; r.intentos += Math.max(0, (fusion.prog[k].intentos || 0) - (l ? (l.intentos || 0) : 0));
@@ -74,7 +94,7 @@
         return r;
     }
 
-    var nucleo = { mezclarBanco: mezclarBanco, mezclarProg: mezclarProg, mezclarTodo: mezclarTodo, novedades: novedades };
+    var nucleo = { mezclarBanco: mezclarBanco, mezclarProg: mezclarProg, mezclarCurso: mezclarCurso, mezclarTodo: mezclarTodo, novedades: novedades };
     if (!W) return nucleo;
 
     /* ═══════════ NAVEGADOR: Google Drive + ventanas ═══════════ */
@@ -83,7 +103,8 @@
     var $ = function (id) { return doc.getElementById(id); };
     var el = function (tag, cls, txt) { var e = doc.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
     var nombreArchivo = C.archivo || 'supc1-sync.json';
-    var K_ULT = 'sync-ultima', K_NO = 'sync-explicacion-no';
+    var K_ULT = 'sync-ultima', K_NO = 'sync-explicacion-no', K_SES = 'sync-sesion';
+    var K_TOK = 'supc1:sync-token';       // en sessionStorage: solo dura mientras la pestaña esté abierta
 
     function leerLocal() {
         var prog = {};
@@ -91,12 +112,40 @@
             var k = W.localStorage.key(i);
             if (k.indexOf('supc1:prog:') === 0) { try { prog[k.slice(11)] = JSON.parse(W.localStorage.getItem(k)); } catch (e) { /* ignorar */ } }
         }
-        return { banco: S.get('banco', null), prog: prog };
+        var curso = {}, cursoBorr = {};
+        for (var j = 0; j < W.localStorage.length; j++) {
+            var c = W.localStorage.key(j);
+            try {
+                if (c.indexOf('supc1:curso:') === 0) curso[c.slice(12)] = JSON.parse(W.localStorage.getItem(c));
+                else if (c.indexOf('supc1:cursoborr:') === 0) cursoBorr[c.slice(16)] = JSON.parse(W.localStorage.getItem(c));
+            } catch (e) { /* ignorar */ }
+        }
+        return { banco: S.get('banco', null), prog: prog, curso: curso, cursoBorr: cursoBorr };
     }
+    var aplicando = false;      // mientras se escribe lo recibido, no se programa otra sincronización
     function escribirLocal(f) {
-        S.set('banco', f.banco);
-        Object.keys(f.prog).forEach(function (k) { S.set('prog:' + k, f.prog[k]); });
+        aplicando = true;
+        try {
+            S.set('banco', f.banco);
+            Object.keys(f.prog).forEach(function (k) { S.set('prog:' + k, f.prog[k]); });
+            Object.keys(f.curso || {}).forEach(function (k) {
+                var l = S.get('curso:' + k, null); if (!l || (l.ts || 0) < (f.curso[k].ts || 0)) S.set('curso:' + k, f.curso[k]);
+            });
+            Object.keys(f.cursoBorr || {}).forEach(function (k) {
+                var l = S.get('curso:' + k, null); if (l && (l.ts || 0) <= f.cursoBorr[k]) S.del('curso:' + k);
+                S.set('cursoborr:' + k, f.cursoBorr[k]);
+            });
+        } finally { aplicando = false; }
     }
+
+    /* ─── Sesión: se recuerda hasta pulsar «Cerrar sesión» ─── */
+    var sesion = function () { return !!S.get(K_SES, null); };
+    function tokenGuardado() {
+        try { var t = JSON.parse(W.sessionStorage.getItem(K_TOK)); if (t && t.t && t.exp > Date.now()) return t.t; } catch (e) { /* ignorar */ }
+        return null;
+    }
+    function guardarToken(t, seg) { try { W.sessionStorage.setItem(K_TOK, JSON.stringify({ t: t, exp: Date.now() + Math.max(60, (seg || 3600) - 60) * 1000 })); } catch (e) { /* ignorar */ } }
+    function olvidarToken() { try { W.sessionStorage.removeItem(K_TOK); } catch (e) { /* ignorar */ } }
 
     function cargarGoogle() {
         return new Promise(function (ok, ko) {
@@ -106,14 +155,18 @@
             doc.head.appendChild(s);
         });
     }
-    function pedirPermiso() {
+    // interactivo=false: renovar el acceso sin ventana (solo funciona si la persona ya dio el permiso y sigue con la sesión de Google abierta)
+    function pedirPermiso(interactivo) {
+        var previo = tokenGuardado(); if (previo) return Promise.resolve(previo);
         return new Promise(function (ok, ko) {
+            var plazo = interactivo ? null : setTimeout(function () { ko(new Error('silencio')); }, 15000);
+            var fin = function () { if (plazo) clearTimeout(plazo); };
             var cli = W.google.accounts.oauth2.initTokenClient({
                 client_id: C.clientId, scope: 'https://www.googleapis.com/auth/drive.appdata',
-                callback: function (r) { if (r && r.access_token) ok(r.access_token); else ko(new Error(r && r.error || 'denegado')); },
-                error_callback: function (e) { ko(new Error(e && e.type || 'cerrada')); }
+                callback: function (r) { fin(); if (r && r.access_token) { guardarToken(r.access_token, +r.expires_in); ok(r.access_token); } else ko(new Error(r && r.error || 'denegado')); },
+                error_callback: function (e) { fin(); ko(new Error(e && e.type || 'cerrada')); }
             });
-            cli.requestAccessToken({ prompt: '' });
+            cli.requestAccessToken({ prompt: interactivo ? '' : 'none' });
         });
     }
     function drive(token, ruta, opciones) {
@@ -138,9 +191,9 @@
         return drive(token, '/upload/drive/v3/files?uploadType=multipart', { method: 'POST', headers: { 'Content-Type': 'multipart/related; boundary=' + lim }, body: multi });
     }
 
-    function sincronizar() {
+    function sincronizar(interactivo, reintento) {
         var token;
-        return cargarGoogle().then(pedirPermiso).then(function (t) { token = t; return buscar(t); }).then(function (f) {
+        return cargarGoogle().then(function () { return pedirPermiso(interactivo); }).then(function (t) { token = t; return buscar(t); }).then(function (f) {
             return (f ? descargar(token, f.id) : Promise.resolve(null)).then(function (remoto) {
                 var local = leerLocal(), fusion = mezclarTodo(local, remoto), nov = novedades(local, fusion);
                 escribirLocal(fusion);
@@ -149,7 +202,44 @@
                     return { nov: nov, primera: !f };
                 });
             });
+        }).catch(function (e) {
+            if (e && e.estado === 401 && !reintento) { olvidarToken(); return sincronizar(interactivo, true); }      // el acceso había caducado
+            throw e;
         });
+    }
+
+    /* ─── Sincronización automática (con la sesión recordada) ─── */
+    var estado = 'fuera';       // fuera · ok · sincronizando · reconectar · error
+    var enCurso = false, pendiente = false, reloj = null;
+    function auto() {
+        if (!sesion()) return;
+        if (enCurso) { pendiente = true; return; }
+        enCurso = true; estado = 'sincronizando'; pintarIcono(); pintarTarjeta();
+        sincronizar(false).then(function (r) {
+            estado = 'ok';
+            var n = r.nov;
+            if (W.SupC1Estudio && (n.falladas || n.marcadas || n.notas || n.favoritas || n.subrayados || n.intentos || n.cursos || n.quitadas)) W.SupC1Estudio.repintar();
+        }).catch(function (e) {
+            estado = /silencio|interaction|login|consent|popup|cerrada|denegado|access_denied|immediate/i.test(String(e && e.message)) ? 'reconectar' : 'error';
+        }).then(function () {
+            enCurso = false; pintarIcono(); pintarTarjeta();
+            if (pendiente) { pendiente = false; programar(); }
+        });
+    }
+    function programar() { if (reloj) clearTimeout(reloj); reloj = setTimeout(function () { reloj = null; auto(); }, 4000); }
+    function vigilar() {
+        var set = S.set, del = S.del, claves = /^(banco$|prog:|curso:|cursoborr:)/;
+        S.set = function (k, v) { set.call(S, k, v); if (!aplicando && sesion() && claves.test(k)) programar(); };
+        S.del = function (k) { del.call(S, k); if (!aplicando && sesion() && claves.test(k)) programar(); };
+        doc.addEventListener('visibilitychange', function () { if (doc.visibilityState === 'hidden' && sesion() && !enCurso) { if (reloj) { clearTimeout(reloj); reloj = null; } auto(); } });
+    }
+    function cerrarSesion() {
+        var terminar = function () { S.del(K_SES); S.del(K_ULT); olvidarToken(); estado = 'fuera'; pintarTarjeta(); pintarIcono(); };
+        var t = tokenGuardado();
+        var tener = t ? Promise.resolve(t) : cargarGoogle().then(function () { return pedirPermiso(false); });
+        tener.then(function (tk) {
+            if (W.google && W.google.accounts.oauth2.revoke) W.google.accounts.oauth2.revoke(tk, terminar); else terminar();
+        }).catch(terminar);      // si no se pudo, al menos se deja de sincronizar aquí
     }
 
     /* ─── Ventanas ─── */
@@ -185,7 +275,7 @@
             'Elige tu cuenta de Google (o inicia sesión si te lo pide).',
             'Google te pedirá permiso para «ver y gestionar sus propios datos de configuración en tu Google Drive». Pulsa <strong>«Permitir»</strong> o «Continuar». Es la carpeta oculta de esta web.',
             'Espera unos segundos: verás el mensaje <strong>«Sincronizado»</strong> con lo que se ha añadido.',
-            'Para usar tus datos en otro dispositivo, abre esta misma página allí, pulsa «Sincronizar» y repite los pasos <strong>con la misma cuenta de Google</strong>.'
+            'Para usar tus datos en otro dispositivo, abre esta misma página allí, pulsa «Sincronizar» y repite los pasos <strong>con la misma cuenta de Google</strong>. Desde ese momento se sincroniza solo, incluidos los tests a medias, hasta que pulses «Cerrar sesión».'
         ]));
         c.appendChild(el('h4', null, 'Por si acaso'));
         c.appendChild(lista('ul', [
@@ -212,7 +302,8 @@
     function ejecutar() {
         var c = el('div', 'sync-texto'); var p = el('p', 'sync-estado', 'Conectando con Google… Sigue las indicaciones de la ventana que se ha abierto.'); c.appendChild(p);
         var f = ventana('Sincronizando…', c, [{ texto: 'Cerrar', accion: function (x) { x.remove(); } }], 'sync-proceso');
-        sincronizar().then(function (r) {
+        sincronizar(true).then(function (r) {
+            S.set(K_SES, { ts: Date.now() }); estado = 'ok';
             f.querySelector('h3').textContent = '✔ Sincronizado';
             var n = r.nov, partes = [];
             if (n.falladas) partes.push(n.falladas + (n.falladas === 1 ? ' pregunta fallada' : ' preguntas falladas'));
@@ -221,13 +312,14 @@
             if (n.subrayados) partes.push(n.subrayados + (n.subrayados === 1 ? ' subrayado' : ' subrayados'));
             if (n.notas) partes.push(n.notas + (n.notas === 1 ? ' nota' : ' notas'));
             if (n.intentos) partes.push(n.intentos + (n.intentos === 1 ? ' intento' : ' intentos'));
+            if (n.cursos) partes.push(n.cursos + (n.cursos === 1 ? ' test a medias' : ' tests a medias'));
             p.textContent = (r.primera ? 'Se ha creado tu copia en Google Drive. ' : '') +
                 (partes.length ? 'Se han añadido a este dispositivo: ' + partes.join(', ') + '.' : 'Este dispositivo ya estaba al día.') +
-                ' Cuando quieras ponerte al día en otro dispositivo, abre esta página allí y pulsa «Sincronizar».';
+                ' La sesión queda iniciada: a partir de ahora se sincroniza solo, hasta que pulses «Cerrar sesión».';
             if (W.SupC1Estudio) W.SupC1Estudio.repintar();
-            pintarTarjeta();
+            pintarTarjeta(); pintarIcono();
         }).catch(function (e) {
-            f.querySelector('h3').textContent = 'No se ha podido sincronizar'; p.textContent = mensajeError(e);
+            f.querySelector('h3').textContent = 'No se ha podido sincronizar'; p.textContent = mensajeError(e); pintarIcono();
         });
     }
     function empezar() { if (S.get(K_NO, false)) ejecutar(); else explicacion(ejecutar); }
@@ -239,27 +331,54 @@
         var h = Math.round(m / 60); if (h < 24) return 'hace ' + h + (h === 1 ? ' hora' : ' horas');
         var d = Math.round(h / 24); return 'hace ' + d + (d === 1 ? ' día' : ' días');
     }
+    var TEXTO_ESTADO = { ok: 'Sincronizado', sincronizando: 'Sincronizando…', reconectar: 'Hay que volver a conectar con Google', error: 'No se pudo sincronizar (se reintentará)' };
+    var ICONO_ESTADO = { ok: '☁✔', sincronizando: '☁⟳', reconectar: '☁⚠', error: '☁⚠' };
     function pintarTarjeta() {
         var cont = $('estudio-sync'); if (!cont) return;
         while (cont.firstChild) cont.removeChild(cont.firstChild);
         var t = el('div', 'sync-tarjeta');
         var txt = el('div', 'sync-info');
-        txt.appendChild(el('strong', null, '📱💻 Usar mis datos en todos mis dispositivos'));
-        var ult = S.get(K_ULT, null);
-        txt.appendChild(el('span', null, ult ? 'Última sincronización: ' + hace(ult) + '.' : 'Sincroniza con tu Google Drive para tener tus notas y tu progreso en el móvil y en el ordenador.'));
-        var b = el('button', 'btn-practicar', ult ? 'Sincronizar ahora' : 'Sincronizar'); b.type = 'button'; b.id = 'sync-boton'; b.addEventListener('click', empezar);
+        var ult = S.get(K_ULT, null), acc = el('div', 'sync-acciones');
         var ayuda = el('button', 'btn-link', '¿Cómo funciona?'); ayuda.type = 'button'; ayuda.addEventListener('click', function () { explicacion(ejecutar); });
-        var acc = el('div', 'sync-acciones'); acc.appendChild(b); acc.appendChild(ayuda);
+        if (sesion()) {
+            var e = estado === 'fuera' ? 'ok' : estado;
+            var ic = el('strong', 'sync-conectado', ICONO_ESTADO[e] + ' Conectado a Google Drive'); ic.id = 'sync-icono-tarjeta'; txt.appendChild(ic);
+            txt.appendChild(el('span', null, TEXTO_ESTADO[e] + (ult ? ' · última vez: ' + hace(ult) : '') + '. Se sincroniza solo, también los tests a medias.'));
+            var ahora = el('button', 'btn-link', e === 'reconectar' ? 'Reconectar' : 'Sincronizar ahora'); ahora.type = 'button'; ahora.id = 'sync-ahora';
+            ahora.addEventListener('click', function () { if (e === 'reconectar') ejecutar(); else auto(); });
+            var salir = el('button', 'btn-practicar', 'Cerrar sesión'); salir.type = 'button'; salir.id = 'sync-salir'; salir.addEventListener('click', cerrarSesion);
+            acc.appendChild(salir); acc.appendChild(ahora);
+        } else {
+            txt.appendChild(el('strong', null, '📱💻 Usar mis datos en todos mis dispositivos'));
+            txt.appendChild(el('span', null, 'Sincroniza con tu Google Drive para tener tus notas, tu progreso y tus tests a medias en el móvil y en el ordenador.'));
+            var b = el('button', 'btn-practicar', 'Sincronizar'); b.type = 'button'; b.id = 'sync-boton'; b.addEventListener('click', empezar);
+            acc.appendChild(b);
+        }
+        acc.appendChild(ayuda);
         t.appendChild(txt); t.appendChild(acc); cont.appendChild(t);
     }
+    // Icono flotante en las páginas que no son «Mi estudio» (ahí ya está la tarjeta)
+    function pintarIcono() {
+        var ic = $('sync-icono');
+        if (!sesion() || $('estudio-sync')) { if (ic) ic.remove(); return; }
+        if (!ic) {
+            ic = el('button', 'sync-icono'); ic.type = 'button'; ic.id = 'sync-icono';
+            ic.style.cssText = 'position:fixed;left:10px;bottom:10px;z-index:50;min-width:44px;min-height:44px;border-radius:22px;border:1px solid rgba(0,0,0,.25);background:#fff;color:#222;font-size:14px;cursor:pointer;padding:0 10px;opacity:.9';
+            ic.addEventListener('click', function () { if (estado === 'reconectar') ejecutar(); else if (estado !== 'sincronizando') auto(); });
+            doc.body.appendChild(ic);
+        }
+        var e = estado === 'fuera' ? 'ok' : estado;
+        ic.textContent = ICONO_ESTADO[e]; ic.title = 'Google Drive: ' + TEXTO_ESTADO[e] + (e === 'reconectar' ? ' (pulsa para reconectar)' : ''); ic.setAttribute('aria-label', ic.title);
+    }
     function iniciar() {
-        if (!C.clientId || !$('estudio-sync')) return;      // apagado
-        pintarTarjeta();
+        if (!C.clientId) return;      // apagado
+        vigilar(); pintarTarjeta(); pintarIcono();
+        if (sesion()) auto();
         var av = doc.querySelector('.aviso-privado span');
         if (av) av.textContent += ' Si activas la sincronización, la copia se guarda en una carpeta oculta de tu propio Google Drive, que solo tú puedes ver.';
     }
     if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', iniciar); else iniciar();
 
-    nucleo.sincronizar = sincronizar;
+    nucleo.sincronizar = sincronizar; nucleo.cerrarSesion = cerrarSesion;
     return nucleo;
 });

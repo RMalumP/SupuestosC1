@@ -494,20 +494,49 @@ async function sync() {
         const drive = driveFalso();
         const ca = await dispositivo(drive, SIEMBRA_A); const a = await abrir(ca, 'mi-estudio.html');
         await pulsarSync(a); await a.check('#sync-no-mas'); await a.click('.sync-explicacion .btn-primary'); await hecho(a);
-        await recargar(a);
+        await a.reload(); await a.waitForSelector('#sync-salir');       // la sesión se recuerda: no pide nada
+        await a.click('#sync-salir'); await a.waitForSelector('#sync-boton');
         await pulsarSync(a); const sinExplicacion = (await hay(a, '.sync-explicacion')) === 0; await hecho(a);
         // borro la nota en A y sincronizo; B (con la nota) la pierde
         const cb = await dispositivo(drive, () => {}); const b = await abrir(cb, 'mi-estudio.html');
         await pulsarSync(b); await b.click('.sync-explicacion .btn-primary'); await hecho(b);
         const tenia = await b.evaluate(() => !!SupC1.get('banco', {}).notas['supuesto_T2I:n1']);
         await a.evaluate(() => { const bk = SupC1.get('banco', {}); delete bk.notas['supuesto_T2I:n1']; bk.borradas = bk.borradas || {}; bk.borradas['n:supuesto_T2I:n1'] = Date.now() + 10; SupC1.set('banco', bk); });
-        await recargar(a);
-        await pulsarSync(a); await hecho(a);
-        await recargar(b);
-        await pulsarSync(b); await b.click('.sync-explicacion .btn-primary'); await hecho(b);
+        await a.reload(); await a.waitForSelector('#sync-ahora'); await a.click('#sync-ahora'); await a.waitForTimeout(1500);
+        await b.reload(); await b.waitForSelector('#sync-ahora'); await b.waitForTimeout(2000);
         const sigue = await b.evaluate(() => !!SupC1.get('banco', {}).notas['supuesto_T2I:n1']);
         await ca.close(); await cb.close();
         return (sinExplicacion && tenia && !sigue) || JSON.stringify({ sinExplicacion, tenia, sigue });
+    });
+    await caso('fusión: los tests a medias se unen, gana el más reciente y terminarlo lo borra en el otro dispositivo', async () => {
+        const c = (ts, n) => ({ v: 1, ts, a: { 0: n } });
+        const m1 = N.mezclarTodo({ curso: { X: c(10, 1) } }, { curso: { X: c(20, 2), Y: c(5, 1) } }, 30);
+        const m2 = N.mezclarTodo({ curso: { X: c(20, 2) }, cursoBorr: {} }, { curso: { X: c(10, 1) }, cursoBorr: { X: 25 } }, 30);
+        const m3 = N.mezclarTodo({ curso: { X: c(10, 1) } }, { curso: {}, cursoBorr: { X: 15 } }, 30);
+        const m4 = N.mezclarTodo({ curso: { X: c(40, 1) } }, { cursoBorr: { X: 15 } }, 50);
+        return (m1.curso.X.ts === 20 && !!m1.curso.Y && !m2.curso.X && m2.cursoBorr.X === 25 && !m3.curso.X && m4.curso.X.ts === 40) || JSON.stringify([m1, m2, m3, m4]);
+    });
+    await caso('con la sesión iniciada: sin botón, con icono, sincroniza solo (también tests a medias) y «Cerrar sesión» la quita', async () => {
+        const drive = driveFalso();
+        const ca = await dispositivo(drive, SIEMBRA_A); const a = await abrir(ca, 'mi-estudio.html');
+        await pulsarSync(a); await a.click('.sync-explicacion .btn-primary'); await hecho(a);
+        await a.reload(); await a.waitForSelector('#sync-salir');
+        const sinBoton = (await hay(a, '#sync-boton')) === 0, icono = await hay(a, '#sync-icono-tarjeta');
+        // un test a medias en A se sube solo
+        await a.evaluate(() => SupC1.set('curso:supuesto_T2I', { v: 1, ts: Date.now(), a: { 0: 1 } }));
+        await a.waitForTimeout(6000);
+        const cb = await dispositivo(drive, () => {}); const b = await abrir(cb, 'mi-estudio.html');
+        await pulsarSync(b); await b.click('.sync-explicacion .btn-primary'); await hecho(b);
+        const bTiene = await b.evaluate(() => !!SupC1.get('curso:supuesto_T2I', null));
+        // al terminarlo en A (lápida) desaparece en B
+        await a.evaluate(() => { SupC1.del('curso:supuesto_T2I'); SupC1.set('cursoborr:supuesto_T2I', Date.now() + 10); });
+        await a.waitForTimeout(6000);
+        await b.reload(); await b.waitForSelector('#sync-ahora'); await b.waitForTimeout(2000);
+        const bSigue = await b.evaluate(() => !!SupC1.get('curso:supuesto_T2I', null));
+        await a.click('#sync-salir'); await a.waitForSelector('#sync-boton');
+        const salida = await a.evaluate(() => SupC1.get('sync-sesion', null));
+        await ca.close(); await cb.close();
+        return (sinBoton && icono === 1 && bTiene && !bSigue && salida === null) || JSON.stringify({ sinBoton, icono, bTiene, bSigue, salida });
     });
     await caso('si Google no concede el permiso, el mensaje es claro y no se toca nada', async () => {
         const drive = driveFalso(), ctx = await dispositivo(drive, SIEMBRA_A, { deniega: true }); const pg = await abrir(ctx, 'mi-estudio.html');
