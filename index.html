@@ -10,8 +10,8 @@
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="icon" href="icons/icon-192.png">
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-    <script src="prefs.js"></script>
-    <script src="pwa.js" defer></script>
+    <script src="js/prefs.js"></script>
+    <script src="js/pwa.js" defer></script>
     <title>Menú de Supuestos | Comunidad ECAP ASS C1 </title>
     <link rel="stylesheet" href="fuentes/fuentes.css">
 
@@ -214,8 +214,11 @@
             .hero h1 { font-size: 1.7rem; }
             .supuestos-grid { grid-template-columns: 1fr; }
         }
+        .enlace-privacidad { text-align: center; margin: 10px 0 0; font-size: 0.8rem; }
+        .enlace-privacidad a { color: var(--brown-mid); text-decoration: underline; text-underline-offset: 3px; }
+        .enlace-privacidad a:hover { color: var(--brown); }
     </style>
-    <link rel="stylesheet" href="tema-menu.css">
+    <link rel="stylesheet" href="css/tema-menu.css">
 </head>
 <body data-instalar>
 
@@ -295,11 +298,12 @@
     </div>
     
     <footer>REALIZADO DESDE LA COMUNIDAD DE ECAP · NO RELACIONADO CON LA PLATAFORMA OFICIAL</footer>
+    <p class="enlace-privacidad"><a href="privacidad.html">Política de privacidad</a></p>
 
 </div>
 
-<script src="supuestos-datos.js"></script>
-<script src="telemetria-config.js"></script>
-<script src="app-menu.js" defer></script>
+<script src="datos/supuestos-datos.js"></script>
+<script src="config/telemetria-config.js"></script>
+<script src="js/app-menu.js" defer></script>
 </body>
 </html>

@@ -43,7 +43,7 @@ SUFIJOS_FUERA = (".bak", ".pyc", ".tmp")
 
 def es_proyecto(raiz):
     raiz = Path(raiz)
-    return (raiz / "index.html").is_file() and (raiz / "supuestos").is_dir() and (raiz / "supuestos-datos.js").is_file()
+    return (raiz / "index.html").is_file() and (raiz / "supuestos").is_dir() and (raiz / "datos" / "supuestos-datos.js").is_file()
 
 
 def raiz_de(ruta):

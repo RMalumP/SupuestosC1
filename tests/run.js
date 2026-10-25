@@ -411,7 +411,7 @@ async function dispositivo(drive, sembrar, opciones) {
 const hay = (pg, sel) => pg.locator(sel).count();
 async function sync() {
     const caso = async (nombre, fn) => { try { const r = await fn(); registrar('sync', nombre, r === true, r === true ? '' : r); } catch (e) { registrar('sync', nombre, false, e.message.split('\n')[0]); } };
-    const N = require(path.join(RAIZ, 'app-sync.js'));
+    const N = require(path.join(RAIZ, 'js', 'app-sync.js'));
     const e = (ts, t) => ({ f: 'supuesto_T2I', h: 'x', t: t || 'p', ts, n: 1, ok: 0 });
 
     await caso('fusión: une lo de los dos dispositivos y gana lo más reciente', async () => {

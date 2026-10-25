@@ -25,11 +25,10 @@ def copia_del_proyecto():
     d = Path(tempfile.mkdtemp(prefix="supc1_"))
     shutil.copytree(PY, d / "Py", ignore=shutil.ignore_patterns("__pycache__", "*.bak"))
     shutil.copytree(RAIZ / "supuestos", d / "supuestos")
-    for f in ("supuestos-datos.js", "sw.js", "index.html", "mi-estudio.html"):
+    for f in ("sw.js", "index.html", "mi-estudio.html", "privacidad.html", "manifest.webmanifest"):
         shutil.copy(RAIZ / f, d / f)
-    for f in list(RAIZ.glob("*.js")) + list(RAIZ.glob("*.css")) + [RAIZ / "manifest.webmanifest"]:
-        if f.is_file():
-            shutil.copy(f, d / f.name)
+    for carpeta in ("js", "css", "datos", "config"):
+        shutil.copytree(RAIZ / carpeta, d / carpeta)
     shutil.copytree(RAIZ / "fuentes", d / "fuentes")
     shutil.copytree(RAIZ / "icons", d / "icons")
     shutil.copytree(RAIZ / "resultados", d / "resultados")
@@ -43,7 +42,7 @@ def ejecutar(carpeta, *args):
 
 class MenuDatos(unittest.TestCase):
     def test_ida_y_vuelta_sin_cambios(self):
-        texto = (RAIZ / "supuestos-datos.js").read_text(encoding="utf-8")
+        texto = (RAIZ / "datos" / "supuestos-datos.js").read_text(encoding="utf-8")
         menu = menu_datos.leer(texto)
         self.assertEqual(menu_datos.escribir_texto(texto, menu), texto)
         self.assertEqual(len(menu_datos.archivos_del_menu(menu)), 9)
@@ -57,20 +56,20 @@ class MenuDatos(unittest.TestCase):
         self.assertEqual(menu_datos.leer(nuevo), menu)
 
     def test_coma_final_y_comentarios_se_toleran(self):
-        t = (RAIZ / "supuestos-datos.js").read_text(encoding="utf-8")
+        t = (RAIZ / "datos" / "supuestos-datos.js").read_text(encoding="utf-8")
         t = t.replace('"desc"', '"desc"', 1).replace("  ];\n  // <<< SUPUESTOS", "  // un comentario\n  ];\n  // <<< SUPUESTOS")
         t = t.replace("}\n  // un comentario", "},\n  // un comentario")
         self.assertEqual(len(menu_datos.archivos_del_menu(menu_datos.leer(t))), 9)
 
     def test_error_con_numero_de_linea(self):
-        t = (RAIZ / "supuestos-datos.js").read_text(encoding="utf-8")
+        t = (RAIZ / "datos" / "supuestos-datos.js").read_text(encoding="utf-8")
         t = t.replace('"letra": "T2I"', '"letra": T2I', 1)
         with self.assertRaises(ValueError) as cm:
             menu_datos.leer(t)
         self.assertRegex(str(cm.exception), r"línea \d+")
 
     def test_oculto_se_conserva(self):
-        t = (RAIZ / "supuestos-datos.js").read_text(encoding="utf-8")
+        t = (RAIZ / "datos" / "supuestos-datos.js").read_text(encoding="utf-8")
         menu = menu_datos.leer(t)
         menu["secciones"][0]["grupos"][0]["items"][0]["oculto"] = True
         menu2 = menu_datos.leer(menu_datos.escribir_texto(t, menu))
@@ -79,7 +78,7 @@ class MenuDatos(unittest.TestCase):
 
 class EdicionDelMenu(unittest.TestCase):
     def setUp(self):
-        self.t = (RAIZ / "supuestos-datos.js").read_text(encoding="utf-8")
+        self.t = (RAIZ / "datos" / "supuestos-datos.js").read_text(encoding="utf-8")
         self.m = menu_datos.leer(self.t)
 
     def orden(self, clave):
@@ -142,7 +141,7 @@ class AltaYValidador(unittest.TestCase):
             cod, sal = ejecutar(d, "Py/editor_supuestos.py", "--alta", "--auto")
             self.assertEqual(cod, 0, sal)
             self.assertIn("supuesto_77", sal)
-            menu = menu_datos.leer((d / "supuestos-datos.js").read_text(encoding="utf-8"))
+            menu = menu_datos.leer((d / "datos" / "supuestos-datos.js").read_text(encoding="utf-8"))
             self.assertIn("supuesto_77", menu_datos.archivos_del_menu(menu))
             cod, sal = ejecutar(d, "Py/validar_supuestos.py")
             self.assertEqual(cod, 0, sal)
@@ -164,7 +163,7 @@ class AltaYValidador(unittest.TestCase):
 
     def test_sw_no_lleva_supuestos_a_mano(self):
         t = (RAIZ / "sw.js").read_text(encoding="utf-8")
-        self.assertIn('importScripts("supuestos-datos.js")', t)
+        self.assertIn('importScripts("datos/supuestos-datos.js")', t)
         self.assertNotIn('"supuestos/supuesto_', t)
 
 
@@ -202,10 +201,10 @@ class SincronizarLocal(unittest.TestCase):
             self.assertFalse(list((d / "supuestos").glob("*.bak")))
             # un cambio más: archivo nuevo y menú
             shutil.copy(d / "supuestos" / "supuesto_0.html", d / "supuestos" / "supuesto_88.html")
-            (d / "supuestos-datos.js").write_text((d / "supuestos-datos.js").read_text(encoding="utf-8") + "\n// x\n", encoding="utf-8")
+            (d / "datos" / "supuestos-datos.js").write_text((d / "datos" / "supuestos-datos.js").read_text(encoding="utf-8") + "\n// x\n", encoding="utf-8")
             nuevos, modif, borrados = sl.preparar_para_subir(d)
             self.assertEqual(nuevos, ["supuestos/supuesto_88.html"])
-            self.assertEqual(modif, ["supuestos-datos.js", "supuestos/supuesto_2.html"])
+            self.assertEqual(modif, ["datos/supuestos-datos.js", "supuestos/supuesto_2.html"])
             self.assertTrue((d / "PARA_SUBIR" / "supuestos" / "supuesto_88.html").is_file())
             self.assertIn("supuestos/supuesto_88.html", (d / "PARA_SUBIR" / "LEEME_SUBIR.txt").read_text(encoding="utf-8"))
             self.assertFalse((d / "PARA_SUBIR" / "index.html").exists())
