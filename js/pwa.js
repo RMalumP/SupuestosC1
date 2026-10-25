@@ -1,9 +1,9 @@
 /* Service worker, aviso de «hay versión nueva» y banner de instalación.
    Se carga con «defer» en todas las páginas. La ruta del service worker se
-   calcula a partir de la de este mismo script, así vale desde cualquier carpeta. */
+   calcula a partir de la de este mismo script (está en js/, el service worker en la raíz), así vale desde cualquier carpeta. */
 (function () {
     var S = window.SupC1 = window.SupC1 || {};
-    var base = document.currentScript ? new URL('.', document.currentScript.src).href : '';
+    var base = document.currentScript ? new URL('../', document.currentScript.src).href : '';
 
     var css = document.createElement('style');
     css.textContent =

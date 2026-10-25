@@ -374,7 +374,7 @@ async function menu() {
         const r = await pg.evaluate(() => ({ datos: document.querySelectorAll('.dato').length, evo: document.querySelectorAll('.supuesto-card.evo').length, spark: document.querySelectorAll('.spark').length,
             falladas: document.querySelectorAll('#estudio-falladas .item').length, notas: document.querySelectorAll('#estudio-marcadas .item-nota').length,
             volver: document.querySelectorAll('.back-link.boton').length, aviso: !!document.querySelector('.aviso-privado'),
-            enlace: (document.querySelector('.btn-practicar') || {}).getAttribute && document.querySelector('.btn-practicar').getAttribute('href') }));
+            enlace: (document.querySelector('a.btn-practicar') || {}).getAttribute && document.querySelector('a.btn-practicar').getAttribute('href') }));
         const err = pg.errores.join(); await ctx.close();
         return (r.datos === 4 && r.evo === 1 && r.spark === 1 && r.falladas === 1 && r.notas === 1 && /practicar=falladas/.test(r.enlace) && r.volver === 2 && r.aviso && !err) || JSON.stringify(r) + err;
     });
@@ -411,7 +411,7 @@ async function dispositivo(drive, sembrar, opciones) {
 const hay = (pg, sel) => pg.locator(sel).count();
 async function sync() {
     const caso = async (nombre, fn) => { try { const r = await fn(); registrar('sync', nombre, r === true, r === true ? '' : r); } catch (e) { registrar('sync', nombre, false, e.message.split('\n')[0]); } };
-    const N = require(path.join(RAIZ, 'app-sync.js'));
+    const N = require(path.join(RAIZ, 'js', 'app-sync.js'));
     const e = (ts, t) => ({ f: 'supuesto_T2I', h: 'x', t: t || 'p', ts, n: 1, ok: 0 });
 
     await caso('fusión: une lo de los dos dispositivos y gana lo más reciente', async () => {
