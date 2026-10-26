@@ -54,6 +54,8 @@ import sincronizar_local     # poner al día y carpeta PARA_SUBIR
 import ventana_subir         # ventana «Para subir a GitHub»
 import ventana_menu          # ventana «Menú de inicio»
 import normas_enlaces        # normas que se enlazan al BOE (datos/normas-datos.js)
+import herramientas_datos as herr   # deshacer, buscar, importar, autoguardado (sin ventana)
+import ventana_herramientas      # ventanas «Buscar y reemplazar» e «Importar preguntas»
 
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, colorchooser
@@ -831,12 +833,33 @@ CAMPOS_ENUNCIADO = [
 #  6. VENTANA PRINCIPAL
 # ══════════════════════════════════════════════════════════════════════
 
+AUTOGUARDADO_MS = 120000          # copia de recuperación cada 2 minutos si hay cambios
+PREFS = Path(__file__).resolve().parent.parent / ".editor_prefs.json"
+
+
+def _leer_prefs():
+    try:
+        return json.loads(PREFS.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def _guardar_prefs(prefs):
+    try:
+        PREFS.write_text(json.dumps(prefs, ensure_ascii=False, indent=1), encoding="utf-8")
+    except OSError:
+        pass                              # carpeta de solo lectura: no pasa nada
+
+
 class EditorApp(tk.Tk):
 
     def __init__(self):
         super().__init__()
         self.title(APP_TITULO)
-        self.geometry("1240x840")
+        self._prefs = _leer_prefs()
+        geo = self._prefs.get("geometria")
+        self.geometry(geo if isinstance(geo, str) and re.fullmatch(r"\d+x\d+([+-]-?\d+){2}", geo)
+                      else "1240x840")
         self.minsize(1000, 640)
         self.configure(bg=C_FONDO)
         self._estilos()
@@ -855,7 +878,9 @@ class EditorApp(tk.Tk):
         self.i_hito = None
         self.i_preg = None
 
+        self.historial = herr.Historial()
         self._barra_superior()
+        self._menu_principal()
 
         self.cuaderno = ttk.Notebook(self)
         self.cuaderno.pack(fill="both", expand=True, padx=10, pady=(6, 4))
@@ -872,6 +897,16 @@ class EditorApp(tk.Tk):
 
         self.bind_all("<Control-s>", lambda e: self.guardar())
         self.bind_all("<Control-o>", lambda e: self.abrir())
+        self.bind_all("<Control-n>", lambda e: self.nuevo())
+        self.bind_all("<Control-S>", lambda e: self.guardar_como())
+        self.bind_all("<Control-f>", lambda e: ventana_herramientas.buscar_reemplazar(self))
+        self.bind_all("<F5>", lambda e: self.ver_navegador())
+        self.bind_all("<Control-z>", lambda e: self._atajo_historial(self.deshacer, e))
+        self.bind_all("<Control-y>", lambda e: self._atajo_historial(self.rehacer, e))
+        self.bind_all("<Control-Z>", lambda e: self._atajo_historial(self.rehacer, e))
+        self.bind_all("<Alt-Up>", lambda e: self._mover_con_atajo(-1))
+        self.bind_all("<Alt-Down>", lambda e: self._mover_con_atajo(1))
+        self.after(AUTOGUARDADO_MS, self._autoguardar)
 
         self.after(200, self._carga_inicial)
 
@@ -919,20 +954,166 @@ class EditorApp(tk.Tk):
         ttk.Button(barra, text="💾  Guardar", command=self.guardar,
                    style="Accion.TButton").pack(side="left")
         ttk.Button(barra, text="💾  Guardar como…", command=self.guardar_como).pack(side="left", padx=(6, 0))
-        ttk.Button(barra, text="⇪  Pasar a plantilla nueva…",
-                   command=self.convertir_a_plantilla_nueva).pack(side="left", padx=(6, 0))
         ttk.Separator(barra, orient="vertical").pack(side="left", fill="y", padx=10)
         ttk.Button(barra, text="🌐  Ver en el navegador", command=self.ver_navegador).pack(side="left")
         ttk.Button(barra, text="✔  Comprobar", command=self.comprobar).pack(side="left", padx=(6, 0))
         ttk.Separator(barra, orient="vertical").pack(side="left", fill="y", padx=10)
         ttk.Button(barra, text="🗂  Menú de inicio…",
                    command=lambda: ventana_menu.abrir(self)).pack(side="left", padx=(0, 6))
-        ttk.Button(barra, text="📦  Para subir a GitHub…",
+        ttk.Button(barra, text="📦  Para subir…",
                    command=lambda: ventana_subir.abrir(self)).pack(side="left")
 
         self.lbl_archivo = ttk.Label(barra, text="(ningún archivo abierto)",
                                      style="Tec.TLabel")
         self.lbl_archivo.pack(side="right")
+
+    # ─────────────────────────────────────────────────────────────
+    #  Menús, deshacer/rehacer y autoguardado
+    # ─────────────────────────────────────────────────────────────
+    def _menu_principal(self):
+        barra = tk.Menu(self)
+        archivo = tk.Menu(barra, tearoff=False)
+        archivo.add_command(label="Nuevo supuesto", accelerator="Ctrl+N", command=self.nuevo)
+        archivo.add_command(label="Abrir…", accelerator="Ctrl+O", command=self.abrir)
+        archivo.add_command(label="Guardar", accelerator="Ctrl+S", command=self.guardar)
+        archivo.add_command(label="Guardar como…", accelerator="Ctrl+Mayús+S", command=self.guardar_como)
+        archivo.add_separator()
+        archivo.add_command(label="Pasar a plantilla nueva…", command=self.convertir_a_plantilla_nueva)
+        archivo.add_separator()
+        archivo.add_command(label="Salir", command=self._al_cerrar)
+        barra.add_cascade(label="Archivo", menu=archivo)
+        edicion = tk.Menu(barra, tearoff=False)
+        edicion.add_command(label="Deshacer cambio de estructura", accelerator="Ctrl+Z", command=self.deshacer)
+        edicion.add_command(label="Rehacer", accelerator="Ctrl+Y", command=self.rehacer)
+        edicion.add_separator()
+        edicion.add_command(label="Buscar y reemplazar…", accelerator="Ctrl+F",
+                            command=lambda: ventana_herramientas.buscar_reemplazar(self))
+        edicion.add_command(label="Importar preguntas…",
+                            command=lambda: ventana_herramientas.importar(self))
+        edicion.add_separator()
+        edicion.add_command(label="Subir pregunta", accelerator="Alt+↑", command=lambda: self._mover_con_atajo(-1))
+        edicion.add_command(label="Bajar pregunta", accelerator="Alt+↓", command=lambda: self._mover_con_atajo(1))
+        barra.add_cascade(label="Edición", menu=edicion)
+        herram = tk.Menu(barra, tearoff=False)
+        herram.add_command(label="Ver en el navegador", accelerator="F5", command=self.ver_navegador)
+        herram.add_command(label="Comprobar", command=self.comprobar)
+        herram.add_separator()
+        herram.add_command(label="Menú de inicio…", command=lambda: ventana_menu.abrir(self))
+        herram.add_command(label="Para subir a GitHub…", command=lambda: ventana_subir.abrir(self))
+        barra.add_cascade(label="Herramientas", menu=herram)
+        self.config(menu=barra)
+
+    def _instantanea(self):
+        """Pasa lo escrito en la ventana a los datos sin reordenar nada."""
+        for volcar in (self.volcar_config, self.volcar_botones, self.volcar_seccion,
+                       self.volcar_enunciado, self.volcar_pregunta):
+            try:
+                volcar()
+            except (ValueError, tk.TclError):
+                pass
+
+    def anotar_historial(self):
+        self._instantanea()
+        self.historial.anotar(self.datos)
+
+    def _anotar_luego(self):
+        if getattr(self, "_anotar_pendiente", None):
+            self.after_cancel(self._anotar_pendiente)
+        self._anotar_pendiente = self.after(1500, self._anotar_ya)
+
+    def _anotar_ya(self):
+        self._anotar_pendiente = None
+        self.anotar_historial()
+
+    def _atajo_historial(self, accion, evento):
+        # En un cuadro de texto, Ctrl+Z deshace SU escritura; fuera, la estructura.
+        if evento.widget.winfo_class() in ("Text", "Entry", "TEntry", "TSpinbox", "TCombobox"):
+            return None
+        accion()
+        return "break"
+
+    def deshacer(self):
+        self._instantanea()
+        previo = self.historial.deshacer(self.datos)
+        if previo is None:
+            self.estado("No hay nada que deshacer.")
+            return
+        self._poner_datos(previo)
+        self.estado("Deshecho.")
+
+    def rehacer(self):
+        previo = self.historial.rehacer()
+        if previo is None:
+            self.estado("No hay nada que rehacer.")
+            return
+        self._poner_datos(previo)
+        self.estado("Rehecho.")
+
+    def _poner_datos(self, datos):
+        i = self.i_preg
+        self.datos = datos
+        self._refrescar_todo(reiniciar=False)
+        if i is not None and self.datos["preguntas"]:
+            self.refrescar_lista_preg(min(i, len(self.datos["preguntas"]) - 1))
+        self.hay_cambios = True
+        self._pintar_titulo()
+
+    def recargar_tras_cambio(self):
+        """Tras un cambio hecho desde otra ventana (buscar, importar)."""
+        self._poner_datos(self.datos)
+        self.historial.anotar(self.datos)
+
+    def ir_a_pregunta(self, n):
+        if n is None or not (0 <= n < len(self.datos["preguntas"])):
+            return
+        self.volcar_pregunta()
+        self.refrescar_lista_preg(n)
+        self.cuaderno.select(3)
+
+    def _mover_con_atajo(self, paso):
+        if self.cuaderno.index("current") == 3:
+            self.mover_pregunta(paso)
+        return "break"
+
+    def _ir_desde_informe(self, evento):
+        """Doble clic en una línea «Pregunta N: …» del informe salta a esa pregunta."""
+        linea = self.txt_informe.get("current linestart", "current lineend")
+        m = re.search(r"Pregunta (\d+)", linea)
+        if m:
+            self.ir_a_pregunta(int(m.group(1)) - 1)
+
+    def _ruta_recuperacion(self):
+        return herr.ruta_recuperacion(self.ruta, PREFS.parent)
+
+    def _autoguardar(self):
+        if self.hay_cambios:
+            self._instantanea()
+            herr.guardar_recuperacion(self._ruta_recuperacion(), self.datos)
+        self.after(AUTOGUARDADO_MS, self._autoguardar)
+
+    def _borrar_recuperacion(self):
+        try:
+            self._ruta_recuperacion().unlink()
+        except OSError:
+            pass
+
+    def _ofrecer_recuperacion(self):
+        rec = self._ruta_recuperacion()
+        try:
+            if not rec.is_file() or (self.ruta and rec.stat().st_mtime <= self.ruta.stat().st_mtime):
+                return
+        except OSError:
+            return
+        if messagebox.askyesno(
+                "Recuperar trabajo",
+                "Hay una copia de recuperación MÁS NUEVA que el archivo (el programa se cerró "
+                "sin guardar).\n\n¿Cargarla? (Si dices que no, se borra.)", parent=self):
+            datos = herr.leer_recuperacion(rec)
+            if datos:
+                self._poner_datos(normalizar(datos))
+                self.estado("Recuperado el trabajo sin guardar. Revisa y pulsa Guardar.")
+                return
+        self._borrar_recuperacion()
 
     def _barra_estado(self):
         marco = ttk.Frame(self)
@@ -948,8 +1129,16 @@ class EditorApp(tk.Tk):
     def _tocado(self, *_a):
         self.hay_cambios = True
         self._pintar_titulo()
+        self._anotar_luego()
 
     def _pintar_titulo(self):
+        # Se llama en cada pulsación: se junta en un solo repintado.
+        if getattr(self, "_titulo_pendiente", None):
+            return
+        self._titulo_pendiente = self.after(150, self._pintar_titulo_ya)
+
+    def _pintar_titulo_ya(self):
+        self._titulo_pendiente = None
         nombre = self.ruta.name if self.ruta else "sin guardar"
         self.title("%s — %s%s" % (APP_TITULO, nombre, " *" if self.hay_cambios else ""))
         if hasattr(self, "lbl_archivo"):
@@ -2603,6 +2792,7 @@ class EditorApp(tk.Tk):
     def refrescar_lista_preg(self, seleccionar=None):
         self._silencio = True
         self.lst_preg.delete(0, "end")
+        fallos = herr.problemas_por_pregunta(self.datos)
         for i, p in enumerate(self.datos["preguntas"]):
             marca = "📝" if self.tipo_de_bloque(p["bloqueId"]) == "test" else "📁"
             foco = "🔎" if p.get("factIds") else " "
@@ -2610,7 +2800,12 @@ class EditorApp(tk.Tk):
             etiqueta = "%02d %s%-3s %-3s%s%s %s" % (i + 1, marca, p["bloqueId"],
                                                     p["statementId"] or "--", foco, varias,
                                                     resumen(p["q"], 22))
+            gravedad = fallos.get(i)
+            if gravedad:
+                etiqueta += "  " + ("✗ " if gravedad[0] == "error" else "! ") + gravedad[1]
             self.lst_preg.insert("end", etiqueta)
+            if gravedad:
+                self.lst_preg.itemconfig("end", foreground="#b91c1c" if gravedad[0] == "error" else "#b45309")
         if seleccionar is None:
             seleccionar = self.i_preg
         if self.datos["preguntas"]:
@@ -3290,6 +3485,7 @@ class EditorApp(tk.Tk):
         marco, self.txt_informe = caja_texto(panel, alto=30, formato=False)
         marco.pack(fill="both", expand=True, padx=10, pady=8)
         self.txt_informe.configure(font=("Consolas", 9))
+        self.txt_informe.bind("<Double-Button-1>", self._ir_desde_informe, add="+")
 
     def comprobar(self):
         self.volcar_todo()
@@ -3525,7 +3721,7 @@ class EditorApp(tk.Tk):
         self.volcar_pregunta()
         self.ordenar_preguntas_por_bloque()
 
-    def _refrescar_todo(self):
+    def _refrescar_todo(self, reiniciar=True):
         self.i_sec = 0 if self.datos["bloques"] else None
         self.i_enun = 0 if self.datos["enunciados"] else None
         self.i_bloque = self.i_hito = None
@@ -3536,8 +3732,17 @@ class EditorApp(tk.Tk):
         self.refrescar_lista_enun(self.i_enun)
         self.refrescar_lista_preg(self.i_preg)
         self._pintar_titulo()
+        if reiniciar:
+            self.historial.iniciar(self.datos)
+
+    def _recordar_carpeta(self):
+        if self.ruta:
+            self._prefs["carpeta"] = str(self.ruta.parent)
 
     def _carpeta_inicial(self):
+        ultima = self._prefs.get("carpeta")
+        if ultima and os.path.isdir(ultima):
+            return ultima
         aqui = Path(__file__).resolve().parent
         for cand in (aqui / "supuestos", aqui.parent / "supuestos", aqui):
             if cand.is_dir():
@@ -3611,8 +3816,10 @@ class EditorApp(tk.Tk):
                                  "%s\n\n%s" % (Path(ruta).name, err), parent=self)
             return
         self.ruta = Path(ruta)
+        self._recordar_carpeta()
         self.hay_cambios = False
         self._refrescar_todo()
+        self._ofrecer_recuperacion()
         self.estado("Abierto: %s  (%d enunciados, %d preguntas)"
                     % (self.ruta.name, len(self.datos["enunciados"]),
                        len(self.datos["preguntas"])))
@@ -3744,6 +3951,7 @@ class EditorApp(tk.Tk):
         self.estado("Página rehecha con la plantilla actual (versión %d)." % nueva)
 
     def _escribir(self, destino):
+        self._prefs["carpeta"] = str(Path(destino).parent)
         self._poner_motor_al_dia()
         if self.modo != "json" and bloques_se_pierden(self.datos):
             seguir = messagebox.askyesno(
@@ -3767,6 +3975,7 @@ class EditorApp(tk.Tk):
         self._pintar_titulo()
         self.estado("Guardado en %s   (%d preguntas)"
                     % (self.ruta, len(self.datos["preguntas"])))
+        self._borrar_recuperacion()
         self._alta_en_menu()
         self.refrescar_para_subir()
         return True
@@ -3862,6 +4071,8 @@ class EditorApp(tk.Tk):
 
     def _al_cerrar(self):
         self.volcar_todo()
+        self._prefs["geometria"] = self.geometry()
+        _guardar_prefs(self._prefs)
         if self.hay_cambios:
             r = messagebox.askyesnocancel(
                 "Salir", "Hay cambios sin guardar.\n\n¿Guardarlos antes de salir?", parent=self)

@@ -8,6 +8,8 @@
 ────────────────────────────────────────────────────────────────────────────────
 
   editor_supuestos.py            El programa. Es el que se abre con Thonny.
+  (resto de .py)                 Módulos que usa el programa (menú, normas, subida…).
+                                 Ver «El editor en varios archivos» más abajo.
 
   supuesto_plantilla_python.html La plantilla. Funciona exactamente igual que la
                                  de siempre (cronómetro, corrección, aleatorio,
@@ -20,7 +22,7 @@
 
   INSTRUCCIONES.txt              Este archivo.
 
-  LOS DOS ARCHIVOS DEBEN ESTAR SIEMPRE EN LA MISMA CARPETA.
+  TODOS LOS .py, LA PLANTILLA Y ESTE TXT DEBEN QUEDARSE JUNTOS EN LA CARPETA Py/.
 
 
 ────────────────────────────────────────────────────────────────────────────────
@@ -107,8 +109,52 @@
                            (ver apartado 9).
     🌐 Ver en el navegador  Guarda y abre el supuesto para verlo de verdad.
     ✔ Comprobar            Revisa despistes (opciones vacías, repetidas...).
+    🗂 Menú de inicio…      Ordena y edita las tarjetas del menú de la web.
+    📦 Para subir a GitHub… Prepara la carpeta PARA_SUBIR (ver más abajo).
 
-  SEIS PESTAÑAS
+  MENÚS Y ATAJOS (barra de menús de la ventana)
+    Archivo        Nuevo (Ctrl+N) · Abrir (Ctrl+O) · Guardar (Ctrl+S) ·
+                   Guardar como (Ctrl+Mayús+S) · Pasar a plantilla nueva · Salir
+    Edición        Deshacer (Ctrl+Z) y Rehacer (Ctrl+Y) cambios de estructura
+                   (añadir, borrar, mover, importar, reemplazar). Dentro de un
+                   cuadro de texto, Ctrl+Z deshace solo lo escrito en él ·
+                   Buscar y reemplazar (Ctrl+F) · Importar preguntas ·
+                   Subir/Bajar pregunta (Alt+↑ / Alt+↓, en la pestaña 4)
+    Herramientas   Ver en el navegador (F5) · Comprobar · Menú de inicio ·
+                   Para subir a GitHub
+
+  BUSCAR Y REEMPLAZAR (Ctrl+F)
+    Busca en el texto de las preguntas, las opciones, las motivaciones y los
+    consejos. Doble clic en un resultado salta a esa pregunta. «Reemplazar todo»
+    cambia todas las coincidencias (se puede deshacer).
+
+  IMPORTAR PREGUNTAS (Edición → Importar preguntas…)
+    Pega preguntas separadas por una línea en blanco:
+        1) Texto de la pregunta
+        a) opción
+        b) *opción correcta        (el * marca la correcta; o una línea
+        c) opción                   «Correcta: b»; «Correcta: a, c» si es múltiple)
+        Motivación: texto opcional
+        Consejo: texto opcional
+    También se puede abrir un .csv con las columnas
+        pregunta ; a ; b ; c ; d ; correcta ; motivación ; consejo
+    Se añaden al bloque que elijas (y, si es de supuesto, al primer enunciado).
+
+  AUTOGUARDADO
+    Cada 2 minutos, si hay cambios, se guarda una copia de recuperación
+    («.recuperacion_NOMBRE.json», junto a la carpeta Py/; no se sube a GitHub).
+    Si el programa se cierra sin guardar, al abrir ese supuesto el editor ofrece
+    recuperarla. Al guardar de verdad, la copia se borra.
+
+  QUÉ PREGUNTAS TIENEN PROBLEMAS
+    En la lista de la pestaña 4 aparece «✗ motivo» en rojo (error) o «! motivo»
+    en ámbar (aviso) junto a las preguntas con fallos. En la pestaña 6, doble
+    clic en una línea «Pregunta N: …» del informe salta a esa pregunta.
+
+  El editor recuerda el tamaño y la posición de la ventana y la última
+  carpeta usada (archivo «.editor_prefs.json», que no se sube a GitHub).
+
+  SIETE PESTAÑAS
 
     1 · Datos generales        título, referencia, ámbito, minutos, % de APTO,
                                EL ENCABEZADO (logotipo y organismo) y LOS
@@ -122,6 +168,8 @@
                                formularios: el del botón 📤 y el del detalle
                                pregunta a pregunta, que sale solo al corregir)
     6 · Comprobar              informe de revisión y vista de los datos
+    7 · Normas (enlaces BOE)   lista de normas que la página enlaza al BOE
+                               (ver «Normas enlazadas al BOE» más abajo)
 
   CÓMO ESTÁ ROTULADO CADA CUADRO
 
@@ -621,13 +669,13 @@
    A) supuesto_plantilla_python.html  (el nuevo, con bloques)
       → se lee y se guarda todo: bloques, colores, baremos y preguntas.
 
-   B) supuesto_plantilla_editable.html  (el clásico, con EXAM_CONFIG)
-      → se lee y se guarda respetando su formato JavaScript. OJO: la
-        plantilla clásica NO conoce los bloques. Si el supuesto tiene más de
-        un bloque, alguno de teoría, un baremo con descuentos o la paleta de
-        colores cambiada, al guardar ahí se conservan las preguntas pero se
-        pierde esa configuración. El editor te avisa antes de hacerlo y te
-        recomienda la otra vía.
+   B) plantilla clásica (con EXAM_CONFIG; ya no se incluye en esta carpeta)
+      → si aún tienes algún supuesto así, se lee y se guarda respetando su
+        formato JavaScript. OJO: la clásica NO conoce los bloques. Si el
+        supuesto tiene más de un bloque, alguno de teoría, un baremo con
+        descuentos o la paleta cambiada, al guardar ahí se conservan las
+        preguntas pero se pierde esa configuración. El editor te avisa antes
+        y te recomienda la otra vía.
 
    C) supuesto_0.html y supuesto_plantilla.html  (los antiguos)
       → se leen y se guardan los enunciados y las preguntas, pero el título,
@@ -660,26 +708,21 @@
      escrito a mano dentro del HTML).
 
 
-────────────────────────────────────────────────────────────────────────────────
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
  10. PUBLICAR EL SUPUESTO EN EL MENÚ PRINCIPAL
 ────────────────────────────────────────────────────────────────────────────────
 
-  El menú (index.html) no se actualiza solo. Para que el supuesto nuevo
-  aparezca en la portada:
+  Ya NO hay que copiar tarjetas en index.html. El menú se pinta con la lista
+  datos/supuestos-datos.js y se gestiona desde el botón «🗂 Menú de inicio…»
+  (ver el apartado «MENÚ DE INICIO» más abajo).
 
     1. Guarda el supuesto dentro de la carpeta  supuestos/
-    2. Abre index.html con Thonny o con el Bloc de notas.
-    3. Busca el bloque:   <div class="supuestos-grid" id="supuestos-grid">
-    4. Copia la tarjeta que ya hay y pégala debajo, cambiando:
-           href="supuestos/supuesto_1.html"     ← el archivo nuevo
-           <div class="exp-number">1</div>      ← el número
-           <span class="ref">REF: S001</span>   ← la referencia
-           <h2>…</h2>                           ← el título
-           <div class="desc">20 preguntas · 30 minutos · …</div>
-    5. Guarda index.html.
+       (al guardar, el editor ofrece darlo de alta en el menú).
+    2. Si no lo diste de alta: «🗂 Menú de inicio…» → «Añadir los que faltan».
+    3. «Guardar menú» y, para subirlo, «📦 Para subir a GitHub…».
 
 
-────────────────────────────────────────────────────────────────────────────────
+────
  11. SI ALGO FALLA
 ────────────────────────────────────────────────────────────────────────────────
 
@@ -770,6 +813,12 @@
      ocultarlos, quitarlos (el .html NO se borra), añadir los que falten y crear,
      renombrar, ordenar o borrar (si están vacíos) secciones y grupos. Nada se escribe
      hasta pulsar «Guardar menú».
+     Otras opciones de la ventana: deshacer el último cambio, buscar, plegar y
+     desplegar, ordenar un grupo por título, mover al principio/final y «Ver» el
+     supuesto en el navegador. Al editar una tarjeta, el botón «↻ Leer preguntas,
+     minutos, referencia y título del supuesto» trae esos datos del propio .html,
+     y al aceptar, tiempo, referencia y título también se guardan DENTRO del
+     supuesto para que menú y supuesto no se contradigan.
 
   CARPETA «PARA_SUBIR» (botón «📦 Para subir a GitHub…»)
      Para trabajar en local y subir luego a la web de GitHub sin dudas:
@@ -786,13 +835,25 @@
        5. Pulsa «Marcar como subido» para empezar de cero.
      Tus copias .bak y la carpeta PARA_SUBIR no cuentan como cambios.
 
+  NORMAS ENLAZADAS AL BOE  (pestaña «7 · Normas (enlaces BOE)»)
+     Cuando la motivación legal de una respuesta dice «artículo 15.1 … RD 84/1996»,
+     la página lo convierte en un enlace al artículo en el BOE. La pestaña 7 edita
+     la lista de normas que se enlazan (archivo datos/normas-datos.js):
+       · Apodos: todas las formas en que citas la norma, separadas por comas.
+       · BOE: el código «BOE-A-…» de la norma.
+       · Nota: texto libre para ti.
+     Regla de la cita: «art.» o «artículo», un número y, a menos de 45
+     caracteres, uno de los apodos. Los cambios se escriben al guardar la lista
+     (el editor avisa al salir si quedan sin guardar). Si añades una norma, sube
+     VERSION en config/version.js al publicar.
+
   TOTAL ABSOLUTO EN EL ENVÍO
      En la pestaña de envío hay un apartado «Enviar el TOTAL de todos los
      bloques» con las casillas del recuento global (preguntas, aciertos, fallos,
      en blanco y puntos). Las casillas por bloque son opcionales.
 
   AL PUBLICAR
-     Sube el número VERSION de sw.js (en la raíz del proyecto) para que quien
+     Sube el número VERSION de config/version.js para que quien
      tenga la app instalada reciba el aviso «Hay una versión nueva».
 
 ────────────────────────────────────────────────────────────────────────────────
@@ -826,7 +887,7 @@
   6. Las notas y el progreso del navegador son independientes entre la copia
      local y la web publicada: no se mezclan.
 
-  7. Antes de publicar un cambio, sube el número VERSION de sw.js para que quien
+  7. Antes de publicar un cambio, sube el número VERSION de config/version.js para que quien
      tenga la app instalada reciba el aviso de actualización.
 
 ────────────────────────────────────────────────────────────────────────────────
@@ -862,7 +923,7 @@
         rellenado»). Lo que dejes en "" no se envía.
         (Opcional: «preguntas» admite una casilla por pregunta, como el envío
         automático, en vez de la de «respuestas».)
-     4. Pon «activa: true» y sube VERSION en sw.js antes de publicar.
+     4. Pon «activa: true» y sube VERSION en config/version.js antes de publicar.
      Al activarlo, el texto de «aviso» aparece como última línea del menú
      principal (sin botones: se da por aceptada la participación, que ya se
      pidió por el formulario anterior).
@@ -953,7 +1014,7 @@
      3. Credenciales → ID de cliente de OAuth → «Aplicación web» → origen de
         JavaScript autorizado: https://rmalump.github.io
      4. Copiar el ID de cliente (público, no es un secreto) a «clientId» en
-        sync-config.js y subir VERSION en sw.js.
+        sync-config.js y subir VERSION en config/version.js.
      Mientras «clientId» esté vacío, el botón no aparece.
 
   PRIVACIDAD Y SEGURIDAD
