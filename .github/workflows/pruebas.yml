@@ -54,13 +54,12 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('package.json') }}
 
+      # Con la caché no hace falta `install-deps`: el runner ya trae las librerías que
+      # necesita Chromium, y ese paso hace apt-get update y descarga fuentes (un run
+      # tardó 6 min solo ahí por un espejo de apt lento).
       - name: Instalar el navegador de pruebas
-        run: |
-          if [ "${{ steps.cache-pw.outputs.cache-hit }}" = "true" ]; then
-            npx playwright install-deps chromium
-          else
-            npx playwright install --with-deps chromium
-          fi
+        if: steps.cache-pw.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
 
       - name: Pruebas en el navegador
         run: node tests/run.js ${{ matrix.grupos }}
