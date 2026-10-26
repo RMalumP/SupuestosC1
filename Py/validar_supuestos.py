@@ -25,7 +25,7 @@ RE_MOTOR = re.compile(r'<meta\s+name=["\']motor-plantilla["\']\s+content=["\'](\
 RE_REFS = re.compile(r'(?:href|src)=["\']([^"\']+)["\']', re.I)
 # Archivos que todo supuesto debe enlazar (en este orden relativo)
 OBLIGATORIOS = ["css/base-supuesto.css", "css/tema-supuesto.css", "js/prefs.js", "js/pwa.js", "datos/normas-datos.js",
-                "config/telemetria-config.js", "js/app-supuesto.js", "js/app-uso.js", "js/app-subrayado.js", "css/subrayado.css", "js/app-telemetria.js"]
+                "config/telemetria-config.js", "js/app-supuesto.js", "js/app-uso.js", "js/app-subrayado.js", "css/subrayado.css", "js/app-telemetria.js", "js/app-impugnar.js", "config/impugnaciones-config.js"]
 
 errores, avisos = [], []
 

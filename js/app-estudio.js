@@ -148,6 +148,32 @@
             });
             ma.appendChild(g);
         });
+        pintarImpugnaciones(banco.impugnaciones || {});
+    }
+
+    /* ── Mis impugnaciones: las guardadas en este navegador + su estado en la hoja (se lee una vez) ── */
+    var estadoHoja = null, pidiendoHoja = false;
+    function pintarImpugnaciones(impug) {
+        var cont = $('estudio-impugnaciones'); if (!cont) return; vaciar(cont);
+        var C = window.SUPC1_IMPUG, claves = Object.keys(impug).sort(function (a, b) { return (impug[b].ts || 0) - (impug[a].ts || 0); });
+        if (!claves.length) { cont.appendChild(el('p', 'grupo-desc vacio', 'Aún no has impugnado ninguna pregunta. Al corregir, pulsa «Impugnar esta pregunta».')); return; }
+        if (!estadoHoja && !pidiendoHoja && C && C.activa && S.leerHoja) {
+            pidiendoHoja = true;
+            S.leerHoja(C.sheetId, C.hojaImpugnaciones, function (filas) { estadoHoja = {}; filas.forEach(function (f) { var id = S.col(f, C.cols.id); if (id) estadoHoja[id] = f; }); pidiendoHoja = false; pintar(); },
+                function () { estadoHoja = {}; pidiendoHoja = false; });
+        }
+        claves.forEach(function (k) {
+            var d = impug[k], li = el('div', 'item'), fila = estadoHoja && estadoHoja[d.id], C2 = C || {};
+            var resuelta = fila && S.esSi(S.col(fila, C2.cols.resuelta)), resp = fila && S.col(fila, C2.cols.respuesta);
+            li.appendChild(textoPregunta('⚑ ', d.t || '', k, d.f));
+            li.appendChild(el('p', 'item-nota', 'Tu impugnación: ' + d.imp));
+            if (resuelta && resp) li.appendChild(el('p', 'item-nota', '✔ Respuesta: ' + resp));
+            var m = el('div', 'item-meta');
+            m.appendChild(el('span', 'contador', resuelta ? 'Resuelta' : (d.env ? 'Enviada' : 'Pendiente de enviar') + (d.pub ? ' · para publicar' : '') + (d.anon ? ' · anónima' : '')));
+            var q = el('button', 'btn-link', 'Quitar de mi lista'); q.type = 'button';
+            q.addEventListener('click', function () { if (!confirm('¿Quitarla de tu lista? (no se borra de la hoja si ya se envió)')) return; var b = S.get('banco', {}); b.borradas = b.borradas || {}; delete b.impugnaciones[k]; b.borradas['i:' + k] = Date.now(); S.set('banco', b); pintar(); });
+            m.appendChild(q); li.appendChild(m); cont.appendChild(li);
+        });
     }
 
     // Texto de una pregunta guardada. Es una «zona» que se puede subrayar (ver app-subrayado.js).

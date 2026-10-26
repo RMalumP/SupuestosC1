@@ -12,16 +12,16 @@
        «lápida» con la fecha del borrado, para que no resucite al sincronizar con otro
        dispositivo. Para cada elemento gana lo más reciente (elemento o lápida). */
     var NOVENTA_DIAS = 90 * 24 * 3600 * 1000;
-    var COLECCIONES = ['falladas', 'marcadas', 'notas', 'favoritas', 'subrayados'];
-    var TIPO = { falladas: 'f', marcadas: 'm', notas: 'n', favoritas: 'v', subrayados: 'u' };   // prefijo de las lápidas
+    var COLECCIONES = ['falladas', 'marcadas', 'notas', 'favoritas', 'subrayados', 'impugnaciones'];
+    var TIPO = { falladas: 'f', marcadas: 'm', notas: 'n', favoritas: 'v', subrayados: 'u', impugnaciones: 'i' };   // prefijo de las lápidas
 
     function normBanco(b) {
         b = b || {};
-        return { falladas: b.falladas || {}, marcadas: b.marcadas || {}, notas: b.notas || {}, favoritas: b.favoritas || {}, subrayados: b.subrayados || {}, borradas: b.borradas || {} };
+        return { falladas: b.falladas || {}, marcadas: b.marcadas || {}, notas: b.notas || {}, favoritas: b.favoritas || {}, subrayados: b.subrayados || {}, impugnaciones: b.impugnaciones || {}, borradas: b.borradas || {} };
     }
     function mezclarBanco(a, b, ahora) {
         a = normBanco(a); b = normBanco(b); ahora = ahora || Date.now();
-        var out = { falladas: {}, marcadas: {}, notas: {}, favoritas: {}, subrayados: {}, borradas: {} };
+        var out = { falladas: {}, marcadas: {}, notas: {}, favoritas: {}, subrayados: {}, impugnaciones: {}, borradas: {} };
         COLECCIONES.forEach(function (col) {
             var tipo = TIPO[col], claves = {};
             [a[col], b[col]].forEach(function (m) { Object.keys(m).forEach(function (k) { claves[k] = 1; }); });
@@ -80,7 +80,7 @@
     }
     // Qué trae la copia fusionada que no estuviera ya en este dispositivo (para decírselo a la persona)
     function novedades(local, fusion) {
-        local = local || {}; var lb = normBanco(local.banco), fb = fusion.banco, r = { falladas: 0, marcadas: 0, notas: 0, favoritas: 0, subrayados: 0, intentos: 0, quitadas: 0, cursos: 0 };
+        local = local || {}; var lb = normBanco(local.banco), fb = fusion.banco, r = { falladas: 0, marcadas: 0, notas: 0, favoritas: 0, subrayados: 0, impugnaciones: 0, intentos: 0, quitadas: 0, cursos: 0 };
         COLECCIONES.forEach(function (c) {
             Object.keys(fb[c]).forEach(function (k) { if (!lb[c][k] || (lb[c][k].ts || 0) < (fb[c][k].ts || 0)) r[c]++; });
             Object.keys(lb[c]).forEach(function (k) { if (!fb[c][k]) r.quitadas++; });
@@ -236,7 +236,7 @@
         sincronizar(false).then(function (r) {
             estado = 'ok';
             var n = r.nov;
-            if (W.SupC1Estudio && (n.falladas || n.marcadas || n.notas || n.favoritas || n.subrayados || n.intentos || n.cursos || n.quitadas)) W.SupC1Estudio.repintar();
+            if (W.SupC1Estudio && (n.falladas || n.marcadas || n.notas || n.favoritas || n.subrayados || n.impugnaciones || n.intentos || n.cursos || n.quitadas)) W.SupC1Estudio.repintar();
         }).catch(function (e) {
             estado = /silencio|interaction|login|consent|popup|cerrada|denegado|access_denied|immediate/i.test(String(e && e.message)) ? 'reconectar' : 'error';
             if (estado === 'reconectar') armarGesto();
@@ -341,6 +341,7 @@
             if (n.marcadas) partes.push(n.marcadas + (n.marcadas === 1 ? ' pregunta marcada' : ' preguntas marcadas'));
             if (n.favoritas) partes.push(n.favoritas + (n.favoritas === 1 ? ' favorita' : ' favoritas'));
             if (n.subrayados) partes.push(n.subrayados + (n.subrayados === 1 ? ' subrayado' : ' subrayados'));
+            if (n.impugnaciones) partes.push(n.impugnaciones + (n.impugnaciones === 1 ? ' impugnación' : ' impugnaciones'));
             if (n.notas) partes.push(n.notas + (n.notas === 1 ? ' nota' : ' notas'));
             if (n.intentos) partes.push(n.intentos + (n.intentos === 1 ? ' intento' : ' intentos'));
             if (n.cursos) partes.push(n.cursos + (n.cursos === 1 ? ' test a medias' : ' tests a medias'));
