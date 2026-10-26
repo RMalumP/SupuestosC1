@@ -787,8 +787,12 @@
 
   EL EDITOR EN VARIOS ARCHIVOS, UN SOLO LANZADOR
      El programa está repartido en módulos que viven junto a él en la carpeta Py/
-     (menu_datos.py, datos_html.py, sincronizar_local.py, alta_menu.py,
-     ventana_menu.py, ventana_subir.py). NO tienes que abrirlos: se lanza siempre
+     (editor_comun.py, pestana_general.py, pestana_bloques.py, pestana_enunciados.py,
+     pestana_preguntas.py, pestana_envio.py, pestana_normas.py, pestana_comprobar.py,
+     archivo_guardado.py, herramientas_datos.py, ventana_herramientas.py, menu_datos.py,
+     datos_html.py, sincronizar_local.py, alta_menu.py, ventana_menu.py, ventana_subir.py,
+     normas_enlaces.py). Cada pestaña de la ventana vive en su pestana_*.py.
+     NO tienes que abrirlos: se lanza siempre
      editor_supuestos.py (con Thonny y F5, como siempre). Si copias el editor a otra
      carpeta, copia con él todos los .py de Py/ o fallará al arrancar.
 
