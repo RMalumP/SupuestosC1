@@ -6,3 +6,4 @@ __pycache__/
 PARA_SUBIR/
 .editor_prefs.json
 .recuperacion_*.json
+.historial/

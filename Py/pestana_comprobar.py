@@ -168,6 +168,16 @@ class PestanaComprobar:
             if not p["law"].strip():
                 avisos.append("Pregunta %d: sin motivación legal (la corrección saldrá vacía)." % i)
 
+        for n, donde, m, r in herr.duplicados(d):
+            avisos.append("Pregunta %d se parece mucho a la %d (%d%%): ¿está repetida?" % (n, m, r * 100))
+        try:
+            normas = normas_enlaces.leer()[1]
+        except OSError:
+            normas = []
+        for n, cita in herr.citas_sin_norma(d, normas):
+            avisos.append("Pregunta %d: la cita «%s» no lleva ninguna norma conocida (pestaña 7): "
+                          "no se enlazará al BOE." % (n, cita[:50]))
+
         # preguntas del mismo enunciado que no van seguidas
         orden, bloques_vistos = [], set()
         for p in d["preguntas"]:

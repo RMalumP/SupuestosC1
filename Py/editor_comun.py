@@ -20,6 +20,9 @@ import normas_enlaces        # normas que se enlazan al BOE (datos/normas-datos.
 import herramientas_datos as herr   # deshacer, buscar, importar, autoguardado (sin ventana)
 import ventana_herramientas      # ventanas «Buscar y reemplazar» e «Importar preguntas»
 import ventana_sync              # ventana «Sincronizar con GitHub» (git)
+import ventana_extra             # estadísticas, repetidas, vista previa, ayuda, impugnaciones…
+import publicar                  # versión, historial, recientes, ayuda, impugnaciones (sin ventana)
+import git_sync                  # git (comprobar si hay cambios nuevos en GitHub)
 
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, colorchooser

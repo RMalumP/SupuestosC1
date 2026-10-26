@@ -123,6 +123,41 @@
     Herramientas   Ver en el navegador (F5) · Comprobar · Menú de inicio ·
                    Para subir a GitHub
 
+  MÁS AYUDAS PARA TRABAJAR MÁS RÁPIDO
+    PUBLICAR TODO (Herramientas → Publicar todo…)
+        Encadena: guarda → revisa TODOS los supuestos (si hay errores graves, se para y
+        te los lista) → rehace con la plantilla actual los que tengan un motor antiguo →
+        sube el número de versión (config/version.js, v28.9 → v28.10) → abre «Sincronizar».
+        Así no se te olvida subir la versión.
+    AL GUARDAR
+        Si hay errores graves (pregunta sin texto, opción vacía, sin correcta) el editor
+        los lista y pregunta si guardas igualmente. Además deja una copia con fecha en
+        «.historial/NOMBRE/» (las últimas 10). «Archivo → Volver a una versión anterior…»
+        carga una de ellas (no toca el archivo hasta que guardes).
+    DUPLICAR UN SUPUESTO (Archivo → Duplicar este supuesto como uno nuevo…)
+        Copia el abierto con otro nombre; al guardar se da de alta en el menú.
+    ABRIR RECIENTE (Archivo → Abrir reciente): los últimos 8 archivos.
+    NUEVA PREGUNTA DESDE PLANTILLA (Edición): verdadero/falso, «señale la incorrecta», «señale la
+        correcta», plazo y respuesta múltiple; solo cambias el contenido.
+    COPIAR PREGUNTAS DE OTRO SUPUESTO (Edición): eliges el archivo, marcas las preguntas y el
+        bloque de destino.
+    IMPORTAR CON TABLA DE SOLUCIONES: si al final del texto pegado hay una línea
+        «Soluciones: 1-b 2-c 3-a» (o «1. b», una por línea), se aplican como respuestas correctas.
+    VISTA PREVIA (F6): ventana que muestra la pregunta seleccionada tal como la leerá el alumno y
+        se actualiza sola mientras escribes.
+    ESTADÍSTICAS (Herramientas): reparto de letras correctas (por si todas son la B), longitud de
+        opciones, cuántas veces la correcta es la más larga, preguntas sin motivación o consejo.
+    PREGUNTAS REPETIDAS (Herramientas): parejas muy parecidas dentro del supuesto y, si quieres,
+        en los demás de supuestos/. Doble clic salta a la pregunta. «Comprobar» también las avisa.
+    CITAS SIN NORMA: «Comprobar» avisa de «art. N» en la motivación sin ninguna norma de la
+        pestaña 7 a menos de 45 caracteres (la web no la enlazaría al BOE).
+    IMPUGNACIONES (Herramientas → Impugnaciones recibidas…): descarga la hoja pública de Google
+        (la de config/impugnaciones-config.js) y la lista; doble clic abre ese supuesto y salta a
+        la pregunta. Necesita conexión a internet.
+    AVISO DE CAMBIOS EN GITHUB: al arrancar, si el proyecto es un clon, la barra de estado avisa
+        cuando GitHub tiene cambios que no tienes.
+    AYUDA (F1): abre la parte de esta guía de la pestaña en la que estás.
+
   BUSCAR Y REEMPLAZAR (Ctrl+F)
     Busca en el texto de las preguntas, las opciones, las motivaciones y los
     consejos. Doble clic en un resultado salta a esa pregunta. «Reemplazar todo»
@@ -791,7 +826,7 @@
      pestana_preguntas.py, pestana_envio.py, pestana_normas.py, pestana_comprobar.py,
      archivo_guardado.py, herramientas_datos.py, ventana_herramientas.py, menu_datos.py,
      datos_html.py, sincronizar_local.py, alta_menu.py, ventana_menu.py, ventana_subir.py,
-     normas_enlaces.py, git_sync.py, ventana_sync.py). Cada pestaña de la ventana vive en su pestana_*.py.
+     normas_enlaces.py, git_sync.py, ventana_sync.py, ventana_extra.py, publicar.py). Cada pestaña de la ventana vive en su pestana_*.py.
      NO tienes que abrirlos: se lanza siempre
      editor_supuestos.py (con Thonny y F5, como siempre). Si copias el editor a otra
      carpeta, copia con él todos los .py de Py/ o fallará al arrancar.
