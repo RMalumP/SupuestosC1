@@ -1,0 +1,57 @@
+FORO DE IMPUGNACIONES · CONFIGURACIÓN (una sola vez, gratis)
+═══════════════════════════════════════════════════════════
+
+Cómo funciona
+  · Cada impugnación RESUELTA tiene su hilo: una «Issue» del repositorio con el ID en el título.
+  · La web lee las Issues de la API pública de GitHub (no hace falta cuenta).
+  · Para escribir sin cuenta, el mensaje pasa por un Google Apps Script tuyo que lo publica en
+    GitHub con un token tuyo limitado a este repositorio. La Issue se crea sola con el primer mensaje.
+  · Moderas desde GitHub: borrar/ocultar/editar comentarios, cerrar o bloquear la Issue (= hilo cerrado).
+
+PARTE 1 · Formulario y hoja de impugnaciones
+  1. En el formulario «Impugnaciones» añade una pregunta nueva de «Respuesta corta» llamada ID.
+  2. En el formulario: ⋮ → «Obtener enlace previamente rellenado» → rellena todo con letras → «Obtener enlace».
+     En la URL busca «entry.XXXXXXX=» de la pregunta ID. Pégalo en config/impugnaciones-config.js,
+     en campos.id: "entry.XXXXXXX".
+  3. Abre la hoja de respuestas, pestaña «Impugnaciones». A la derecha de las columnas de Google escribe
+     en la fila 1 estas cabeceras, tal cual: Respuesta · Resuelta · Hilo cerrado.
+     - Respuesta: tu contestación (texto).  - Resuelta: pon una casilla (Insertar → Casilla).
+     - Hilo cerrado (opcional): casilla para cerrar el foro de esa impugnación sin entrar en GitHub.
+     Solo salen en la web las filas con «Resuelta» marcada.
+  4. Comprueba que la hoja es pública para lectura (Compartir → «Cualquier persona con el enlace: Lector»)
+     y que la pestaña se llama exactamente «Impugnaciones» (si no, cambia hojaImpugnaciones en la config).
+
+PARTE 2 · Token de GitHub
+  1. GitHub → tu foto → Settings → Developer settings → Personal access tokens → Fine-grained tokens
+     → Generate new token.
+  2. Nombre: «foro impugnaciones». Caducidad: la máxima (1 año; apúntate renovarlo).
+  3. Repository access: «Only select repositories» → SupuestosC1.
+  4. Permissions → Repository permissions → Issues: «Read and write». Nada más.
+  5. Generate token y copia el valor (empieza por github_pat_…). No lo compartas con nadie.
+
+PARTE 3 · Apps Script
+  1. Entra en https://script.google.com con tu cuenta → «Proyecto nuevo».
+  2. Borra el código de ejemplo y pega todo el contenido de impugnaciones/foro-apps-script.gs. Guarda.
+  3. Engranaje «Configuración del proyecto» → «Propiedades del script» → «Añadir propiedad»:
+     nombre GITHUB_TOKEN, valor el token de la parte 2. Guarda.
+  4. Arriba a la derecha «Implementar» → «Nueva implementación» → tipo «Aplicación web»:
+     · Ejecutar como: Yo.   · Quién tiene acceso: Cualquier persona.
+     Pulsa «Implementar» y autoriza los permisos que pide (es tu propio script).
+  5. Copia la «URL de la aplicación web» (acaba en /exec) y pégala en config/impugnaciones-config.js,
+     en foroScriptUrl. Sube la versión en config/version.js y publica.
+  6. Si cambias el script más adelante: «Implementar» → «Administrar implementaciones» → lápiz → Versión nueva.
+
+PARTE 4 · Etiqueta y avisos en GitHub
+  1. Repositorio → Issues → Labels → «New label» llamada exactamente  foro-impugnaciones.
+  2. Arriba a la derecha «Watch» → Custom → marca «Issues» para recibir un correo por cada mensaje.
+
+Prueba rápida
+  Marca una impugnación como Resuelta en la hoja, abre la página «Impugnaciones y foro» → pestaña Foro,
+  escribe un mensaje y comprueba que aparece una Issue nueva «[ID] …» con tu mensaje.
+
+Día a día
+  · Borrar/ocultar: en el comentario, menú ⋯ → Delete / Hide.   · Editar: ⋯ → Edit.
+  · Cerrar hilo: «Close issue» (y «Lock conversation» si nadie más debe poder escribir).
+  · Responder tú: comentario normal en la Issue (sale como «Administrador»).
+  · Parar el foro de golpe: vacía foroScriptUrl en la config.
+  · Freno anti-spam: máximo 30 mensajes por hora en total (cámbialo en MAX_POR_HORA) y campo trampa.
