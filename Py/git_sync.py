@@ -18,7 +18,7 @@ import subprocess
 from datetime import date
 from pathlib import Path
 
-PREFIJOS_FUERA = (".recuperacion_", "PARA_SUBIR/", ".git/")
+PREFIJOS_FUERA = (".recuperacion_", "PARA_SUBIR/", ".git/", ".historial/")
 NOMBRES_FUERA = {".editor_prefs.json", ".estado_local.json", ".DS_Store", "Thumbs.db"}
 SUFIJOS_FUERA = (".bak", ".pyc", ".tmp")
 DESTINOS = ("dia", "actual", "principal")
@@ -156,6 +156,16 @@ def traer(raiz):
         return "Esta rama aún no existe en GitHub: no hay nada que traer."
     _, out = _git(raiz, "pull", "--ff-only")
     return "Al día con GitHub." if "up to date" in out.lower() else "Traído lo último de GitHub."
+
+
+def commits_atras(raiz):
+    """Cuántos commits tiene la rama en GitHub que tú aún no tienes (0 si no hay red o upstream)."""
+    try:
+        _git(raiz, "fetch", "--quiet", "origin")
+        rc, out = _git(raiz, "rev-list", "--count", "HEAD..@{u}", permitir_fallo=True)
+        return int(out.strip()) if rc == 0 and out.strip().isdigit() else 0
+    except ErrorGit:
+        return 0
 
 
 def _enlace(raiz, rama):

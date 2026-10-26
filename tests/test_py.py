@@ -325,6 +325,88 @@ class Herramientas(unittest.TestCase):
             self.assertEqual(hd.leer_recuperacion(r), {"a": 1})
 
 
+import publicar as pb  # noqa: E402
+
+
+class Extras(unittest.TestCase):
+    def datos(self):
+        d = datos_html.datos_vacios()
+        mk = datos_html.pregunta_vacia
+        d["preguntas"] = [mk(None, "B1") for _ in range(3)]
+        d["preguntas"][0].update(q="¿Cuál es el plazo para resolver el recurso de alzada?", law="Art. 15 LPAC")
+        d["preguntas"][1].update(q="Cual es el plazo para resolver el recurso de alzada", law="Art. 99 de la norma rara")
+        d["preguntas"][2].update(q="Otra cosa distinta", a=["x", "y", "z", "w"], correctas=[2], c=2)
+        return d
+
+    def test_soluciones_al_final(self):
+        t = ("1) Primera\na) uno\nb) dos\n\n2) Segunda\na) tres\nb) cuatro\nc) cinco\n\nSoluciones: 1-b 2-c\n")
+        p, av = hd.importar_texto(t)
+        self.assertEqual(len(p), 2)
+        self.assertEqual(p[0]["correctas"], [1])
+        self.assertEqual(p[1]["correctas"], [2])
+        self.assertEqual([a for a in av if "sin correcta" in a], [])
+
+    def test_errores_graves_y_duplicados(self):
+        d = self.datos()
+        d["preguntas"][2]["q"] = ""
+        self.assertTrue(any("Pregunta 3" in e for e in hd.errores_graves(d)))
+        dup = hd.duplicados(d)
+        self.assertEqual(dup[0][:3], (1, "este", 2))
+
+    def test_estadisticas_y_citas(self):
+        d = self.datos()
+        self.assertIn("Letra de la respuesta correcta", hd.estadisticas(d))
+        normas = [{"siglas": ["LPAC"], "boe": "BOE-A-2015-10565"}]
+        citas = hd.citas_sin_norma(d, normas)
+        self.assertEqual([c[0] for c in citas], [2])
+
+    def test_plantillas(self):
+        for nombre in hd.PLANTILLAS:
+            p = hd.pregunta_de_plantilla(nombre, "B2")
+            self.assertEqual(p["bloqueId"], "B2")
+            self.assertTrue(p["correctas"])
+
+    def test_version(self):
+        with tempfile.TemporaryDirectory() as c:
+            (Path(c) / "config").mkdir()
+            (Path(c) / "config" / "version.js").write_text('self.SUPC1_VERSION = "v28.9";\n', encoding="utf-8")
+            self.assertEqual(pb.subir_version(c), ("v28.9", "v28.10"))
+            self.assertEqual(pb.version_actual(c), "v28.10")
+
+    def test_historial_de_archivos(self):
+        from datetime import datetime, timedelta
+        with tempfile.TemporaryDirectory() as c:
+            f = Path(c) / "s.html"
+            f.write_text("a", encoding="utf-8")
+            base = datetime(2026, 1, 1, 10, 0, 0)
+            for k in range(14):
+                pb.guardar_copia(f, c, base + timedelta(seconds=k))
+            copias = pb.copias_de(f, c)
+            self.assertEqual(len(copias), pb.COPIAS)
+            self.assertEqual(pb.etiqueta_copia(copias[0]), "01/01/2026 10:00:13")
+
+    def test_recientes_y_ayuda(self):
+        with tempfile.TemporaryDirectory() as c:
+            f = Path(c) / "a.html"
+            f.write_text("x", encoding="utf-8")
+            pr = {}
+            pb.anotar_reciente(pr, f)
+            pb.anotar_reciente(pr, Path(c) / "no_existe.html")
+            self.assertEqual(pb.recientes(pr), [str(f)])
+        texto = (PY / "INSTRUCCIONES.txt").read_text(encoding="utf-8")
+        titulo, cuerpo = pb.ayuda_para(texto, 1)
+        self.assertIn("BLOQUES", titulo.upper())
+        self.assertTrue(cuerpo.strip())
+        self.assertIn("NORMAS", pb.ayuda_para(texto, 6)[0].upper())
+
+    def test_impugnaciones_csv(self):
+        filas = pb.leer_impugnaciones("Marca temporal,Supuesto,Pregunta,Texto\n01/01,supuesto_1,¿Qué?,Mal\n,,,\n")
+        self.assertEqual(len(filas), 1)
+        self.assertEqual(pb.columna(filas[0], "supuesto"), "supuesto_1")
+        self.assertTrue(pb.url_csv("ID", "Impugnaciones").startswith("https://docs.google.com/spreadsheets/d/ID/"))
+        self.assertEqual(pb.config_impugnaciones(RAIZ)[1], "Impugnaciones")
+
+
 import git_sync as gs  # noqa: E402
 
 

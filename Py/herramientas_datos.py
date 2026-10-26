@@ -11,7 +11,9 @@ Parte del editor de supuestos. No usa tkinter, así que se prueba sin pantalla.
   importar_csv    lo mismo desde un CSV
   problemas_por_pregunta   qué preguntas tienen fallos (para marcarlas en la lista)
   guardar_recuperacion / leer_recuperacion   autoguardado
+  errores_graves, duplicados, estadisticas, citas_sin_norma, plantillas   revisión y ayudas
 """
+import difflib
 import csv
 import io
 import json
@@ -149,6 +151,11 @@ def importar_texto(texto, bloque_id="B1", statement_id=None):
     Devuelve (preguntas, avisos)."""
     preguntas, avisos = [], []
     bloques = [b for b in re.split(r"\n\s*\n", texto.replace("\r\n", "\n").strip()) if b.strip()]
+    soluciones = {}
+    if bloques:
+        soluciones = leer_soluciones(bloques[-1])
+        if soluciones:
+            bloques = bloques[:-1]
     for k, bloque in enumerate(bloques, 1):
         q, opciones, correctas, law, tip = [], [], [], "", ""
         for linea in bloque.split("\n"):
@@ -182,7 +189,38 @@ def importar_texto(texto, bloque_id="B1", statement_id=None):
         if not correctas:
             avisos.append("Pregunta %d: sin correcta indicada; se marca la A." % k)
         preguntas.append(_pregunta(bloque_id, statement_id, enunciado, opciones, correctas, law, tip))
+        if k in soluciones and not any(_corr_marcada(bloque)):
+            letras = soluciones[k]
+            preguntas[-1]["correctas"] = sorted({LETRAS.index(x) for x in letras if LETRAS.index(x) < len(opciones)}) or [0]
+            preguntas[-1]["c"] = preguntas[-1]["correctas"][0]
+            preguntas[-1]["multiple"] = len(preguntas[-1]["correctas"]) > 1
+            avisos = [a for a in avisos if not a.startswith("Pregunta %d: sin correcta" % k)]
     return preguntas, avisos
+
+
+def _corr_marcada(bloque):
+    """True si el bloque ya indica su correcta (con * o con «Correcta: …»)."""
+    for linea in bloque.split("\n"):
+        if _CORR.match(linea) or re.match(r"^\s*\(?[a-gA-G][\)\.\-:]\s*\*", linea):
+            yield True
+
+
+_RE_SOL = re.compile(r"(\d+)\s*[\)\.\-:=]?\s*([a-gA-G](?:\s*[,y/]\s*[a-gA-G])*)\b")
+
+
+def leer_soluciones(bloque):
+    """Tabla de soluciones al final de un test pegado («1-b  2-c», «1. a», una por línea…).
+    {n.º de pregunta (desde 1): ['B']}. Vacío si el bloque no parece una tabla de soluciones."""
+    primera = bloque.strip().split("\n")[0].lower()
+    cuerpo = re.sub(r"^\s*(soluciones|respuestas|plantilla de respuestas|clave)\s*:?\s*", "", bloque.strip(),
+                    flags=re.IGNORECASE)
+    pares = _RE_SOL.findall(cuerpo)
+    resto = _RE_SOL.sub("", cuerpo)
+    if len(pares) < 2 or re.search(r"[A-Za-zÁ-ú]{3,}", resto):
+        return {}
+    if not (primera.startswith(("soluc", "respuesta", "plantilla", "clave")) or len(pares) >= 3):
+        return {}
+    return {int(n): re.findall(r"[a-gA-G]", ls.upper()) for n, ls in pares}
 
 
 def importar_csv(texto, bloque_id="B1", statement_id=None):
@@ -256,3 +294,126 @@ def leer_recuperacion(destino):
         return json.loads(Path(destino).read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
+
+
+# ── revisión: errores graves, repetidas, estadísticas, citas ───────────
+def errores_graves(datos):
+    """Fallos que conviene arreglar ANTES de guardar: lista de textos."""
+    salida = []
+    for n, (nivel, motivo) in sorted(problemas_por_pregunta(datos).items()):
+        if nivel == "error":
+            salida.append("Pregunta %d: %s" % (n + 1, motivo))
+    for n, p in enumerate(datos["preguntas"], 1):
+        if not (p.get("correctas") or []):
+            salida.append("Pregunta %d: sin respuesta correcta marcada" % n)
+    return salida
+
+
+def _norma(texto):
+    return " ".join(re.sub(r"[^\w\s]", " ", (texto or "").lower()).split())
+
+
+def duplicados(datos, umbral=0.88, otras=()):
+    """Parejas de preguntas muy parecidas. `otras` = [(nombre, datos)] de otros supuestos.
+    Devuelve [(n.º en este supuesto, 'este' o nombre del otro, n.º allí, parecido)]."""
+    mias = [_norma(p.get("q", "")) for p in datos["preguntas"]]
+    res = []
+    for i in range(len(mias)):
+        for j in range(i + 1, len(mias)):
+            r = _parecido(mias[i], mias[j], umbral)
+            if r >= umbral:
+                res.append((i + 1, "este", j + 1, round(r, 2)))
+    for nombre, d in otras:
+        for i, a in enumerate(mias):
+            for j, p in enumerate(d["preguntas"]):
+                r = _parecido(a, _norma(p.get("q", "")), umbral)
+                if r >= umbral:
+                    res.append((i + 1, nombre, j + 1, round(r, 2)))
+    return res
+
+
+def _parecido(a, b, umbral=0.88):
+    if not a or not b:
+        return 0.0
+    if abs(len(a) - len(b)) > max(len(a), len(b)) * 0.4:
+        return 0.0
+    m = difflib.SequenceMatcher(None, a, b, autojunk=False)
+    if m.real_quick_ratio() < umbral or m.quick_ratio() < umbral:
+        return 0.0
+    return m.ratio()
+
+
+def estadisticas(datos):
+    """Texto con el reparto de letras correctas, longitud de opciones y preguntas sin motivación."""
+    ps = datos["preguntas"]
+    if not ps:
+        return "No hay preguntas."
+    cuenta = {}
+    largas = 0
+    for p in ps:
+        for i in p.get("correctas") or [0]:
+            cuenta[LETRAS[i]] = cuenta.get(LETRAS[i], 0) + 1
+        a = p.get("a", [])
+        corr = (p.get("correctas") or [0])[0]
+        otras = [len(x) for k, x in enumerate(a) if k != corr]
+        if otras and corr < len(a) and len(a[corr]) > max(otras):
+            largas += 1
+    total = sum(cuenta.values())
+    lineas = ["ESTADÍSTICAS DEL SUPUESTO (%d preguntas)" % len(ps), "=" * 50, "", "Letra de la respuesta correcta:"]
+    for l in LETRAS:
+        if l in cuenta:
+            lineas.append("   %s  %-4d %5.1f%%  %s" % (l, cuenta[l], 100.0 * cuenta[l] / total, "█" * int(40 * cuenta[l] / total)))
+    ideal = 100.0 / max(1, len([1 for l in LETRAS if l in cuenta]))
+    sesgo = [l for l in cuenta if abs(100.0 * cuenta[l] / total - ideal) > 15]
+    lineas.append("   " + ("⚠ reparto desigual (conviene equilibrar): %s" % ", ".join(sesgo) if sesgo
+                           else "reparto razonable"))
+    todas = [len(o) for p in ps for o in p.get("a", [])]
+    lineas += ["", "Longitud de las opciones (caracteres): media %d · máxima %d" % (sum(todas) // max(1, len(todas)), max(todas or [0])),
+               "Preguntas cuya correcta es la opción MÁS LARGA: %d de %d (%.0f%%)%s"
+               % (largas, len(ps), 100.0 * largas / len(ps), "  ⚠ pista involuntaria" if largas / len(ps) > 0.5 else ""),
+               "Preguntas sin motivación legal: %d" % sum(1 for p in ps if not p.get("law", "").strip()),
+               "Preguntas sin consejo: %d" % sum(1 for p in ps if not p.get("tip", "").strip()),
+               "Preguntas de respuesta múltiple: %d" % sum(1 for p in ps if p.get("multiple"))]
+    return "\n".join(lineas)
+
+
+_RE_CITA = re.compile(r"\b(?:art\.?|artículo|artículos|arts\.)\s*(\d+(?:\.\d+)?(?:\s*(?:bis|ter))?)(?P<cola>[^\n]{0,45})", re.IGNORECASE)
+
+
+def citas_sin_norma(datos, normas):
+    """Citas «art. N» en las motivaciones sin ninguna norma conocida a menos de 45 caracteres
+    (la página no las enlazará). `normas` es la lista de normas_enlaces. [(n.º de pregunta, cita)]"""
+    siglas = [s.lower() for n in normas for s in n.get("siglas", []) if s]
+    res = []
+    for i, p in enumerate(datos["preguntas"], 1):
+        texto = re.sub(r"<[^>]+>", "", p.get("law", "") or "")
+        for m in _RE_CITA.finditer(texto):
+            cola = m.group("cola").lower()
+            if not any(s in cola for s in siglas):
+                res.append((i, m.group(0).strip()))
+    return res
+
+
+# ── plantillas de pregunta ───────────────────────────────────────────
+PLANTILLAS = {
+    "Verdadero o falso": dict(q="Indique si la siguiente afirmación es verdadera o falsa: …",
+                              a=["Verdadera", "Falsa"], c=[0]),
+    "Señale la INCORRECTA": dict(q="Señale la afirmación INCORRECTA:",
+                                 a=["Afirmación incorrecta", "Afirmación correcta", "Afirmación correcta",
+                                    "Afirmación correcta"], c=[0]),
+    "Señale la CORRECTA": dict(q="Señale la afirmación CORRECTA:",
+                               a=["Afirmación correcta", "Afirmación incorrecta", "Afirmación incorrecta",
+                                  "Afirmación incorrecta"], c=[0]),
+    "Plazo (días)": dict(q="¿Cuál es el plazo para …?",
+                         a=["10 días hábiles", "15 días hábiles", "1 mes", "3 meses"], c=[0],
+                         law="Art. … de la …"),
+    "Respuesta múltiple": dict(q="Señale las afirmaciones correctas:",
+                               a=["Correcta", "Correcta", "Incorrecta", "Incorrecta"], c=[0, 1], multiple=True),
+}
+
+
+def pregunta_de_plantilla(nombre, bloque_id="B1", statement_id=None):
+    pl = PLANTILLAS[nombre]
+    p = _pregunta(bloque_id, statement_id, pl["q"], list(pl["a"]), list(pl["c"]), pl.get("law", ""), "")
+    p["multiple"] = bool(pl.get("multiple"))
+    return p

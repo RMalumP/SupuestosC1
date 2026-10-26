@@ -120,6 +120,8 @@ class EditorApp(PestanaGeneral,
         self.bind_all("<Control-S>", lambda e: self.guardar_como())
         self.bind_all("<Control-f>", lambda e: ventana_herramientas.buscar_reemplazar(self))
         self.bind_all("<Control-U>", lambda e: ventana_sync.abrir(self))
+        self.bind_all("<F1>", lambda e: ventana_extra.ayuda(self))
+        self.bind_all("<F6>", lambda e: ventana_extra.vista_previa(self))
         self.bind_all("<F5>", lambda e: self.ver_navegador())
         self.bind_all("<Control-z>", lambda e: self._atajo_historial(self.deshacer, e))
         self.bind_all("<Control-y>", lambda e: self._atajo_historial(self.rehacer, e))
@@ -129,6 +131,7 @@ class EditorApp(PestanaGeneral,
         self.after(AUTOGUARDADO_MS, self._autoguardar)
 
         self.after(200, self._carga_inicial)
+        self.after(2500, self._avisar_si_hay_cambios_en_github)
 
     # ─────────────────────────────────────────────────────────────
     #  Estilos
@@ -200,6 +203,12 @@ class EditorApp(PestanaGeneral,
         archivo.add_command(label="Guardar", accelerator="Ctrl+S", command=self.guardar)
         archivo.add_command(label="Guardar como…", accelerator="Ctrl+Mayús+S", command=self.guardar_como)
         archivo.add_separator()
+        self._menu_recientes = tk.Menu(archivo, tearoff=False, postcommand=self._pintar_recientes)
+        archivo.add_cascade(label="Abrir reciente", menu=self._menu_recientes)
+        archivo.add_command(label="Duplicar este supuesto como uno nuevo…", command=self.duplicar_supuesto)
+        archivo.add_command(label="Volver a una versión anterior de este archivo…",
+                            command=lambda: ventana_extra.restaurar_version(self))
+        archivo.add_separator()
         archivo.add_command(label="Pasar a plantilla nueva…", command=self.convertir_a_plantilla_nueva)
         archivo.add_separator()
         archivo.add_command(label="Salir", command=self._al_cerrar)
@@ -212,6 +221,12 @@ class EditorApp(PestanaGeneral,
                             command=lambda: ventana_herramientas.buscar_reemplazar(self))
         edicion.add_command(label="Importar preguntas…",
                             command=lambda: ventana_herramientas.importar(self))
+        edicion.add_command(label="Nueva pregunta desde plantilla…",
+                            command=lambda: ventana_extra.nueva_de_plantilla(self))
+        edicion.add_command(label="Copiar preguntas de otro supuesto…",
+                            command=lambda: ventana_extra.copiar_de_otro(self))
+        edicion.add_command(label="Vista previa de la pregunta", accelerator="F6",
+                            command=lambda: ventana_extra.vista_previa(self))
         edicion.add_separator()
         edicion.add_command(label="Subir pregunta", accelerator="Alt+↑", command=lambda: self._mover_con_atajo(-1))
         edicion.add_command(label="Bajar pregunta", accelerator="Alt+↓", command=lambda: self._mover_con_atajo(1))
@@ -219,13 +234,53 @@ class EditorApp(PestanaGeneral,
         herram = tk.Menu(barra, tearoff=False)
         herram.add_command(label="Ver en el navegador", accelerator="F5", command=self.ver_navegador)
         herram.add_command(label="Comprobar", command=self.comprobar)
+        herram.add_command(label="Estadísticas del supuesto…", command=lambda: ventana_extra.estadisticas(self))
+        herram.add_command(label="Preguntas repetidas…", command=lambda: ventana_extra.repetidas(self))
+        herram.add_command(label="Impugnaciones recibidas…", command=lambda: ventana_extra.impugnaciones(self))
         herram.add_separator()
+        herram.add_command(label="Publicar todo (comprobar, versión, sincronizar)…",
+                           command=lambda: ventana_extra.publicar_todo(self))
         herram.add_command(label="Menú de inicio…", command=lambda: ventana_menu.abrir(self))
         herram.add_command(label="Para subir a GitHub…", command=lambda: ventana_subir.abrir(self))
         herram.add_command(label="Sincronizar con GitHub (git)…", accelerator="Ctrl+Mayús+U",
                            command=lambda: ventana_sync.abrir(self))
         barra.add_cascade(label="Herramientas", menu=herram)
+        ayuda = tk.Menu(barra, tearoff=False)
+        ayuda.add_command(label="Ayuda de esta pestaña", accelerator="F1", command=lambda: ventana_extra.ayuda(self))
+        barra.add_cascade(label="Ayuda", menu=ayuda)
         self.config(menu=barra)
+
+    def _pintar_recientes(self):
+        self._menu_recientes.delete(0, "end")
+        rec = publicar.recientes(self._prefs)
+        for r in rec:
+            self._menu_recientes.add_command(label=Path(r).name + "    " + str(Path(r).parent),
+                                             command=lambda r=r: self.abrir_ruta(r))
+        if not rec:
+            self._menu_recientes.add_command(label="(ninguno todavía)", state="disabled")
+
+    def _avisar_si_hay_cambios_en_github(self):
+        """Al arrancar, mira en segundo plano si GitHub tiene cambios que aún no tienes."""
+        import threading
+        raiz = sincronizar_local.RAIZ_DEFECTO
+        if not (git_sync.hay_git() and git_sync.es_clon(raiz)):
+            return
+        resultado = {}
+
+        def mirar():
+            resultado["n"] = git_sync.commits_atras(raiz)
+
+        hilo = threading.Thread(target=mirar, daemon=True)
+        hilo.start()
+
+        def esperar(intentos=0):
+            if hilo.is_alive() and intentos < 40:
+                self.after(500, esperar, intentos + 1)
+            elif resultado.get("n"):
+                self.estado("GitHub tiene %d cambio(s) nuevo(s) que no tienes: ☁ Sincronizar → «Traer lo último»."
+                            % resultado["n"])
+
+        esperar()
 
     def _instantanea(self):
         """Pasa lo escrito en la ventana a los datos sin reordenar nada."""

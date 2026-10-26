@@ -6,6 +6,7 @@ Parte del editor de supuestos: los métodos de esta parte de la ventana viven aq
 y EditorApp (editor_supuestos.py) los hereda. No se ejecuta solo.
 """
 from editor_comun import *  # noqa: F401,F403
+import publicar as herr_pub
 from editor_comun import (_guardar_prefs)  # noqa: F401
 
 
@@ -111,6 +112,24 @@ class ArchivoGuardado:
             filetypes=[("Páginas HTML", "*.html *.htm"), ("Todos los archivos", "*.*")])
         if not ruta:
             return
+        self._cargar_ruta(ruta)
+
+    def abrir_ruta(self, ruta):
+        """Abre un archivo concreto (recientes, impugnaciones…) preguntando por los cambios."""
+        if self._confirmar_descartar():
+            self._cargar_ruta(ruta)
+
+    def duplicar_supuesto(self):
+        """Empieza un supuesto nuevo a partir del abierto: mismas preguntas, otro nombre."""
+        self.volcar_todo()
+        self.datos["config"]["titulo"] = (self.datos["config"]["titulo"] + " (copia)").strip()
+        self.ruta = None
+        self.hay_cambios = True
+        self._refrescar_todo()
+        self.estado("Copia sin guardar: cambia el título y la referencia y elige un nombre nuevo.")
+        self.guardar_como()
+
+    def _cargar_ruta(self, ruta):
         try:
             self.datos, self.modo, self.html_base = leer_html(ruta)
         except (OSError, ValueError, json.JSONDecodeError) as err:
@@ -118,6 +137,7 @@ class ArchivoGuardado:
                                  "%s\n\n%s" % (Path(ruta).name, err), parent=self)
             return
         self.ruta = Path(ruta)
+        herr_pub.anotar_reciente(self._prefs, self.ruta)
         self._recordar_carpeta()
         self.hay_cambios = False
         self._refrescar_todo()
@@ -267,6 +287,16 @@ class ArchivoGuardado:
                 "¿Guardar de todas formas?", parent=self)
             if not seguir:
                 return False
+        graves = herr.errores_graves(self.datos)
+        if graves and not messagebox.askyesno(
+                "Hay errores graves",
+                "Antes de guardar conviene arreglar:\n\n  · " + "\n  · ".join(graves[:10])
+                + ("\n  · …" if len(graves) > 10 else "") + "\n\n¿Guardar de todas formas?", parent=self):
+            return False
+        try:
+            herr_pub.guardar_copia(destino, PREFS.parent)
+        except OSError:
+            pass                                  # sin historial no se bloquea el guardado
         try:
             self.html_base = escribir_html(destino, self.html_base, self.datos, self.modo)
         except (OSError, ValueError) as err:
