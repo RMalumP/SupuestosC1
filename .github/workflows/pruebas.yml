@@ -1,23 +1,26 @@
 name: Pruebas
 
-# Se ejecuta en cada subida y en cada pull request.
+# Se ejecuta en cada subida a la rama base y en cada pull request (así una subida
+# a una rama con PR no lanza las pruebas dos veces).
 # Revisa los supuestos y el menú (Py/validar_supuestos.py) y abre las páginas en
 # un navegador para comprobar que cargan, que lo que se envía a Google no cambia,
 # que el aspecto no varía sin querer y que las funciones siguen funcionando.
 on:
   push:
+    branches: [claude/plantillas_editor]
   pull_request:
 
+# Una subida nueva cancela las pruebas antiguas de la misma rama.
+concurrency:
+  group: pruebas-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  pruebas:
+  python:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
-
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 22
 
       - name: Validar supuestos y menú
         run: python3 Py/validar_supuestos.py --plantillas
@@ -25,13 +28,42 @@ jobs:
       - name: Pruebas de Python (menú, alta, lectura del HTML)
         run: python3 tests/test_py.py
 
+  navegador:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Los grupos de tests/run.js son independientes; se reparten en trabajos paralelos.
+    strategy:
+      fail-fast: false
+      matrix:
+        grupos: ['carga envios estilos', 'funciones menu', 'sync']
+    name: navegador (${{ matrix.grupos }})
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Instalar Playwright
+        run: npm install
+
+      - name: Guardar en caché el navegador de pruebas
+        id: cache-pw
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package.json') }}
+
       - name: Instalar el navegador de pruebas
         run: |
-          npm install
-          npx playwright install --with-deps chromium
+          if [ "${{ steps.cache-pw.outputs.cache-hit }}" = "true" ]; then
+            npx playwright install-deps chromium
+          else
+            npx playwright install --with-deps chromium
+          fi
 
       - name: Pruebas en el navegador
-        run: node tests/run.js
+        run: node tests/run.js ${{ matrix.grupos }}
 
       - name: Guardar el informe si algo falla
         if: failure()
