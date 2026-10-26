@@ -29,7 +29,13 @@
     // «Verdadero» para casillas de la hoja: TRUE, «sí», «x», «1»…
     S.esSi = function (v) { if (v === true) return true; var t = norm(v); return !!t && t !== 'false' && t !== 'no' && t !== '0'; };
     // Valor de una columna por el nombre configurado de su cabecera
-    S.col = function (fila, nombre) { return fila[norm(nombre)]; };
+    S.col = function (fila, nombre) {
+        var k = norm(nombre);
+        if (k in fila) return fila[k];
+        // Si la cabecera de la hoja no se llama exactamente así (p. ej. «Respuesta correcta» o «Opcion marcada»), vale la que la contenga
+        if (k === 'correcta' || k === 'marcada') { for (var c in fila) if (c !== 'respuesta' && c.indexOf(k) >= 0) return fila[c]; }
+        return undefined;
+    };
 
     // Campo «Pregunta» de la hoja: «12. texto de la pregunta ‖ A) opción ‖ B) opción…». Las filas antiguas solo traen el número.
     S.SEP_PREG = ' ‖ ';
