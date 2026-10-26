@@ -32,6 +32,7 @@ def copia_del_proyecto():
     shutil.copytree(RAIZ / "fuentes", d / "fuentes")
     shutil.copytree(RAIZ / "icons", d / "icons")
     shutil.copytree(RAIZ / "resultados", d / "resultados")
+    shutil.copytree(RAIZ / "impugnaciones", d / "impugnaciones")
     return d
 
 
@@ -163,7 +164,7 @@ class AltaYValidador(unittest.TestCase):
 
     def test_sw_no_lleva_supuestos_a_mano(self):
         t = (RAIZ / "sw.js").read_text(encoding="utf-8")
-        self.assertIn('importScripts("datos/supuestos-datos.js")', t)
+        self.assertIn('importScripts("datos/supuestos-datos.js"', t)
         self.assertNotIn('"supuestos/supuesto_', t)
 
 
