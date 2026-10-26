@@ -170,6 +170,13 @@
             if (resuelta && resp) li.appendChild(el('p', 'item-nota', '✔ Respuesta: ' + resp));
             var m = el('div', 'item-meta');
             m.appendChild(el('span', 'contador', resuelta ? 'Resuelta' : (d.env ? 'Enviada' : 'Pendiente de enviar') + (d.pub ? ' · para publicar' : '') + (d.anon ? ' · anónima' : '')));
+            var ver = el('button', 'btn-link', 'Ver pregunta y respuestas'); ver.type = 'button';
+            ver.addEventListener('click', function () {
+                var pr = fila ? S.parsePregunta(S.col(fila, C2.cols.pregunta)) : null;
+                S.detalleImpug({ sup: d.sup, n: d.n, enun: d.enun, q: d.q || (pr && pr.q) || d.t, ops: (d.ops && d.ops.length ? d.ops : (pr && pr.ops)) || [], correcta: d.correcta, marcada: d.marcada,
+                                 texto: d.imp, autor: 'Tu impugnación', resp: resuelta && resp ? resp : '', estado: resuelta ? 'Resuelta' : (d.env ? 'Enviada' : 'Pendiente de enviar') });
+            });
+            m.appendChild(ver);
             var q = el('button', 'btn-link', 'Quitar de mi lista'); q.type = 'button';
             q.addEventListener('click', function () { if (!confirm('¿Quitarla de tu lista? (no se borra de la hoja si ya se envió)')) return; var b = S.get('banco', {}); b.borradas = b.borradas || {}; delete b.impugnaciones[k]; b.borradas['i:' + k] = Date.now(); S.set('banco', b); pintar(); });
             m.appendChild(q); li.appendChild(m); cont.appendChild(li);

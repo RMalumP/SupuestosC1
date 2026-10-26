@@ -29,12 +29,21 @@
         var n = g(f, 'nombre').trim();
         return (S.esSi(S.col(f, C.cols.publico)) && n && n !== C.anonimo) ? n : 'Anónimo';
     }
+    function detalle(f) {
+        var p = S.parsePregunta(g(f, 'pregunta'));
+        return { sup: g(f, 'supuesto'), n: p.n, q: p.q, ops: p.ops, correcta: g(f, 'correcta'), marcada: g(f, 'marcada'), texto: g(f, 'texto'),
+                 autor: autor(f), resp: g(f, 'respuesta'), estado: S.esSi(S.col(f, C.cols.resuelta)) ? 'Resuelta' : 'Pendiente' };
+    }
     function tarjeta(f) {
-        var c = el('div', 'item');
-        c.appendChild(el('p', 'imp-meta', g(f, 'supuesto') + (g(f, 'pregunta') ? ' · pregunta ' + g(f, 'pregunta') : '') + ' · ' + autor(f)));
+        var c = el('div', 'item'), p = S.parsePregunta(g(f, 'pregunta'));
+        c.appendChild(el('p', 'imp-meta', g(f, 'supuesto') + (p.n ? ' · pregunta ' + p.n : '') + ' · ' + autor(f)));
+        if (p.q) c.appendChild(el('p', 'imp-preg', p.q.length > 180 ? p.q.slice(0, 177) + '…' : p.q));
         c.appendChild(el('p', 'item-texto', g(f, 'texto')));
         if (g(f, 'respuesta')) c.appendChild(el('p', 'item-nota', '✔ Respuesta: ' + g(f, 'respuesta')));
         else if (!S.esSi(S.col(f, C.cols.resuelta))) c.appendChild(el('p', 'imp-meta', '⏳ Pendiente de respuesta'));
+        var v = el('button', 'btn-link', 'Ver pregunta completa y respuestas'); v.type = 'button';
+        v.addEventListener('click', function () { S.detalleImpug(detalle(f)); });
+        c.appendChild(v);
         return c;
     }
     // El foro incluye también las marcadas como «Publicar», aunque aún no estén resueltas
@@ -79,7 +88,7 @@
     function mensajesDe(id) {
         var h = foro[id], ms = h ? h.msgs.slice() : [];
         ms.sort(function (a, b) { return (a.t || 0) - (b.t || 0); });
-        propios.filter(function (p) { return p.hilo === id && !ms.some(function (x) { return x.m === p.m; }); }).forEach(function (p) { ms.push({ n: p.n, m: p.m, local: true, t: p.t }); });
+        propios.filter(function (p) { return p.hilo === id && !ms.some(function (x) { return x.m === p.m; }); }).forEach(function (p) { ms.push({ n: p.n, m: p.m, local: true, t: p.t, fallo: !!p.fallo, ok: !!p.ok, p: p }); });
         return ms;
     }
     function pintarForo() {
@@ -87,17 +96,37 @@
         var r = delForo();
         if (!r.length) { cont.appendChild(el('p', 'grupo-desc vacio', 'El foro se abre cuando una impugnación se resuelve o se marca como «Publicar».')); return; }
         r.forEach(function (f) {
-            var id = idDe(f), ms = id ? mensajesDe(id) : [];
+            var id = idDe(f), h = el('div', 'imp-hilo'); h.id = 'hilo-' + id; h.appendChild(tarjeta(f));
+            var lista = el('div', 'imp-msgs'); lista.id = 'msgs-' + id; h.appendChild(lista);
             var cerrado = S.esSi(S.col(f, C.cols.cerrado)) || !!(foro[id] && foro[id].cerrado);
-            var h = el('div', 'imp-hilo'); h.appendChild(tarjeta(f));
-            ms.forEach(function (x) {
-                var d = el('div', 'imp-msg'); d.appendChild(el('b', null, x.n + (x.t && !x.local ? ' · ' + new Date(x.t).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : '') + (x.local ? ' (enviado, aparecerá en unos segundos)' : ''))); d.appendChild(el('div', null, x.m)); h.appendChild(d);
-            });
             if (cerrado) h.appendChild(el('p', 'imp-meta', '🔒 Hilo cerrado'));
             else if (C.foroScriptUrl && id) h.appendChild(formulario(id, f));
             else h.appendChild(el('p', 'imp-meta', 'Responder no está disponible todavía.'));
             cont.appendChild(h);
+            pintarMsgs(id);
         });
+    }
+    // Solo repinta los mensajes de un hilo (así no se pierde lo que se está escribiendo en los demás)
+    function pintarMsgs(id) {
+        var lista = $('msgs-' + id); if (!lista) return; vaciar(lista);
+        mensajesDe(id).forEach(function (x) {
+            var d = el('div', 'imp-msg' + (x.local ? ' imp-pend' : ''));
+            var cab = x.n + (x.t && !x.local ? ' · ' + new Date(x.t).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : '') + (x.local ? (x.fallo ? ' · no se pudo enviar' : x.ok ? ' · enviado ✔' : ' · enviando…') : '');
+            d.appendChild(el('b', null, cab)); d.appendChild(el('div', null, x.m));
+            if (x.fallo) { var r = el('button', 'btn-link', 'Reintentar'); r.type = 'button'; r.addEventListener('click', function () { enviarMsg(x.p); }); d.appendChild(r); }
+            lista.appendChild(d);
+        });
+    }
+    function enviarMsg(p, fin) {
+        p.fallo = false; p.enviando = true; pintarMsgs(p.hilo);
+        fetch(C.foroScriptUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ hilo: p.hilo, titulo: p.titulo, nombre: p.n, mensaje: p.m, web: p.web || '' }) })
+            .then(function (r) { return r.json(); })
+            .then(function (j) { if (!j || !j.ok) throw new Error((j && j.error) || 'error'); p.t = Date.now(); delete p.enviando; p.ok = true; S.set('impug-foro-local', propios); pintarMsgs(p.hilo); })
+            .catch(function (err) {
+                p.fallo = true; delete p.enviando; S.set('impug-foro-local', propios); pintarMsgs(p.hilo);
+                if (String(err && err.message) === 'limite') alert('Hay demasiados mensajes ahora mismo. Inténtalo más tarde.');
+            })
+            .then(function () { if (fin) fin(); });
     }
     function formulario(id, fila) {
         var f = el('form', 'imp-form');
@@ -108,17 +137,15 @@
         f.appendChild(n); f.appendChild(t); f.appendChild(hp); f.appendChild(b);
         f.addEventListener('submit', function (e) {
             e.preventDefault();
-            var m = t.value.trim(); if (!m) return;
+            var m = t.value.trim(); if (!m || b.disabled) return;
             var nom = n.value.trim() || C.anonimo || 'Anónimo';
-            var titulo = '[' + id + '] ' + g(fila, 'supuesto') + (g(fila, 'pregunta') ? ' · pregunta ' + g(fila, 'pregunta') : '');
-            b.disabled = true;
-            fetch(C.foroScriptUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ hilo: id, titulo: titulo, nombre: nom, mensaje: m, web: hp.value }) })
-                .then(function (r) { return r.json(); })
-                .then(function (j) {
-                    if (!j || !j.ok) throw new Error((j && j.error) || 'error');
-                    if (n.value.trim()) S.set('impug-nombre', n.value.trim());
-                    propios.push({ hilo: id, n: nom, m: m, t: Date.now() }); podarPropios(); pintarForo();
-                }).catch(function (err) { b.disabled = false; alert(String(err && err.message) === 'limite' ? 'Hay demasiados mensajes ahora mismo. Inténtalo más tarde.' : 'No se pudo enviar. Inténtalo de nuevo en un momento.'); });
+            var titulo = '[' + id + '] ' + g(fila, 'supuesto') + (S.parsePregunta(g(fila, 'pregunta')).n ? ' · pregunta ' + S.parsePregunta(g(fila, 'pregunta')).n : '');
+            if (n.value.trim()) S.set('impug-nombre', n.value.trim());
+            // El mensaje aparece al instante; el envío real sigue en segundo plano y el botón se bloquea unos segundos (evita duplicados)
+            var p = { hilo: id, n: nom, m: m, t: Date.now(), titulo: titulo, web: hp.value };
+            propios.push(p); S.set('impug-foro-local', propios); t.value = ''; b.disabled = true;
+            pintarMsgs(id);
+            enviarMsg(p, function () { b.disabled = false; });
         });
         return f;
     }

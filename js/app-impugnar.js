@@ -20,7 +20,9 @@
         var pon = function (k, v) { if (c[k]) f.append(c[k], v); };
         if (datos.pub) pon('publico', C.valorPublico || 'Publico si');
         pon('nombre', datos.anon ? (C.anonimo || 'Anónimo') : (datos.nombre || (C.anonimo || 'Anónimo')));
-        pon('supuesto', datos.sup); pon('pregunta', String(datos.n)); pon('enunciado', datos.enun);
+        pon('supuesto', datos.sup);
+        // «Pregunta» lleva el número, el texto completo y las opciones; el campo «Enunciado» del formulario ya no se envía
+        pon('pregunta', datos.n + '. ' + (datos.q || datos.t || '') + (datos.ops && datos.ops.length ? ' ‖ ' + datos.ops.join(' ‖ ') : ''));
         pon('correcta', datos.correcta); pon('marcada', datos.marcada); pon('texto', datos.imp); pon('id', datos.id);
         return fetch(C.formUrl, { method: 'POST', mode: 'no-cors', keepalive: true, body: f });
     }
@@ -51,12 +53,13 @@
         var card = $('qcard-' + i), opts = card ? Array.prototype.slice.call(card.querySelectorAll('.option')) : [];
         var txt = function (n) { var o = opts[n]; if (!o) return ''; var sp = o.querySelectorAll('span'); return (sp[0] ? sp[0].textContent.trim() + ') ' : '') + plano(sp[1] ? sp[1].textContent : o.textContent); };
         var dadas = contestadasDe(i), cor = correctasDe(i);
+        var ops = opts.map(function (o, n) { return txt(n); }).filter(Boolean);
         var panel = card && card.dataset.panel ? $(card.dataset.panel) : null;
         return {
             n: i + 1, q: plano(card && card.querySelector('.q-text') ? card.querySelector('.q-text').textContent : ''),
             enun: panel ? plano(panel.textContent).slice(0, 1500) : '',
             marcada: dadas.length ? dadas.map(txt).join(' | ') : '(en blanco)',
-            correcta: cor.map(txt).join(' | ')
+            correcta: cor.map(txt).join(' | '), ops: ops
         };
     }
 
@@ -91,7 +94,7 @@
             var id = 'I' + Date.now().toString(36) + Array.prototype.map.call(a, function (x) { return ('0' + x.toString(16)).slice(-2); }).join('');
             if (!anon.checked && nom.value.trim()) S.set(K_NOMBRE, nom.value.trim());
             var titulo = (typeof EXAM_CONFIG !== 'undefined' && EXAM_CONFIG && EXAM_CONFIG.titulo) || document.title || ARCH;
-            var d = { id: id, f: ARCH, h: S.huella(ctx.q), t: ctx.q.length > 220 ? ctx.q.slice(0, 217) + '…' : ctx.q, sup: titulo, n: ctx.n,
+            var d = { id: id, f: ARCH, h: S.huella(ctx.q), t: ctx.q.length > 220 ? ctx.q.slice(0, 217) + '…' : ctx.q, q: ctx.q, ops: ctx.ops, sup: titulo, n: ctx.n,
                       enun: ctx.enun, correcta: ctx.correcta, marcada: ctx.marcada, imp: texto, pub: pub.checked, anon: anon.checked,
                       nombre: anon.checked ? '' : nom.value.trim(), ts: Date.now(), env: false };
             var b = banco(); b.impugnaciones[id] = d; S.set(K_BANCO, b);
