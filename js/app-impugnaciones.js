@@ -10,6 +10,10 @@
     if (!C || !C.activa) { $('imp-estado').textContent = 'Las impugnaciones no están activadas.'; return; }
     var g = function (f, k) { var v = S.col(f, C.cols[k]); return v == null ? '' : String(v); };
     var imp = [], foro = {}, propios = S.get('impug-foro-local', []);
+    // Los mensajes que acabas de enviar se enseñan unos minutos mientras GitHub los devuelve; después solo vale lo que hay en GitHub
+    // (si no, un comentario borrado allí seguiría viéndose aquí).
+    function podarPropios() { var l = Date.now() - 180000; propios = propios.filter(function (p) { return (p.t || 0) > l; }); S.set('impug-foro-local', propios); }
+    podarPropios();
 
     function mostrar(foroVisible) {
         $('imp-pub').hidden = foroVisible; $('imp-foro').hidden = !foroVisible;
@@ -61,9 +65,12 @@
             return api('/issues/comments?sort=created&direction=asc').then(function (cs) {
                 cs.forEach(function (c) {
                     var n = /\/issues\/(\d+)$/.exec(c.issue_url || ''), h = n && porNum[n[1]]; if (!h) return;
-                    var admin = c.user && c.user.login && c.user.login.toLowerCase() === C.repo.split('/')[0].toLowerCase();
+                    // Los mensajes de la web los publica el script con la cuenta del administrador y empiezan por «**Nombre**»;
+                    // los comentarios escritos a mano en GitHub (sin ese encabezado) son los del administrador.
                     var m = /^\*\*([^\n]*?)\*\*\n\n([\s\S]*)$/.exec(c.body || '');
-                    h.msgs.push(admin ? { n: 'Administrador', m: c.body || '', admin: true } : m ? { n: m[1] || 'Anónimo', m: m[2] } : { n: (c.user && c.user.login) || 'GitHub', m: c.body || '' });
+                    var admin = !m && c.user && c.user.login && c.user.login.toLowerCase() === C.repo.split('/')[0].toLowerCase();
+                    var t = Date.parse(c.created_at) || 0;
+                    h.msgs.push(admin ? { n: 'Administrador', m: c.body || '', admin: true, t: t } : m ? { n: m[1] || 'Anónimo', m: m[2], t: t } : { n: (c.user && c.user.login) || 'GitHub', m: c.body || '', t: t });
                 });
                 ok();
             });
@@ -71,7 +78,8 @@
     }
     function mensajesDe(id) {
         var h = foro[id], ms = h ? h.msgs.slice() : [];
-        propios.filter(function (p) { return p.hilo === id && !ms.some(function (x) { return x.m === p.m; }); }).forEach(function (p) { ms.push({ n: p.n, m: p.m, local: true }); });
+        ms.sort(function (a, b) { return (a.t || 0) - (b.t || 0); });
+        propios.filter(function (p) { return p.hilo === id && !ms.some(function (x) { return x.m === p.m; }); }).forEach(function (p) { ms.push({ n: p.n, m: p.m, local: true, t: p.t }); });
         return ms;
     }
     function pintarForo() {
@@ -83,7 +91,7 @@
             var cerrado = S.esSi(S.col(f, C.cols.cerrado)) || !!(foro[id] && foro[id].cerrado);
             var h = el('div', 'imp-hilo'); h.appendChild(tarjeta(f));
             ms.forEach(function (x) {
-                var d = el('div', 'imp-msg'); d.appendChild(el('b', null, x.n + (x.local ? ' (enviado, aparecerá en unos segundos)' : ''))); d.appendChild(el('div', null, x.m)); h.appendChild(d);
+                var d = el('div', 'imp-msg'); d.appendChild(el('b', null, x.n + (x.t && !x.local ? ' · ' + new Date(x.t).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : '') + (x.local ? ' (enviado, aparecerá en unos segundos)' : ''))); d.appendChild(el('div', null, x.m)); h.appendChild(d);
             });
             if (cerrado) h.appendChild(el('p', 'imp-meta', '🔒 Hilo cerrado'));
             else if (C.foroScriptUrl && id) h.appendChild(formulario(id, f));
@@ -109,13 +117,14 @@
                 .then(function (j) {
                     if (!j || !j.ok) throw new Error((j && j.error) || 'error');
                     if (n.value.trim()) S.set('impug-nombre', n.value.trim());
-                    propios.push({ hilo: id, n: nom, m: m }); S.set('impug-foro-local', propios.slice(-50)); pintarForo();
+                    propios.push({ hilo: id, n: nom, m: m, t: Date.now() }); podarPropios(); pintarForo();
                 }).catch(function (err) { b.disabled = false; alert(String(err && err.message) === 'limite' ? 'Hay demasiados mensajes ahora mismo. Inténtalo más tarde.' : 'No se pudo enviar. Inténtalo de nuevo en un momento.'); });
         });
         return f;
     }
 
     function cargar() {
+        podarPropios();
         var est = $('imp-estado'); est.textContent = 'Cargando…';
         S.leerHoja(C.sheetId, C.hojaImpugnaciones, function (filas) {
             imp = filas;
