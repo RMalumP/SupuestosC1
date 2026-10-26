@@ -109,13 +109,14 @@
     function decorar() {
         estilo();
         document.querySelectorAll('.feedback').forEach(function (f) {
-            if (f.querySelector('.impug-btn')) return;
+            // Solo cuando la corrección ya se ve: antes no hay nada que impugnar (y la página no cambia)
+            if (f.style.display !== 'block' || f.querySelector('.impug-btn')) return;
             var m = /^feed-(\d+)$/.exec(f.id), body = f.querySelector('.feedback-body'); if (!m || !body) return;
             var i = +m[1], btn = el('button', 'impug-btn', '⚑ Impugnar esta pregunta'); btn.type = 'button';
             btn.addEventListener('click', function (e) { e.stopPropagation(); abrir(i); });
             body.appendChild(btn);
         });
     }
-    var t; new MutationObserver(function () { clearTimeout(t); t = setTimeout(decorar, 50); }).observe(document.body, { childList: true, subtree: true });
+    var t; new MutationObserver(function () { clearTimeout(t); t = setTimeout(decorar, 50); }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['style'] });
     decorar(); reintentar();
 })();
