@@ -408,6 +408,79 @@ def eliminar_contenedor(menu, clave):
     return True
 
 
+def mover_extremo(menu, archivo, al_principio):
+    """Lleva un supuesto al principio o al final de su lista."""
+    r = buscar(menu, archivo)
+    if not r:
+        return False
+    _, lista, i = r
+    destino = 0 if al_principio else len(lista) - 1
+    if i == destino:
+        return False
+    lista.insert(destino, lista.pop(i))
+    return True
+
+
+def mover_vecino(menu, archivo, delta):
+    """Pasa un supuesto al grupo anterior (delta=-1, queda el último) o al siguiente
+    (delta=+1, queda el primero). Sirve cuando ya está en el borde de su lista."""
+    r = buscar(menu, archivo)
+    if not r:
+        return False
+    claves = [c for c, _ in destinos(menu)]
+    k = claves.index(r[0]) + delta
+    if not 0 <= k < len(claves):
+        return False
+    return mover_a(menu, archivo, claves[k], al_final=(delta < 0))
+
+
+def ordenar(menu, clave, por="titulo"):
+    """Ordena una lista (grupo o «examenes») por «titulo», «ref» o «archivo»."""
+    lista = lista_de(menu, clave)
+    if len(lista) < 2:
+        return False
+    antes = [it.get("archivo") for it in lista]
+    lista.sort(key=lambda it: str(it.get(por, "")).lower())
+    return antes != [it.get("archivo") for it in lista]
+
+
+def contar(menu):
+    """(total, ocultos) de supuestos del menú."""
+    todos = [it for _, lista in _listas(menu) for it in lista]
+    return len(todos), sum(1 for it in todos if it.get("oculto"))
+
+
+def partir_desc(desc):
+    """'15 preguntas · 30 minutos · Ámbito' → ('15', '30', 'Ámbito'). Lo que no sea
+    preguntas ni minutos se devuelve junto en el tercer valor."""
+    preguntas = minutos = ""
+    resto = []
+    for parte in re.split(r"\s*[·|]\s*", str(desc or "")):
+        if not parte.strip():
+            continue
+        mp = re.fullmatch(r"(\d+)\s+preguntas?", parte.strip(), re.I)
+        mm = re.fullmatch(r"(\d+)\s+min(?:utos?)?\.?", parte.strip(), re.I)
+        if mp and not preguntas:
+            preguntas = mp.group(1)
+        elif mm and not minutos:
+            minutos = mm.group(1)
+        else:
+            resto.append(parte.strip())
+    return preguntas, minutos, " · ".join(resto)
+
+
+def componer_desc(preguntas="", minutos="", otros=""):
+    """Inversa de partir_desc: arma la descripción que se ve en la tarjeta del menú."""
+    partes = []
+    if str(preguntas).strip():
+        partes.append("%s preguntas" % str(preguntas).strip())
+    if str(minutos).strip():
+        partes.append("%s minutos" % str(minutos).strip())
+    if str(otros).strip():
+        partes.append(str(otros).strip())
+    return " · ".join(partes)
+
+
 def sin_alta(menu, carpeta_supuestos):
     """Nombres de los .html de la carpeta que todavía no están en el menú."""
     en_menu = set(archivos_del_menu(menu))
