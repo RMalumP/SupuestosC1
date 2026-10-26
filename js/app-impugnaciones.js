@@ -19,6 +19,8 @@
     $('tab-foro').addEventListener('click', function () { mostrar(true); });
     $('imp-actualizar').addEventListener('click', cargar);
 
+    // Identificador del hilo: la columna ID o, en las impugnaciones antiguas sin ID, uno estable sacado de la fecha y el texto
+    function idDe(f) { var i = g(f, 'id').trim(); return /^[A-Za-z0-9]{6,40}$/.test(i) ? i : 'F' + S.huella(g(f, 'fecha') + '|' + g(f, 'texto')); }
     function autor(f) {
         var n = g(f, 'nombre').trim();
         return (S.esSi(S.col(f, C.cols.publico)) && n && n !== C.anonimo) ? n : 'Anónimo';
@@ -28,8 +30,11 @@
         c.appendChild(el('p', 'imp-meta', g(f, 'supuesto') + (g(f, 'pregunta') ? ' · pregunta ' + g(f, 'pregunta') : '') + ' · ' + autor(f)));
         c.appendChild(el('p', 'item-texto', g(f, 'texto')));
         if (g(f, 'respuesta')) c.appendChild(el('p', 'item-nota', '✔ Respuesta: ' + g(f, 'respuesta')));
+        else if (!S.esSi(S.col(f, C.cols.resuelta))) c.appendChild(el('p', 'imp-meta', '⏳ Pendiente de respuesta'));
         return c;
     }
+    // El foro incluye también las marcadas como «Publicar», aunque aún no estén resueltas
+    function delForo() { return imp.filter(function (f) { return S.esSi(S.col(f, C.cols.resuelta)) || S.esSi(S.col(f, C.cols.publico)); }).reverse(); }
     function resueltas() { return imp.filter(function (f) { return S.esSi(S.col(f, C.cols.resuelta)); }).reverse(); }
 
     function pintarPub() {
@@ -71,10 +76,10 @@
     }
     function pintarForo() {
         var cont = $('imp-foro'); vaciar(cont);
-        var r = resueltas();
-        if (!r.length) { cont.appendChild(el('p', 'grupo-desc vacio', 'El foro se abre cuando una impugnación se resuelve.')); return; }
+        var r = delForo();
+        if (!r.length) { cont.appendChild(el('p', 'grupo-desc vacio', 'El foro se abre cuando una impugnación se resuelve o se marca como «Publicar».')); return; }
         r.forEach(function (f) {
-            var id = g(f, 'id'), ms = id ? mensajesDe(id) : [];
+            var id = idDe(f), ms = id ? mensajesDe(id) : [];
             var cerrado = S.esSi(S.col(f, C.cols.cerrado)) || !!(foro[id] && foro[id].cerrado);
             var h = el('div', 'imp-hilo'); h.appendChild(tarjeta(f));
             ms.forEach(function (x) {
