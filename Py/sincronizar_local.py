@@ -37,7 +37,7 @@ ESTADO = ".estado_local.json"
 LEEME = "LEEME_SUBIR.txt"
 RAIZ_DEFECTO = Path(__file__).resolve().parent.parent
 CARPETAS_FUERA = {".git", ".github_cache", "node_modules", "__pycache__", CARPETA}
-ARCHIVOS_FUERA = {ESTADO, ".DS_Store", "Thumbs.db"}
+ARCHIVOS_FUERA = {ESTADO, ".editor_prefs.json", ".DS_Store", "Thumbs.db"}
 SUFIJOS_FUERA = (".bak", ".pyc", ".tmp")
 
 

@@ -831,12 +831,32 @@ CAMPOS_ENUNCIADO = [
 #  6. VENTANA PRINCIPAL
 # ══════════════════════════════════════════════════════════════════════
 
+PREFS = Path(__file__).resolve().parent.parent / ".editor_prefs.json"
+
+
+def _leer_prefs():
+    try:
+        return json.loads(PREFS.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def _guardar_prefs(prefs):
+    try:
+        PREFS.write_text(json.dumps(prefs, ensure_ascii=False, indent=1), encoding="utf-8")
+    except OSError:
+        pass                              # carpeta de solo lectura: no pasa nada
+
+
 class EditorApp(tk.Tk):
 
     def __init__(self):
         super().__init__()
         self.title(APP_TITULO)
-        self.geometry("1240x840")
+        self._prefs = _leer_prefs()
+        geo = self._prefs.get("geometria")
+        self.geometry(geo if isinstance(geo, str) and re.fullmatch(r"\d+x\d+([+-]-?\d+){2}", geo)
+                      else "1240x840")
         self.minsize(1000, 640)
         self.configure(bg=C_FONDO)
         self._estilos()
@@ -950,6 +970,13 @@ class EditorApp(tk.Tk):
         self._pintar_titulo()
 
     def _pintar_titulo(self):
+        # Se llama en cada pulsación: se junta en un solo repintado.
+        if getattr(self, "_titulo_pendiente", None):
+            return
+        self._titulo_pendiente = self.after(150, self._pintar_titulo_ya)
+
+    def _pintar_titulo_ya(self):
+        self._titulo_pendiente = None
         nombre = self.ruta.name if self.ruta else "sin guardar"
         self.title("%s — %s%s" % (APP_TITULO, nombre, " *" if self.hay_cambios else ""))
         if hasattr(self, "lbl_archivo"):
@@ -3537,7 +3564,14 @@ class EditorApp(tk.Tk):
         self.refrescar_lista_preg(self.i_preg)
         self._pintar_titulo()
 
+    def _recordar_carpeta(self):
+        if self.ruta:
+            self._prefs["carpeta"] = str(self.ruta.parent)
+
     def _carpeta_inicial(self):
+        ultima = self._prefs.get("carpeta")
+        if ultima and os.path.isdir(ultima):
+            return ultima
         aqui = Path(__file__).resolve().parent
         for cand in (aqui / "supuestos", aqui.parent / "supuestos", aqui):
             if cand.is_dir():
@@ -3611,6 +3645,7 @@ class EditorApp(tk.Tk):
                                  "%s\n\n%s" % (Path(ruta).name, err), parent=self)
             return
         self.ruta = Path(ruta)
+        self._recordar_carpeta()
         self.hay_cambios = False
         self._refrescar_todo()
         self.estado("Abierto: %s  (%d enunciados, %d preguntas)"
@@ -3744,6 +3779,7 @@ class EditorApp(tk.Tk):
         self.estado("Página rehecha con la plantilla actual (versión %d)." % nueva)
 
     def _escribir(self, destino):
+        self._prefs["carpeta"] = str(Path(destino).parent)
         self._poner_motor_al_dia()
         if self.modo != "json" and bloques_se_pierden(self.datos):
             seguir = messagebox.askyesno(
@@ -3862,6 +3898,8 @@ class EditorApp(tk.Tk):
 
     def _al_cerrar(self):
         self.volcar_todo()
+        self._prefs["geometria"] = self.geometry()
+        _guardar_prefs(self._prefs)
         if self.hay_cambios:
             r = messagebox.askyesnocancel(
                 "Salir", "Hay cambios sin guardar.\n\n¿Guardarlos antes de salir?", parent=self)
