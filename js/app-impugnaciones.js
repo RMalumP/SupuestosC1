@@ -64,27 +64,46 @@
             .then(function (r) { if (!r.ok) throw new Error('github ' + r.status); return r.json(); })
             .then(function (j) { acum = acum.concat(j); return (j.length === 100 && pagina < 5) ? api(ruta, pagina + 1, acum) : acum; });
     }
-    function cargarForo(ok, ko) {
-        api('/issues?state=all&labels=' + encodeURIComponent(C.etiquetaForo)).then(function (issues) {
-            var porNum = {}; foro = {};
+    // Un comentario crudo ({b: cuerpo, u: autor, t: ISO}) → mensaje del foro.
+    // Los mensajes de la web los publica el script con la cuenta del administrador y empiezan por «**Nombre**»;
+    // los comentarios escritos a mano en GitHub (sin ese encabezado) son los del administrador.
+    function aMensaje(b, u, fecha) {
+        var m = /^\*\*([^\n]*?)\*\*\n\n([\s\S]*)$/.exec(b || ''), t = Date.parse(fecha) || 0;
+        var admin = !m && u && u.toLowerCase() === C.repo.split('/')[0].toLowerCase();
+        return admin ? { n: 'Administrador', m: b || '', admin: true, t: t } : m ? { n: m[1] || 'Anónimo', m: m[2], t: t } : { n: u || 'GitHub', m: b || '', t: t };
+    }
+    // Lectura rápida: el Apps Script devuelve todos los hilos de una vez (caché de 10 s, sin el límite de GitHub).
+    function cargarForoScript() {
+        if (!C.foroScriptUrl) return Promise.reject(new Error('sin script'));
+        return fetch(C.foroScriptUrl + (C.foroScriptUrl.indexOf('?') < 0 ? '?' : '&') + 'accion=foro&_=' + Math.floor(Date.now() / 10000))
+            .then(function (r) { return r.json(); })
+            .then(function (j) {
+                if (!j || !j.ok || !j.hilos) throw new Error('script');
+                var nuevo = {};
+                Object.keys(j.hilos).forEach(function (id) {
+                    var h = j.hilos[id]; nuevo[id] = { cerrado: !!h.cerrado, msgs: (h.msgs || []).map(function (x) { return aMensaje(x.b, x.u, x.t); }) };
+                });
+                foro = nuevo;
+            });
+    }
+    // Respaldo: la API pública de GitHub (más lenta y con límite de consultas)
+    function cargarForoGithub() {
+        return api('/issues?state=all&labels=' + encodeURIComponent(C.etiquetaForo)).then(function (issues) {
+            var porNum = {}, nuevo = {};
             issues.forEach(function (i) {
                 var m = /^\[([A-Za-z0-9]+)\]/.exec(i.title || '');
-                if (m && !i.pull_request) { foro[m[1]] = { cerrado: i.state === 'closed' || !!i.locked, msgs: [] }; porNum[i.number] = foro[m[1]]; }
+                if (m && !i.pull_request) { nuevo[m[1]] = { cerrado: i.state === 'closed' || !!i.locked, msgs: [] }; porNum[i.number] = nuevo[m[1]]; }
             });
             return api('/issues/comments?sort=created&direction=asc').then(function (cs) {
                 cs.forEach(function (c) {
                     var n = /\/issues\/(\d+)$/.exec(c.issue_url || ''), h = n && porNum[n[1]]; if (!h) return;
-                    // Los mensajes de la web los publica el script con la cuenta del administrador y empiezan por «**Nombre**»;
-                    // los comentarios escritos a mano en GitHub (sin ese encabezado) son los del administrador.
-                    var m = /^\*\*([^\n]*?)\*\*\n\n([\s\S]*)$/.exec(c.body || '');
-                    var admin = !m && c.user && c.user.login && c.user.login.toLowerCase() === C.repo.split('/')[0].toLowerCase();
-                    var t = Date.parse(c.created_at) || 0;
-                    h.msgs.push(admin ? { n: 'Administrador', m: c.body || '', admin: true, t: t } : m ? { n: m[1] || 'Anónimo', m: m[2], t: t } : { n: (c.user && c.user.login) || 'GitHub', m: c.body || '', t: t });
+                    h.msgs.push(aMensaje(c.body, c.user && c.user.login, c.created_at));
                 });
-                ok();
+                foro = nuevo;
             });
-        }).catch(ko);
+        });
     }
+    function cargarForo(ok, ko) { cargarForoScript().catch(cargarForoGithub).then(ok, ko); }
     function mensajesDe(id) {
         var h = foro[id], ms = h ? h.msgs.slice() : [];
         ms.sort(function (a, b) { return (a.t || 0) - (b.t || 0); });
@@ -121,7 +140,7 @@
         p.fallo = false; p.enviando = true; pintarMsgs(p.hilo);
         fetch(C.foroScriptUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ hilo: p.hilo, titulo: p.titulo, nombre: p.n, mensaje: p.m, web: p.web || '' }) })
             .then(function (r) { return r.json(); })
-            .then(function (j) { if (!j || !j.ok) throw new Error((j && j.error) || 'error'); p.t = Date.now(); delete p.enviando; p.ok = true; S.set('impug-foro-local', propios); pintarMsgs(p.hilo); })
+            .then(function (j) { if (!j || !j.ok) throw new Error((j && j.error) || 'error'); p.t = Date.now(); delete p.enviando; p.ok = true; S.set('impug-foro-local', propios); pintarMsgs(p.hilo); refrescarMsgs(); })
             .catch(function (err) {
                 p.fallo = true; delete p.enviando; S.set('impug-foro-local', propios); pintarMsgs(p.hilo);
                 if (String(err && err.message) === 'limite') alert('Hay demasiados mensajes ahora mismo. Inténtalo más tarde.');
@@ -158,6 +177,13 @@
             cargarForo(function () { fin(); }, function () { foro = {}; fin('No se pudo leer el foro de GitHub (puede que haya demasiadas consultas; prueba más tarde).'); });
         }, function () { est.textContent = 'No se pudo leer la hoja. Comprueba la conexión y que la hoja sea pública.'; });
     }
+    // Refresco automático mientras la pestaña del foro está a la vista (solo se repintan los mensajes, no los formularios)
+    function refrescarMsgs() {
+        if (document.hidden || $('imp-foro').hidden) return;
+        cargarForoScript().then(function () { podarPropios(); delForo().forEach(function (f) { pintarMsgs(idDe(f)); }); }).catch(function () { /* sin red: se intenta en el siguiente turno */ });
+    }
+    setInterval(refrescarMsgs, 15000);
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) refrescarMsgs(); });
     function fin(aviso) { $('imp-estado').textContent = aviso || ''; pintarPub(); pintarForo(); }
     cargar();
 })();
