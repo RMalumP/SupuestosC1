@@ -19,6 +19,7 @@ import ventana_menu          # ventana «Menú de inicio»
 import normas_enlaces        # normas que se enlazan al BOE (datos/normas-datos.js)
 import herramientas_datos as herr   # deshacer, buscar, importar, autoguardado (sin ventana)
 import ventana_herramientas      # ventanas «Buscar y reemplazar» e «Importar preguntas»
+import ventana_sync              # ventana «Sincronizar con GitHub» (git)
 
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, colorchooser

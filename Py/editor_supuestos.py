@@ -119,6 +119,7 @@ class EditorApp(PestanaGeneral,
         self.bind_all("<Control-n>", lambda e: self.nuevo())
         self.bind_all("<Control-S>", lambda e: self.guardar_como())
         self.bind_all("<Control-f>", lambda e: ventana_herramientas.buscar_reemplazar(self))
+        self.bind_all("<Control-U>", lambda e: ventana_sync.abrir(self))
         self.bind_all("<F5>", lambda e: self.ver_navegador())
         self.bind_all("<Control-z>", lambda e: self._atajo_historial(self.deshacer, e))
         self.bind_all("<Control-y>", lambda e: self._atajo_historial(self.rehacer, e))
@@ -181,6 +182,8 @@ class EditorApp(PestanaGeneral,
                    command=lambda: ventana_menu.abrir(self)).pack(side="left", padx=(0, 6))
         ttk.Button(barra, text="📦  Para subir…",
                    command=lambda: ventana_subir.abrir(self)).pack(side="left")
+        ttk.Button(barra, text="☁  Sincronizar",
+                   command=lambda: ventana_sync.abrir(self)).pack(side="left", padx=(6, 0))
 
         self.lbl_archivo = ttk.Label(barra, text="(ningún archivo abierto)",
                                      style="Tec.TLabel")
@@ -219,6 +222,8 @@ class EditorApp(PestanaGeneral,
         herram.add_separator()
         herram.add_command(label="Menú de inicio…", command=lambda: ventana_menu.abrir(self))
         herram.add_command(label="Para subir a GitHub…", command=lambda: ventana_subir.abrir(self))
+        herram.add_command(label="Sincronizar con GitHub (git)…", accelerator="Ctrl+Mayús+U",
+                           command=lambda: ventana_sync.abrir(self))
         barra.add_cascade(label="Herramientas", menu=herram)
         self.config(menu=barra)
 
