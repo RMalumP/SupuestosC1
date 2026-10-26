@@ -64,7 +64,7 @@ function doGet(e) {
 function salida(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
 
 // Evita menciones (@usuario), HTML y enlaces automáticos a otras Issues
-function limpiar(t) { return t.replace(/</g, '&lt;').replace(/@/g, '@​').replace(/#(\d)/g, '#​$1'); }
+function limpiar(t) { return t.replace(/</g, '&lt;').replace(/@/g, '@\u200b').replace(/#(\d)/g, '#\u200b$1'); }
 
 function frenar() {
   var c = CacheService.getScriptCache(), n = Number(c.get('n') || 0);
