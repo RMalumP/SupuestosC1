@@ -6,6 +6,8 @@ Edita la lista del menú principal (supuestos-datos.js): ordenar, mover de secci
 o grupo, cambiar títulos, ocultar, quitar, añadir supuestos que falten y crear
 secciones o grupos nuevos. Nada se escribe hasta pulsar «Guardar».
 """
+import copy
+import webbrowser
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog
 
@@ -33,9 +35,11 @@ class Ventana:
     def __init__(self, app, raiz, ruta_menu, texto, menu):
         self.app, self.raiz, self.ruta_menu, self.texto, self.menu = app, raiz, ruta_menu, texto, menu
         self.sucio = False
+        self.historial = []                 # estados anteriores del menú (para «Deshacer»)
+        self._base = copy.deepcopy(menu)
         v = self.v = tk.Toplevel(app)
         v.title("Menú de inicio — orden y contenido de index.html")
-        v.geometry("900x560")
+        v.geometry("980x720")
         v.transient(app)
         v.protocol("WM_DELETE_WINDOW", self.cerrar)
 
@@ -43,6 +47,7 @@ class Ventana:
         marco.pack(fill="both", expand=True)
         ttk.Label(marco, wraplength=860, justify="left",
                   text="Así se ordena el menú de la web. Elige un supuesto, un grupo o una sección y usa los botones. "
+                       "Doble clic para editar, Supr para quitar, Ctrl+Z para deshacer, Ctrl+S para guardar. "
                        "Los cambios no se guardan hasta pulsar «Guardar menú».").pack(anchor="w", pady=(0, 8))
         cuerpo = ttk.Frame(marco)
         cuerpo.pack(fill="both", expand=True)
@@ -63,17 +68,32 @@ class Ventana:
         col.pack(side="left", fill="y")
         for texto_btn, orden in (
                 ("▲ Subir", lambda: self.mover(-1)), ("▼ Bajar", lambda: self.mover(1)),
+                ("⤒ Al principio", lambda: self.extremo(True)), ("⤓ Al final", lambda: self.extremo(False)),
                 ("↔ Mover a otro grupo…", self.mover_a), ("✎ Editar datos…", self.editar),
                 ("👁 Ocultar / mostrar", self.ocultar), ("✖ Quitar del menú", self.quitar),
+                ("🌐 Ver en el navegador", self.ver),
                 (None, None),
                 ("➕ Añadir supuesto que falta…", self.anadir),
+                ("➕ Añadir todos los que faltan…", self.anadir_todos),
                 ("➕ Nueva sección…", self.nueva_seccion), ("➕ Nuevo grupo…", self.nuevo_grupo),
                 ("✎ Cambiar nombre de sección/grupo…", self.renombrar),
-                ("🗑 Borrar sección/grupo vacío", self.borrar_contenedor)):
+                ("🗑 Borrar sección/grupo vacío", self.borrar_contenedor),
+                (None, None),
+                ("🔤 Ordenar el grupo…", self.ordenar),
+                ("🔎 Buscar…", self.buscar),
+                ("⇕ Abrir / cerrar todo", self.plegar),
+                ("↶ Deshacer", self.deshacer)):
             if texto_btn is None:
-                ttk.Separator(col, orient="horizontal").pack(fill="x", pady=8)
+                ttk.Separator(col, orient="horizontal").pack(fill="x", pady=6)
                 continue
-            ttk.Button(col, text=texto_btn, command=orden).pack(fill="x", pady=2)
+            ttk.Button(col, text=texto_btn, command=orden).pack(fill="x", pady=1)
+
+        self.arbol.bind("<Double-1>", self._doble_clic)
+        v.bind("<Delete>", lambda e: self.quitar())
+        v.bind("<Control-z>", lambda e: self.deshacer())
+        v.bind("<Control-s>", lambda e: self.guardar())
+        self._plegado = False
+        self._ultima_busqueda = ""
 
         pie = ttk.Frame(marco)
         pie.pack(fill="x", pady=(10, 0))
@@ -100,7 +120,9 @@ class Ventana:
             self.arbol.selection_set(sel)
             self.arbol.see(sel)
         falta = md.sin_alta(self.menu, self.raiz / "supuestos")
-        self.lbl.configure(text=("Sin alta en el menú: %s" % ", ".join(falta)) if falta else "Todos los supuestos están en el menú.")
+        total, ocultos = md.contar(self.menu)
+        resumen = "%d en el menú (%d ocultos). " % (total, ocultos)
+        self.lbl.configure(text=resumen + (("Sin alta: %s" % ", ".join(falta)) if falta else "Todos los de la carpeta están en el menú."))
 
     def _items(self, padre, lista):
         for it in lista:
@@ -116,13 +138,43 @@ class Ventana:
 
     def _cambio(self, sel=None):
         self.sucio = True
+        if self.menu != self._base:
+            self.historial.append(self._base)
+            self._base = copy.deepcopy(self.menu)
         self.pintar(sel)
+
+    def deshacer(self):
+        if not self.historial:
+            self.lbl.configure(text="No hay nada que deshacer.")
+            return
+        self.menu = self.historial.pop()
+        self._base = copy.deepcopy(self.menu)
+        self.sucio = True
+        self.pintar()
+
+    def _doble_clic(self, e):
+        if not self.arbol.identify_row(e.y):
+            return
+        tipo, _ = self._sel()
+        if tipo == "i":
+            self.editar()
+        elif tipo in ("s", "g"):
+            self.renombrar()
+
+    def _titulo_de(self, tipo, ident):
+        if tipo == "s":
+            return next((s.get("titulo", "") for s in self.menu["secciones"] if s["id"] == ident), "")
+        sec, grp = ident.split("/", 1)
+        for s in self.menu["secciones"]:
+            if s["id"] == sec:
+                return next((g.get("titulo", "") for g in s.get("grupos", []) if g["id"] == grp), "")
+        return ""
 
     # ── acciones sobre supuestos ──
     def mover(self, delta):
         tipo, ident = self._sel()
         if tipo == "i":
-            if md.mover(self.menu, ident, delta):
+            if md.mover(self.menu, ident, delta) or md.mover_vecino(self.menu, ident, delta):
                 self._cambio("i:" + ident)
         elif tipo in "sg":
             if md.mover_contenedor(self.menu, ident, delta):
@@ -205,6 +257,91 @@ class Ventana:
             md.anadir(self.menu, md.ficha(nombre, datos), clave)
             self._cambio("i:" + nombre)
 
+    # ── más opciones ──
+    def extremo(self, al_principio):
+        tipo, ident = self._sel()
+        if tipo == "i" and md.mover_extremo(self.menu, ident, al_principio):
+            self._cambio("i:" + ident)
+
+    def ver(self):
+        tipo, ident = self._sel()
+        if tipo != "i":
+            if tipo:
+                messagebox.showinfo("Menú de inicio", "Elige un supuesto para verlo.", parent=self.v)
+            return
+        archivo = self.raiz / "supuestos" / (ident + ".html")
+        if not archivo.is_file():
+            messagebox.showwarning("Menú de inicio", "No encuentro %s en la carpeta supuestos/." % archivo.name, parent=self.v)
+            return
+        webbrowser.open(archivo.resolve().as_uri())
+
+    def anadir_todos(self):
+        falta = md.sin_alta(self.menu, self.raiz / "supuestos")
+        if not falta:
+            messagebox.showinfo("Menú de inicio", "Todos los supuestos de la carpeta ya están en el menú.", parent=self.v)
+            return
+        clave = self._elegir_destino("¿En qué grupo pongo los %d que faltan?" % len(falta))
+        if not clave:
+            return
+        fallos = []
+        for nombre in falta:
+            try:
+                datos = datos_html.leer_html(self.raiz / "supuestos" / (nombre + ".html"))[0]
+            except (OSError, ValueError) as e:
+                fallos.append("%s (%s)" % (nombre, e))
+                continue
+            md.anadir(self.menu, md.ficha(nombre, datos), clave)
+        self._cambio()
+        if fallos:
+            messagebox.showwarning("Menú de inicio", "No he podido leer:\n\n" + "\n".join(fallos), parent=self.v)
+
+    def ordenar(self):
+        tipo, ident = self._sel()
+        if tipo == "i":
+            clave = md.buscar(self.menu, ident)[0]
+        elif tipo == "g":
+            clave = ident
+        elif tipo == "x":
+            clave = "examenes"
+        else:
+            if tipo:
+                messagebox.showinfo("Menú de inicio", "Elige un grupo o un supuesto del grupo que quieres ordenar.", parent=self.v)
+            return
+        criterios = ["Por título (A→Z)", "Por referencia", "Por nombre de archivo"]
+        i = self._elegir_de_lista("¿Cómo ordeno ese grupo?", criterios, indice=True)
+        if i is not None and md.ordenar(self.menu, clave, ("titulo", "ref", "archivo")[i]):
+            self._cambio(self.arbol.selection()[0] if self.arbol.selection() else None)
+
+    def buscar(self):
+        texto = simpledialog.askstring("Buscar", "Texto a buscar (título, referencia o archivo):",
+                                       parent=self.v, initialvalue=self._ultima_busqueda)
+        if not texto or not texto.strip():
+            return
+        self._ultima_busqueda = texto
+        clave = texto.strip().lower()
+        todos = []
+        for _, lista in md._listas(self.menu):
+            todos.extend(lista)
+        aciertos = [it["archivo"] for it in todos
+                    if clave in " ".join(str(it.get(k, "")) for k in ("titulo", "ref", "archivo", "desc")).lower()]
+        if not aciertos:
+            messagebox.showinfo("Buscar", "No encuentro «%s»." % texto, parent=self.v)
+            return
+        sel = self.arbol.selection()
+        actual = sel[0][2:] if sel and sel[0].startswith("i:") else None
+        siguiente = aciertos[(aciertos.index(actual) + 1) % len(aciertos)] if actual in aciertos else aciertos[0]
+        self.arbol.selection_set("i:" + siguiente)
+        self.arbol.see("i:" + siguiente)
+        self.lbl.configure(text="%d resultado(s). Vuelve a pulsar «Buscar…» para pasar al siguiente." % len(aciertos))
+
+    def plegar(self):
+        self._plegado = not self._plegado
+        def recorre(nodo):
+            for h in self.arbol.get_children(nodo):
+                self.arbol.item(h, open=not self._plegado)
+                recorre(h)
+        recorre("")
+
     # ── secciones y grupos ──
     def nueva_seccion(self):
         t = simpledialog.askstring("Nueva sección", "Título de la sección (p. ej. «Supuestos de repaso»):", parent=self.v)
@@ -232,7 +369,8 @@ class Ventana:
     def renombrar(self):
         tipo, ident = self._sel()
         if tipo in ("s", "g"):
-            t = simpledialog.askstring("Cambiar nombre", "Nuevo título:", parent=self.v)
+            t = simpledialog.askstring("Cambiar nombre", "Nuevo título:", parent=self.v,
+                                       initialvalue=self._titulo_de(tipo, ident))
             if t and md.renombrar(self.menu, ident, t):
                 self._cambio("%s:%s" % (tipo, ident))
 
