@@ -325,5 +325,83 @@ class Herramientas(unittest.TestCase):
             self.assertEqual(hd.leer_recuperacion(r), {"a": 1})
 
 
+import git_sync as gs  # noqa: E402
+
+
+def _g(carpeta, *a):
+    subprocess.run(["git", "-C", str(carpeta), *a], check=True, capture_output=True, text=True)
+
+
+@unittest.skipUnless(gs.hay_git(), "git no instalado")
+class GitSync(unittest.TestCase):
+    def setUp(self):
+        self.t = Path(tempfile.mkdtemp(prefix="supc1_git_"))
+        _g(self.t, "init", "-q", "--bare", "-b", "main", "remoto.git")
+        _g(self.t, "clone", "-q", "remoto.git", "uno")
+        self.a = self.t / "uno"
+        for k, v in (("user.name", "Prueba"), ("user.email", "p@p.p")):
+            _g(self.a, "config", k, v)
+        (self.a / "supuestos").mkdir()
+        (self.a / "supuestos" / "a.html").write_text("a", encoding="utf-8")
+        (self.a / ".gitignore").write_text("*.bak\n", encoding="utf-8")
+        _g(self.a, "add", "-A")
+        _g(self.a, "commit", "-q", "-m", "inicio")
+        _g(self.a, "push", "-q", "-u", "origin", "main")
+        _g(self.a, "remote", "set-head", "origin", "main")
+
+    def test_estado_y_exclusiones(self):
+        (self.a / "supuestos" / "a.html").write_text("cambiado", encoding="utf-8")
+        (self.a / "supuestos" / "b.html").write_text("nuevo", encoding="utf-8")
+        (self.a / ".recuperacion_x.json").write_text("{}", encoding="utf-8")
+        (self.a / ".editor_prefs.json").write_text("{}", encoding="utf-8")
+        (self.a / "x.html.bak").write_text("{}", encoding="utf-8")
+        (self.a / "PARA_SUBIR").mkdir()
+        (self.a / "PARA_SUBIR" / "z.html").write_text("z", encoding="utf-8")
+        nuevos, modif, borrados = gs.estado(self.a)
+        self.assertEqual(nuevos, ["supuestos/b.html"])
+        self.assertEqual(modif, ["supuestos/a.html"])
+        self.assertEqual(borrados, [])
+
+    def test_subir_a_rama_del_dia_solo_lo_marcado(self):
+        (self.a / "supuestos" / "a.html").write_text("cambiado", encoding="utf-8")
+        (self.a / "supuestos" / "b.html").write_text("nuevo", encoding="utf-8")
+        from datetime import date
+        txt, _ = gs.subir(self.a, ["supuestos/a.html"], "cambio", "dia", hoy=date(2026, 10, 26))
+        self.assertIn("editor-2026-10-26", txt)
+        ramas = subprocess.run(["git", "-C", str(self.t / "remoto.git"), "branch"], capture_output=True,
+                               text=True).stdout
+        self.assertIn("editor-2026-10-26", ramas)
+        self.assertEqual(gs.estado(self.a)[0], ["supuestos/b.html"])     # b no se subió
+
+    def test_subir_a_la_principal_desde_otra_rama(self):
+        _g(self.a, "checkout", "-q", "-b", "otra")
+        (self.a / "supuestos" / "a.html").write_text("v2", encoding="utf-8")
+        gs.subir(self.a, ["supuestos/a.html"], "directo", "principal")
+        self.assertEqual(gs.rama_actual(self.a), "main")
+        self.assertEqual(gs.rama_principal(self.a), "main")
+        _g(self.t, "clone", "-q", "remoto.git", "dos")
+        self.assertEqual((self.t / "dos" / "supuestos" / "a.html").read_text(encoding="utf-8"), "v2")
+
+    def test_traer_y_errores(self):
+        _g(self.t, "clone", "-q", "remoto.git", "dos")
+        dos = self.t / "dos"
+        for k, v in (("user.name", "Otro"), ("user.email", "o@o.o")):
+            _g(dos, "config", k, v)
+        (dos / "supuestos" / "a.html").write_text("web", encoding="utf-8")
+        _g(dos, "commit", "-q", "-am", "desde la web")
+        _g(dos, "push", "-q")
+        self.assertIn("Traído", gs.traer(self.a))
+        self.assertEqual((self.a / "supuestos" / "a.html").read_text(encoding="utf-8"), "web")
+        with self.assertRaises(gs.ErrorGit):
+            gs.subir(self.a, [], "x", "dia")
+        with self.assertRaises(gs.ErrorGit):
+            gs.subir(self.a, ["supuestos/a.html"], "  ", "dia")
+
+    def test_sin_clon_y_traduccion(self):
+        self.assertFalse(gs.es_clon(self.t))
+        self.assertIn("quién eres", gs.traducir("Please tell me who you are"))
+        self.assertIn("Actualizo a.html", gs.mensaje_sugerido([], ["x/a.html"], []))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
