@@ -44,6 +44,8 @@ window.SUPC1_IMPUG = {
         nombre: "Nombre",
         supuesto: "Supuesto",
         pregunta: "Pegunta",
+        correcta: "Correcta",               // las rellena la web (se busca la cabecera que contenga «correcta» / «marcada»)
+        marcada: "Marcada",
         texto: "Impugnacion del usuario",
         respuesta: "Respuesta",             // tú la escribes: lo que se publica como contestación
         resuelta: "Resuelta",               // casilla tuya: solo las resueltas salen en la página
