@@ -8,8 +8,8 @@
    FORMULARIO DE IMPUGNACIONES
      · «formUrl»: la URL del formulario con «formResponse» al final.
      · «campos»: el código «entry.…» de cada pregunta (ya puestos los de hoy).
-       «id» es una pregunta nueva de respuesta corta (ver INSTRUCCIONES del PR);
-       mientras esté en "" no se envía y no se podrá enlazar la respuesta con el foro.
+       «id» es una pregunta de respuesta corta que rellena la web sola; sin ella no
+       se puede enlazar la respuesta con el foro.
    HOJA
      · Las columnas que rellenas tú a mano se buscan por el NOMBRE de su cabecera
        (primera fila de la pestaña): «cols».
@@ -23,7 +23,7 @@ window.SUPC1_IMPUG = {
     activa: true,
     formUrl: "https://docs.google.com/forms/d/e/1FAIpQLSe_8sRKj2HmSFfqikTDZIVLt33EhiwB-1wDnEdPB8qeCanTrQ/formResponse",
     campos: {
-        publico: "entry.1757965325",
+        publico: "entry.746873418",
         nombre: "entry.628426951",
         supuesto: "entry.983942026",
         pregunta: "entry.1542587103",
@@ -31,7 +31,7 @@ window.SUPC1_IMPUG = {
         correcta: "entry.170349398",
         marcada: "entry.1901671757",
         texto: "entry.1263435838",
-        id: ""                              // NUEVA pregunta «ID» (respuesta corta): pon aquí su entry.…
+        id: "entry.1757965325"                // pregunta «ID» (respuesta corta) que rellena la web sola
     },
     valorPublico: "Publico si",             // texto de la casilla «Publico»
     anonimo: "Anónimo",                     // nombre que se envía si se marca «Anónimo»
@@ -53,5 +53,5 @@ window.SUPC1_IMPUG = {
 
     repo: "RMalumP/SupuestosC1",            // repositorio donde viven las Issues del foro
     etiquetaForo: "foro-impugnaciones",     // etiqueta de esas Issues
-    foroScriptUrl: ""                       // https://script.google.com/macros/s/XXXX/exec
+    foroScriptUrl: "https://script.google.com/macros/s/AKfycbwMZJGu4jJtacD31KpN7pn2fcwgPFoFhmc92bwSl1XXSla3uwNpLu-LcGPU-s1O2Z9yjg/exec"
 };

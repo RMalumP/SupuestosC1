@@ -159,10 +159,14 @@ async function estilos() {
         await ctx.close();
     }
     if (ACTUALIZAR) { escribirGolden('estilos.json', nuevo); return registrar('estilos', 'referencia de estilos guardada (' + Object.keys(nuevo).length + ' vistas)', true); }
+    let hayDif = false;
     Object.keys(nuevo).forEach(k => {
         const g = gold && gold[k]; const dif = g ? ZONAS.filter(z => g[z] !== nuevo[k][z]) : ['sin referencia'];
+        if (dif.length) hayDif = true;
         registrar('estilos', 'aspecto sin cambios · ' + k, !dif.length, 'cambian estas zonas: ' + dif.join(', ') + '\n(si es intencionado: npm run test:actualizar)');
     });
+    // Si algo difiere, se imprime la referencia que este entorno habría guardado (para poder regenerarla desde el registro de CI)
+    if (hayDif) console.log('REFERENCIA_ESTILOS_ACTUAL ' + JSON.stringify(nuevo));
 }
 
 /* ───────── 4. funciones ───────── */
