@@ -53,5 +53,5 @@ window.SUPC1_IMPUG = {
 
     repo: "RMalumP/SupuestosC1",            // repositorio donde viven las Issues del foro
     etiquetaForo: "foro-impugnaciones",     // etiqueta de esas Issues
-    foroScriptUrl: ""                       // https://script.google.com/macros/s/XXXX/exec
+    foroScriptUrl: "https://script.google.com/macros/s/AKfycbwMZJGu4jJtacD31KpN7pn2fcwgPFoFhmc92bwSl1XXSla3uwNpLu-LcGPU-s1O2Z9yjg/exec"
 };
