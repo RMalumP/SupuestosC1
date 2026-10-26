@@ -13,9 +13,11 @@
    HOJA
      · Las columnas que rellenas tú a mano se buscan por el NOMBRE de su cabecera
        (primera fila de la pestaña): «cols».
-   FORO
-     · «foroUrl» y «foroCampos»: segundo formulario de Google (id del hilo, nombre,
-       mensaje). Mientras «foroUrl» esté vacío el foro se ve pero no se puede escribir.
+   FORO (Issues de GitHub; guía en impugnaciones/LEEME.txt)
+     · Cada impugnación resuelta es una «Issue» del repositorio (título «[ID] …»).
+       La web las lee de la API pública de GitHub. Para escribir sin cuenta, el
+       mensaje pasa por un Google Apps Script tuyo (foroScriptUrl) que lo publica.
+     · Mientras «foroScriptUrl» esté vacío el foro se ve pero no se puede escribir.
 ════════════════════════════════════════════════════════════════ */
 window.SUPC1_IMPUG = {
     activa: true,
@@ -36,7 +38,6 @@ window.SUPC1_IMPUG = {
 
     sheetId: "19HZy6JZlljrvuEWdryuxWFqGHMf15qjsCVFe6OvLtLo",
     hojaImpugnaciones: "Impugnaciones",     // nombre exacto de la pestaña
-    hojaForo: "foro inpugnaciones",         // nombre exacto de la pestaña del foro
     cols: {                                 // cabeceras (se ignoran mayúsculas y tildes)
         id: "ID",
         publico: "Publico",
@@ -47,10 +48,10 @@ window.SUPC1_IMPUG = {
         respuesta: "Respuesta",             // tú la escribes: lo que se publica como contestación
         resuelta: "Resuelta",               // casilla tuya: solo las resueltas salen en la página
         cerrado: "Hilo cerrado",            // casilla tuya: cierra el foro de esa impugnación
-        foroHilo: "Hilo", foroNombre: "Nombre", foroMensaje: "Mensaje", foroCerrado: "Cerrado",
         fecha: "Marca temporal"
     },
 
-    foroUrl: "",                            // https://docs.google.com/forms/d/e/XXXX/formResponse
-    foroCampos: { hilo: "", nombre: "", mensaje: "" }
+    repo: "RMalumP/SupuestosC1",            // repositorio donde viven las Issues del foro
+    etiquetaForo: "foro-impugnaciones",     // etiqueta de esas Issues
+    foroScriptUrl: ""                       // https://script.google.com/macros/s/XXXX/exec
 };
