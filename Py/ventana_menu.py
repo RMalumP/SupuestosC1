@@ -197,32 +197,98 @@ class Ventana:
                 messagebox.showinfo("Menú de inicio", "Elige un supuesto para editar sus datos.", parent=self.v)
             return
         it = md.buscar(self.menu, ident)[1][md.buscar(self.menu, ident)[2]]
+        npreg, minutos, otros = md.partir_desc(it.get("desc", ""))
         d = tk.Toplevel(self.v)
         d.title("Editar «%s»" % ident)
         d.transient(self.v)
         d.resizable(False, False)
         marco = ttk.Frame(d, padding=14)
         marco.pack()
-        vars_ = {}
-        etiquetas = (("letra", "Texto del círculo (máx. 4):"), ("ref", "Referencia:"),
-                     ("titulo", "Título:"), ("desc", "Descripción:"))
-        for i, (k, et) in enumerate(etiquetas):
-            ttk.Label(marco, text=et).grid(row=i, column=0, sticky="w", pady=3)
-            vars_[k] = tk.StringVar(value=it.get(k, ""))
-            ttk.Entry(marco, textvariable=vars_[k], width=70).grid(row=i, column=1, pady=3, padx=(8, 0))
+        vars_ = {k: tk.StringVar(value=it.get(k, "")) for k in ("letra", "ref", "titulo", "desc")}
+        v_preg, v_min, v_otros = tk.StringVar(value=npreg), tk.StringVar(value=minutos), tk.StringVar(value=otros)
+        v_oculto = tk.BooleanVar(value=bool(it.get("oculto")))
+        v_html = tk.BooleanVar(value=False)
+
+        def fila(r, etiqueta, var, ancho=70, ayuda=""):
+            ttk.Label(marco, text=etiqueta).grid(row=r, column=0, sticky="w", pady=3)
+            ttk.Entry(marco, textvariable=var, width=ancho).grid(row=r, column=1, pady=3, padx=(8, 0), sticky="w")
+            if ayuda:
+                ttk.Label(marco, text=ayuda, foreground="#666").grid(row=r, column=2, sticky="w", padx=(8, 0))
+
+        fila(0, "Texto del círculo (máx. 4):", vars_["letra"], 10)
+        fila(1, "Referencia:", vars_["ref"], 30)
+        fila(2, "Título:", vars_["titulo"])
+        ttk.Separator(marco, orient="horizontal").grid(row=3, column=0, columnspan=3, sticky="we", pady=6)
+        fila(4, "Nº de preguntas:", v_preg, 8, "el «15 preguntas» de la tarjeta")
+        fila(5, "Minutos:", v_min, 8, "el «30 minutos» de la tarjeta")
+        fila(6, "Otro texto (ámbito, etc.):", v_otros)
+        fila(7, "Descripción completa:", vars_["desc"], 70, "se compone sola; puedes retocarla")
+
+        def recomponer(*_):
+            vars_["desc"].set(md.componer_desc(v_preg.get(), v_min.get(), v_otros.get()))
+        for v in (v_preg, v_min, v_otros):
+            v.trace_add("write", recomponer)
+
+        def leer_del_supuesto():
+            try:
+                datos = datos_html.leer_html(self.raiz / "supuestos" / (ident + ".html"))[0]
+            except (OSError, ValueError) as e:
+                messagebox.showerror("Editar", "No puedo leer ese supuesto:\n\n%s" % e, parent=d)
+                return
+            f = md.ficha(ident, datos, letra=vars_["letra"].get().strip() or None)
+            vars_["ref"].set(f["ref"])
+            vars_["titulo"].set(f["titulo"])
+            p_, m_, o_ = md.partir_desc(f["desc"])
+            v_preg.set(p_); v_min.set(m_); v_otros.set(o_)
+
+        ttk.Button(marco, text="↻ Leer preguntas, minutos, referencia y título del supuesto",
+                   command=leer_del_supuesto).grid(row=8, column=0, columnspan=3, sticky="w", pady=(6, 2))
+        ttk.Checkbutton(marco, text="Ocultar en el menú (se puede abrir con su enlace)",
+                        variable=v_oculto).grid(row=9, column=0, columnspan=3, sticky="w", pady=2)
+        ttk.Checkbutton(marco, text="Guardar también los minutos, la referencia y el título DENTRO del supuesto "
+                                    "(cambia el tiempo real del examen; deja copia .bak)",
+                        variable=v_html).grid(row=10, column=0, columnspan=3, sticky="w", pady=2)
 
         def aceptar():
             if len(vars_["letra"].get().strip()) > 4:
                 messagebox.showwarning("Editar", "El texto del círculo no puede pasar de 4 caracteres.", parent=d)
                 return
+            minutos_txt = v_min.get().strip()
+            if v_html.get():
+                if not minutos_txt.isdigit() or int(minutos_txt) < 1:
+                    messagebox.showwarning("Editar", "Para guardarlo en el supuesto, los minutos deben ser un número "
+                                           "de 1 o más.", parent=d)
+                    return
+                if not self._escribir_en_supuesto(ident, int(minutos_txt), vars_["ref"].get().strip(),
+                                                  vars_["titulo"].get().strip(), d):
+                    return
             md.editar(self.menu, ident, **{k: v.get() for k, v in vars_.items()})
+            md.ocultar(self.menu, ident, bool(v_oculto.get()))
             d.destroy()
             self._cambio("i:" + ident)
-        fila = ttk.Frame(marco)
-        fila.grid(row=len(etiquetas), column=0, columnspan=2, sticky="e", pady=(10, 0))
-        ttk.Button(fila, text="Cancelar", command=d.destroy).pack(side="right")
-        ttk.Button(fila, text="Aceptar", command=aceptar).pack(side="right", padx=6)
+        fila_btn = ttk.Frame(marco)
+        fila_btn.grid(row=11, column=0, columnspan=3, sticky="e", pady=(10, 0))
+        ttk.Button(fila_btn, text="Cancelar", command=d.destroy).pack(side="right")
+        ttk.Button(fila_btn, text="Aceptar", command=aceptar).pack(side="right", padx=6)
         d.grab_set()
+
+    def _escribir_en_supuesto(self, ident, minutos, ref, titulo, parent):
+        """Cambia minutos, referencia y título en el HTML del supuesto. True si se guardó."""
+        ruta = self.raiz / "supuestos" / (ident + ".html")
+        try:
+            datos, modo, html = datos_html.leer_html(ruta)
+            cfg = datos.setdefault("config", {})
+            cfg["minutos"] = minutos
+            if ref:
+                cfg["referencia"] = ref
+            if titulo:
+                cfg["titulo"] = titulo
+            datos_html.escribir_html(ruta, html, datos, modo)
+        except (OSError, ValueError) as e:
+            messagebox.showerror("Editar", "No he podido guardar en %s:\n\n%s" % (ruta.name, e), parent=parent)
+            return False
+        sl.refrescar_silencioso(ruta)
+        return True
 
     def ocultar(self):
         tipo, ident = self._sel()

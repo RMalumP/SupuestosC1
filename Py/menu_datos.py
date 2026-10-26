@@ -450,6 +450,37 @@ def contar(menu):
     return len(todos), sum(1 for it in todos if it.get("oculto"))
 
 
+def partir_desc(desc):
+    """'15 preguntas · 30 minutos · Ámbito' → ('15', '30', 'Ámbito'). Lo que no sea
+    preguntas ni minutos se devuelve junto en el tercer valor."""
+    preguntas = minutos = ""
+    resto = []
+    for parte in re.split(r"\s*[·|]\s*", str(desc or "")):
+        if not parte.strip():
+            continue
+        mp = re.fullmatch(r"(\d+)\s+preguntas?", parte.strip(), re.I)
+        mm = re.fullmatch(r"(\d+)\s+min(?:utos?)?\.?", parte.strip(), re.I)
+        if mp and not preguntas:
+            preguntas = mp.group(1)
+        elif mm and not minutos:
+            minutos = mm.group(1)
+        else:
+            resto.append(parte.strip())
+    return preguntas, minutos, " · ".join(resto)
+
+
+def componer_desc(preguntas="", minutos="", otros=""):
+    """Inversa de partir_desc: arma la descripción que se ve en la tarjeta del menú."""
+    partes = []
+    if str(preguntas).strip():
+        partes.append("%s preguntas" % str(preguntas).strip())
+    if str(minutos).strip():
+        partes.append("%s minutos" % str(minutos).strip())
+    if str(otros).strip():
+        partes.append(str(otros).strip())
+    return " · ".join(partes)
+
+
 def sin_alta(menu, carpeta_supuestos):
     """Nombres de los .html de la carpeta que todavía no están en el menú."""
     en_menu = set(archivos_del_menu(menu))
