@@ -262,5 +262,68 @@ class Editor(unittest.TestCase):
         self.assertTrue(callable(ventana_menu.abrir) and callable(ventana_subir.abrir))
 
 
+import herramientas_datos as hd  # noqa: E402
+
+
+class Herramientas(unittest.TestCase):
+    def datos(self):
+        d = datos_html.datos_vacios()
+        d["preguntas"] = [datos_html.pregunta_vacia(None, "B1") for _ in range(3)]
+        d["preguntas"][0]["q"] = "El plazo es de diez días"
+        d["preguntas"][1]["q"] = "Otro plazo"
+        return d
+
+    def test_historial(self):
+        d = self.datos()
+        h = hd.Historial()
+        h.iniciar(d)
+        d["preguntas"].append(datos_html.pregunta_vacia(None, "B1"))
+        h.anotar(d)
+        previo = h.deshacer(d)
+        self.assertEqual(len(previo["preguntas"]), 3)
+        self.assertEqual(len(h.rehacer()["preguntas"]), 4)
+        self.assertIsNone(h.rehacer())
+
+    def test_buscar_y_reemplazar(self):
+        d = self.datos()
+        self.assertEqual(len(hd.buscar(d, "PLAZO")), 2)
+        self.assertEqual(len(hd.buscar(d, "PLAZO", sensible=True)), 0)
+        self.assertEqual(hd.reemplazar(d, "plazo", "término"), 2)
+        self.assertIn("término", d["preguntas"][0]["q"])
+
+    def test_importar_texto(self):
+        t = ("1) ¿Cuál es?\na) uno\nb) *dos\nc) tres\nMotivación: art. 1\n\n"
+             "2) Varias\na) x\nb) y\nc) z\nCorrecta: a, c\n\nsolo texto\n")
+        p, av = hd.importar_texto(t, "B2")
+        self.assertEqual(len(p), 2)
+        self.assertEqual(p[0]["correctas"], [1])
+        self.assertEqual(p[0]["law"], "art. 1")
+        self.assertEqual(p[1]["correctas"], [0, 2])
+        self.assertTrue(p[1]["multiple"])
+        self.assertEqual(p[0]["bloqueId"], "B2")
+        self.assertEqual(len(av), 1)
+
+    def test_importar_csv(self):
+        p, av = hd.importar_csv("pregunta;a;b;c;d;correcta;motivación\n¿Cuál?;1;2;3;4;c;art. 5\n")
+        self.assertEqual(len(p), 1)
+        self.assertEqual(p[0]["a"], ["1", "2", "3", "4"])
+        self.assertEqual(p[0]["correctas"], [2])
+        self.assertEqual(p[0]["law"], "art. 5")
+
+    def test_problemas(self):
+        d = self.datos()
+        d["preguntas"][1]["q"] = ""
+        d["preguntas"][2]["a"] = ["igual", "igual", "x", "y"]
+        f = hd.problemas_por_pregunta(d)
+        self.assertEqual(f[1][0], "error")
+        self.assertEqual(f[2][0], "aviso")
+
+    def test_recuperacion(self):
+        with tempfile.TemporaryDirectory() as c:
+            r = hd.ruta_recuperacion("x/s.html", c)
+            self.assertTrue(hd.guardar_recuperacion(r, {"a": 1}))
+            self.assertEqual(hd.leer_recuperacion(r), {"a": 1})
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

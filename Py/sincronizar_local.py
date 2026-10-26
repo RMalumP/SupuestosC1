@@ -55,12 +55,26 @@ def raiz_de(ruta):
     return None
 
 
+_CACHE = {}      # ruta → ((fecha, tamaño), huella): no releer lo que no ha cambiado
+
+
 def _huella(ruta):
+    try:
+        st = os.stat(ruta)
+        clave = (st.st_mtime_ns, st.st_size)
+    except OSError:
+        clave = None
+    previo = _CACHE.get(str(ruta))
+    if clave and previo and previo[0] == clave:
+        return previo[1]
     h = hashlib.sha256()
     with open(ruta, "rb") as f:
         for bloque in iter(lambda: f.read(1 << 16), b""):
             h.update(bloque)
-    return h.hexdigest()
+    res = h.hexdigest()
+    if clave:
+        _CACHE[str(ruta)] = (clave, res)
+    return res
 
 
 def foto(raiz):
@@ -70,7 +84,7 @@ def foto(raiz):
     for dirpath, dirnames, nombres in os.walk(raiz):
         dirnames[:] = [d for d in dirnames if d not in CARPETAS_FUERA]
         for n in nombres:
-            if n in ARCHIVOS_FUERA or n.endswith(SUFIJOS_FUERA):
+            if n in ARCHIVOS_FUERA or n.endswith(SUFIJOS_FUERA) or n.startswith(".recuperacion_"):
                 continue
             p = Path(dirpath) / n
             res[p.relative_to(raiz).as_posix()] = _huella(p)

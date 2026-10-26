@@ -5,3 +5,4 @@ __pycache__/
 .estado_local.json
 PARA_SUBIR/
 .editor_prefs.json
+.recuperacion_*.json

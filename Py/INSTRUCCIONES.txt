@@ -112,6 +112,45 @@
     🗂 Menú de inicio…      Ordena y edita las tarjetas del menú de la web.
     📦 Para subir a GitHub… Prepara la carpeta PARA_SUBIR (ver más abajo).
 
+  MENÚS Y ATAJOS (barra de menús de la ventana)
+    Archivo        Nuevo (Ctrl+N) · Abrir (Ctrl+O) · Guardar (Ctrl+S) ·
+                   Guardar como (Ctrl+Mayús+S) · Pasar a plantilla nueva · Salir
+    Edición        Deshacer (Ctrl+Z) y Rehacer (Ctrl+Y) cambios de estructura
+                   (añadir, borrar, mover, importar, reemplazar). Dentro de un
+                   cuadro de texto, Ctrl+Z deshace solo lo escrito en él ·
+                   Buscar y reemplazar (Ctrl+F) · Importar preguntas ·
+                   Subir/Bajar pregunta (Alt+↑ / Alt+↓, en la pestaña 4)
+    Herramientas   Ver en el navegador (F5) · Comprobar · Menú de inicio ·
+                   Para subir a GitHub
+
+  BUSCAR Y REEMPLAZAR (Ctrl+F)
+    Busca en el texto de las preguntas, las opciones, las motivaciones y los
+    consejos. Doble clic en un resultado salta a esa pregunta. «Reemplazar todo»
+    cambia todas las coincidencias (se puede deshacer).
+
+  IMPORTAR PREGUNTAS (Edición → Importar preguntas…)
+    Pega preguntas separadas por una línea en blanco:
+        1) Texto de la pregunta
+        a) opción
+        b) *opción correcta        (el * marca la correcta; o una línea
+        c) opción                   «Correcta: b»; «Correcta: a, c» si es múltiple)
+        Motivación: texto opcional
+        Consejo: texto opcional
+    También se puede abrir un .csv con las columnas
+        pregunta ; a ; b ; c ; d ; correcta ; motivación ; consejo
+    Se añaden al bloque que elijas (y, si es de supuesto, al primer enunciado).
+
+  AUTOGUARDADO
+    Cada 2 minutos, si hay cambios, se guarda una copia de recuperación
+    («.recuperacion_NOMBRE.json», junto a la carpeta Py/; no se sube a GitHub).
+    Si el programa se cierra sin guardar, al abrir ese supuesto el editor ofrece
+    recuperarla. Al guardar de verdad, la copia se borra.
+
+  QUÉ PREGUNTAS TIENEN PROBLEMAS
+    En la lista de la pestaña 4 aparece «✗ motivo» en rojo (error) o «! motivo»
+    en ámbar (aviso) junto a las preguntas con fallos. En la pestaña 6, doble
+    clic en una línea «Pregunta N: …» del informe salta a esa pregunta.
+
   El editor recuerda el tamaño y la posición de la ventana y la última
   carpeta usada (archivo «.editor_prefs.json», que no se sube a GitHub).
 
