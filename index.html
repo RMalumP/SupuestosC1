@@ -224,6 +224,13 @@
         .creditos-caja dt { font-weight: 700; color: #2f6f93; }
         .creditos-caja dd { margin: 0; }
         .creditos-caja p { margin: 10px 0 0; font-size: 0.75rem; opacity: .7; text-align: center; }
+        .guia { margin: 0 0 22px; background: var(--t-surface, #fff); color: var(--t-ink, #2b2118); border: 1px solid var(--t-line, rgba(61,42,32,.14)); border-radius: 12px; font-size: 0.88rem; line-height: 1.55; }
+        .guia > summary { cursor: pointer; padding: 11px 16px; font-weight: 700; list-style: none; display: flex; align-items: center; gap: 8px; }
+        .guia > summary::-webkit-details-marker { display: none; }
+        .guia > summary::after { content: "▾"; margin-left: auto; transition: transform .2s; }
+        .guia:not([open]) > summary::after { transform: rotate(-90deg); }
+        .guia ul { margin: 0; padding: 0 16px 14px 34px; }
+        .guia li + li { margin-top: 6px; }
         .enlace-privacidad { text-align: center; margin: 10px 0 0; font-size: 0.8rem; }
         .enlace-privacidad a { color: var(--brown-mid); text-decoration: underline; text-underline-offset: 3px; }
         .enlace-privacidad a:hover { color: var(--brown); }
@@ -245,6 +252,16 @@
 
 
 <div class="container">
+
+    <!-- Guía plegable: el menú se genera desde supuestos-datos.js, pero este bloque es fijo y el editor no lo toca. -->
+    <details class="guia" id="guia-menu" open>
+        <summary>💡 Cómo funciona esta app</summary>
+        <ul>
+            <li><strong>Mi estudio:</strong> reúne tus estadísticas, las preguntas falladas y marcadas y tus notas, para practicar solo lo que te falta.</li>
+            <li><strong>Sincronización con Google Drive:</strong> guarda tu progreso en tu Drive para llevarlo a otros dispositivos. Solo funciona abriendo la web en <em>https://rmalump.github.io/SupuestosC1/</em>, no con el archivo abierto desde el ordenador.</li>
+            <li><strong>Impugnaciones:</strong> al corregir un supuesto verás un botón para impugnar una pregunta; las resueltas y el foro para comentarlas están en «Impugnaciones y foro».</li>
+        </ul>
+    </details>
 
     <!-- Buscador y filtros (los rellena app-menu.js) -->
     <div id="menu-filtros"></div>
@@ -343,6 +360,12 @@
     b.addEventListener("click", function () { f.hidden = false; });
     f.addEventListener("click", cerrar);        // pulsar en cualquier parte cierra
     document.addEventListener("keydown", function (e) { if (!f.hidden && e.key === "Escape") cerrar(); });
+})();</script>
+<script>(function () {
+    var d = document.getElementById("guia-menu"), S = window.SupC1;
+    if (!d || !S) return;
+    if (S.get("guia-menu-plegada", false)) d.open = false;
+    d.addEventListener("toggle", function () { S.set("guia-menu-plegada", !d.open); });
 })();</script>
 <script src="config/telemetria-config.js"></script>
 <script src="config/sync-config.js"></script>
