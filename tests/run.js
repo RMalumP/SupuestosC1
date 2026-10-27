@@ -24,6 +24,10 @@ try { pw = require('playwright'); } catch (e) { pw = require(process.env.PLAYWRI
 const RAIZ = path.resolve(__dirname, '..');
 const GOLDEN = path.join(__dirname, 'golden');
 const ACTUALIZAR = process.argv.includes('--actualizar');
+/* --paginas=a.html,b.html (con --actualizar): solo se regeneran las referencias de esas páginas y se conservan las demás
+   (las de páginas que ya no existen se borran). Lo usa el CI para poner al día lo que cambia al tocar o añadir un supuesto. */
+const PAGINAS = (process.argv.find(a => a.startsWith('--paginas=')) || '').slice(10).split(',').filter(Boolean);
+const PARCIAL = ACTUALIZAR && PAGINAS.length > 0;
 const SOLO = process.argv.slice(2).filter(a => !a.startsWith('--'));
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
                '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.png': 'image/png', '.woff2': 'font/woff2' };
@@ -46,6 +50,13 @@ const resultados = [];
 const registrar = (grupo, nombre, ok, detalle) => { resultados.push({ grupo, nombre, ok, detalle }); console.log((ok ? '  ✔ ' : '  ✘ ') + nombre + (ok || !detalle ? '' : '\n      ' + String(detalle).replace(/\n/g, '\n      '))); };
 const leerGolden = f => { try { return JSON.parse(fs.readFileSync(path.join(GOLDEN, f), 'utf8')); } catch (e) { return null; } };
 const escribirGolden = (f, d) => fs.writeFileSync(path.join(GOLDEN, f), JSON.stringify(d, null, 1) + '\n');
+/* En modo parcial, mezcla lo nuevo con la referencia anterior; `existe(clave)` dice si la página sigue existiendo */
+const mezclarGolden = (f, nuevo, existe) => {
+    if (!PARCIAL) return nuevo;
+    const viejo = leerGolden(f) || {}; const out = {};
+    Object.keys(viejo).filter(existe).forEach(k => { out[k] = viejo[k]; });
+    return Object.assign(out, nuevo);
+};
 
 /* Contexto determinista: sin red externa, sin azar, sin animaciones; guarda lo que se manda a Google */
 async function contexto(vp, init) {
@@ -69,7 +80,7 @@ async function abrir(ctx, url) {
     return pg;
 }
 const salirDePagina = pg => pg.evaluate(() => { Object.defineProperty(document, 'hidden', { value: true, configurable: true }); document.dispatchEvent(new Event('visibilitychange')); });
-const normalizar = t => decodeURIComponent((t || '').replace(/\+/g, ' ')).replace(/\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}(:\d{2})?/g, 'FECHA').replace(/Incorrecta: [^&]*/g, 'Incorrecta');
+const normalizar = t => decodeURIComponent((t || '').replace(/\+/g, ' ')).replace(/\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}(:\d{2})?/g, 'FECHA').replace(/Incorrecta: [^&]*/g, 'Incorrecta').replace(/=00:0\d(?=&|$)/g, '=TIEMPO');
 
 /* ───────── 1. carga ───────── */
 async function carga() {
@@ -95,6 +106,7 @@ async function carga() {
 async function envios() {
     const nuevo = {};
     for (const s of supuestos) {
+        if (PARCIAL && !PAGINAS.includes(s)) continue;
         const ctx = await contexto(); const pg = await abrir(ctx, 'supuestos/' + s);
         await pg.evaluate(() => {
             for (let i = 0; i < Math.min(7, questions.length); i++) {
@@ -113,7 +125,7 @@ async function envios() {
         }
         await ctx.close();
     }
-    if (ACTUALIZAR) { escribirGolden('envios.json', nuevo); registrar('envios', 'referencia de envíos guardada', true); }
+    if (ACTUALIZAR) { escribirGolden('envios.json', mezclarGolden('envios.json', nuevo, k => supuestos.includes(k))); registrar('envios', 'referencia de envíos guardada', true); }
 }
 
 /* ───────── 3. estilos ───────── */
@@ -152,13 +164,14 @@ async function estilos() {
     for (const [vn, vp] of [['pc', { width: 1100, height: 800 }], ['movil', { width: 390, height: 800 }]]) {
         const ctx = await contexto(vp);
         for (const p of paginas) {
+            if (PARCIAL && !PAGINAS.includes(p.replace(/^supuestos\//, ''))) continue;
             const pg = await abrir(ctx, p);
             if (p.startsWith('supuestos/')) await pg.evaluate(() => { selectAnswer(0, 0); });
             nuevo[vn + ' ' + p] = await huellas(pg); await pg.close();
         }
         await ctx.close();
     }
-    if (ACTUALIZAR) { escribirGolden('estilos.json', nuevo); return registrar('estilos', 'referencia de estilos guardada (' + Object.keys(nuevo).length + ' vistas)', true); }
+    if (ACTUALIZAR) { escribirGolden('estilos.json', mezclarGolden('estilos.json', nuevo, k => paginas.includes(k.replace(/^\S+ /, '')))); return registrar('estilos', 'referencia de estilos guardada (' + Object.keys(nuevo).length + ' vistas)', true); }
     let hayDif = false;
     Object.keys(nuevo).forEach(k => {
         const g = gold && gold[k]; const dif = g ? ZONAS.filter(z => g[z] !== nuevo[k][z]) : ['sin referencia'];
