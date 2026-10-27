@@ -12,9 +12,12 @@ Destinos de la subida:
 
 El editor nunca ve la contraseña ni el token: los gestiona git.
 """
+import glob
 import os
 import re
+import shutil
 import subprocess
+import sys
 from datetime import date
 from pathlib import Path
 
@@ -28,13 +31,71 @@ class ErrorGit(Exception):
     """Fallo de git con un mensaje que se puede enseñar tal cual."""
 
 
+_GIT = None          # ruta del git encontrado (se busca una vez)
+
+
+def _version_de(ruta):
+    """(3, 4, 9) a partir de «…\\app-3.4.9\\…» para elegir la más nueva."""
+    m = re.search(r"app-(\d+(?:\.\d+)*)", ruta)
+    return tuple(int(x) for x in m.group(1).split(".")) if m else (0,)
+
+
+def rutas_git_conocidas(env=None, sistema=None):
+    """Sitios donde suele estar git cuando NO está en el PATH (GitHub Desktop lo lleva dentro)."""
+    env = os.environ if env is None else env
+    sistema = sistema or sys.platform
+    res = []
+    if sistema.startswith("win"):
+        local = env.get("LOCALAPPDATA", "")
+        if local:
+            desktop = sorted(glob.glob(os.path.join(local, "GitHubDesktop", "app-*", "resources", "app", "git",
+                                                    "cmd", "git.exe")), key=_version_de, reverse=True)
+            res += desktop
+        for var in ("ProgramFiles", "ProgramFiles(x86)"):
+            if env.get(var):
+                res.append(os.path.join(env[var], "Git", "cmd", "git.exe"))
+        if local:
+            res.append(os.path.join(local, "Programs", "Git", "cmd", "git.exe"))
+    elif sistema == "darwin":
+        res += ["/Applications/GitHub Desktop.app/Contents/Resources/app/git/bin/git",
+                "/opt/homebrew/bin/git", "/usr/local/bin/git", "/usr/bin/git"]
+    else:
+        res += ["/usr/bin/git", "/usr/local/bin/git"]
+    return res
+
+
+def buscar_git(env=None, sistema=None, cual=shutil.which, existe=os.path.isfile):
+    """Ruta de un git que funcione: el del PATH y, si no, el de GitHub Desktop o los instaladores típicos."""
+    en_path = cual("git")
+    if en_path:
+        return en_path
+    for ruta in rutas_git_conocidas(env, sistema):
+        if existe(ruta):
+            return ruta
+    return None
+
+
+def _exe():
+    global _GIT
+    if _GIT is None:
+        _GIT = buscar_git()
+    if not _GIT:
+        raise ErrorGit(SIN_GIT)
+    return _GIT
+
+
+SIN_GIT = ("No encuentro git en este ordenador (ni en el PATH ni dentro de GitHub Desktop).\n\n"
+           "Si usas GitHub Desktop no hace falta nada más: haz «Commit» y «Push» desde su ventana. "
+           "Para usar este botón instala git desde git-scm.com y reinicia el editor.")
+
+
 def _git(raiz, *args, permitir_fallo=False):
     env = dict(os.environ, GIT_TERMINAL_PROMPT="0", LC_ALL="C", LANGUAGE="C")
     try:
-        r = subprocess.run(["git", "-C", str(raiz), *args], capture_output=True, text=True,
+        r = subprocess.run([_exe(), "-C", str(raiz), *args], capture_output=True, text=True,
                            encoding="utf-8", errors="replace", env=env, timeout=180)
     except FileNotFoundError:
-        raise ErrorGit("No encuentro git. Instálalo (git-scm.com o GitHub Desktop) y reinicia el editor.")
+        raise ErrorGit(SIN_GIT)
     except subprocess.TimeoutExpired:
         raise ErrorGit("git ha tardado demasiado (¿sin conexión o esperando un inicio de sesión?).")
     salida = (r.stdout + r.stderr).rstrip()
@@ -52,8 +113,8 @@ def traducir(texto):
          "  git config --global user.name \"Tu nombre\"\n  git config --global user.email \"tu@correo\""),
         (("authentication failed", "could not read username", "terminal prompts disabled",
           "invalid username or password"),
-         "GitHub no te ha reconocido. Inicia sesión una vez con GitHub Desktop o con «git push» "
-         "en una terminal; después el botón funcionará."),
+         "GitHub no te ha reconocido desde aquí. Si usas GitHub Desktop, haz «Push» desde su ventana "
+         "(ahí ya tienes la sesión iniciada) o inicia sesión una vez con «git push» en una terminal."),
         (("permission denied", "403", "protected branch", "not allowed"),
          "GitHub no te deja subir a esa rama (permisos o rama protegida). Prueba con la rama del día."),
         (("could not resolve host", "unable to access", "network is unreachable"),
@@ -75,9 +136,9 @@ def traducir(texto):
 
 def hay_git():
     try:
-        subprocess.run(["git", "--version"], capture_output=True, timeout=20)
+        subprocess.run([_exe(), "--version"], capture_output=True, timeout=20)
         return True
-    except (FileNotFoundError, subprocess.TimeoutExpired):
+    except (ErrorGit, OSError, subprocess.TimeoutExpired):
         return False
 
 
