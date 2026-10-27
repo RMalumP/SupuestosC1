@@ -351,9 +351,11 @@ async function menu() {
         const ctx = await contexto(); const pg = await abrir(ctx, 'index.html');
         const abierta = await pg.evaluate(() => document.getElementById('guia-menu').open);
         await pg.click('#guia-menu > summary');
+        await pg.waitForFunction(() => localStorage.getItem('supc1:guia-menu-plegada') === 'true');
         await pg.reload(); await pg.waitForSelector('#guia-menu');
         const plegada = await pg.evaluate(() => !document.getElementById('guia-menu').open);
         await pg.click('#guia-menu > summary');
+        await pg.waitForFunction(() => localStorage.getItem('supc1:guia-menu-plegada') === 'false');
         await pg.reload(); await pg.waitForSelector('#guia-menu');
         const otraVez = await pg.evaluate(() => document.getElementById('guia-menu').open);
         await ctx.close(); return (abierta && plegada && otraVez) || JSON.stringify({ abierta, plegada, otraVez });
