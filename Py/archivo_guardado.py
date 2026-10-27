@@ -404,6 +404,7 @@ class ArchivoGuardado:
     def _al_cerrar(self):
         self.volcar_todo()
         self._prefs["geometria"] = self.geometry()
+        self._prefs["ver_marcas"] = ver_marcas()
         _guardar_prefs(self._prefs)
         if self.hay_cambios:
             r = messagebox.askyesnocancel(

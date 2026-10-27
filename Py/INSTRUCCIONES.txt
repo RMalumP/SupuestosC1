@@ -123,6 +123,30 @@
     Herramientas   Ver en el navegador (F5) · Comprobar · Menú de inicio ·
                    Para subir a GitHub
 
+  CUADROS DE ESCRITURA (como en GPapers)
+    FORMATO SIN MARCAS
+        La negrita, la cursiva, el subrayado, el tachado y el resaltado se ven directamente.
+        Las marcas (<b>…</b>) siguen en el texto pero están ocultas; el botón ‹› (o
+        Ctrl+Mayús+M) las enseña u oculta en todos los cuadros y se acuerda de tu elección.
+        Con las marcas ocultas, Retroceso y Suprimir borran letras visibles y nunca dejan
+        una etiqueta a medias.
+    CUADROS QUE SE AMPLÍAN
+        Cada cuadro crece solo según lo que escribes (hasta 30 líneas). Arrastra la franja
+        «arrastra para ampliar» de debajo para fijar el tamaño que quieras (doble clic =
+        vuelve a automático). El botón ⤢ (Ctrl+Mayús+E) abre el texto en una ventana grande;
+        al cerrarla se aplica lo escrito (o pulsa «Descartar cambios»).
+    TEXTO JUSTIFICADO POR DEFECTO
+        Enunciado, preguntas con sus respuestas y justificaciones salen justificados en la
+        página, también en los supuestos ya publicados. En la pestaña 1 («Texto justificado»)
+        puedes apagarlo por partes en un supuesto concreto. «Izq.» (Ctrl+L) deja un párrafo
+        suelto a la izquierda y «Just.» (Ctrl+J) lo vuelve a justificar.
+    TODAS LAS OPCIONES, ACTIVABLES
+        Pestaña 5 → «Opciones de la página»: tamaño de letra, tema oscuro, deslizar, atajos,
+        corazón, subrayado y justificado, más los botones y opciones de las cajas A y B. Hay
+        «Activar todas», «Desactivar todas» y «Restablecer». Lo que desmarcas no aparece en
+        la página; «Empieza en oscuro / Empieza activado» fija cómo arranca para quien aún no
+        ha elegido nada. (Se guarda en config.panel y config.justificar.)
+
   MÁS AYUDAS PARA TRABAJAR MÁS RÁPIDO
     PUBLICAR TODO (Herramientas → Publicar todo…)
         Encadena: guarda → revisa TODOS los supuestos (si hay errores graves, se para y

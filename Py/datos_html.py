@@ -127,6 +127,19 @@ INTERFAZ_DEFECTO = {
     "btnMenu":          {"visible": True, "texto": "🏠 Volver al Menú Principal"},
 }
 
+# Opciones del panel ⚙ que no son botones de la cabecera: tamaño de letra,
+# tema oscuro, deslizar y atajos. "activa" = cómo arranca si la persona aún no
+# ha elegido nada. Viven en config.panel.
+PANEL_DEFECTO = {
+    "fuente":   {"visible": True},
+    "tema":     {"visible": True, "activa": False},
+    "deslizar": {"visible": True, "activa": True},
+    "atajos":   {"visible": True},
+}
+
+# Justificado por defecto del texto (config.justificar)
+JUSTIFICAR_DEFECTO = {"enunciado": True, "pregunta": True, "motivacion": True}
+
 # Campos de sí/no que, además de "se ve", tiene alguna opción: con qué
 # estado arranca el examen. El alumno puede cambiarlo luego desde el ⚙.
 CAMPOS_ESTADO = {
@@ -397,6 +410,8 @@ def datos_vacios():
             "respuestas": 0,
             "corazon": True,
             "subrayar": True,
+            "justificar": dict(JUSTIFICAR_DEFECTO),
+            "panel": {k: dict(v) for k, v in PANEL_DEFECTO.items()},
             "logo": LOGO_POR_DEFECTO,
             "logoAlt": "ECAP - Escuela Ciudadana de Administración Pública",
             "organismo": "Comunidad ECAP ASS C1",
@@ -499,6 +514,14 @@ def normalizar(datos):
     cfg["aptoPorcentaje"] = min(100.0, max(0.0, numero(cfg.get("aptoPorcentaje"), 50.0)))
     cfg["corazon"] = cfg.get("corazon", True) is not False      # corazón de favoritas (por defecto, sí)
     cfg["subrayar"] = cfg.get("subrayar", True) is not False    # subrayar con colores (por defecto, sí)
+    # Justificado y opciones extra del panel ⚙ (valores raros vuelven al defecto)
+    j = cfg.get("justificar") if isinstance(cfg.get("justificar"), dict) else {}
+    cfg["justificar"] = {k: j.get(k, True) is not False for k in JUSTIFICAR_DEFECTO}
+    pn = cfg.get("panel") if isinstance(cfg.get("panel"), dict) else {}
+    cfg["panel"] = {}
+    for k, base_k in PANEL_DEFECTO.items():
+        dado = pn.get(k) if isinstance(pn.get(k), dict) else {}
+        cfg["panel"][k] = {c: (dado.get(c, v) is not False) for c, v in base_k.items()}
     # Cuántas respuestas salen de cada pregunta (0 = todas las escritas)
     try:
         respuestas = int(cfg.get("respuestas") or 0)
