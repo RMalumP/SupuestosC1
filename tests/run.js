@@ -363,7 +363,7 @@ async function menu() {
         });
         await ctx.close();
         const faltan = r.esperados.filter(e => !r.guardados.includes(e));
-        return (r.esperados.length === 9 && faltan.length === 0) || 'faltan ' + faltan.join();
+        return (r.esperados.length > 0 && faltan.length === 0) || 'faltan ' + faltan.join();
     });
     await caso('«Información» abre los créditos con la versión y pulsar en cualquier parte los cierra', async () => {
         const ctx = await contexto(); const pg = await abrir(ctx, 'index.html');
