@@ -347,6 +347,17 @@ async function menu() {
             return { esperadas: n, pintadas: document.querySelectorAll('#menu-supuestos .supuesto-card, #examenes-grid .supuesto-card').length, secciones: document.querySelectorAll('.seccion').length }; });
         await ctx.close(); return (r.esperadas === r.pintadas && r.secciones === 2) || JSON.stringify(r);
     });
+    await caso('la guía plegable del menú recuerda si está plegada', async () => {
+        const ctx = await contexto(); const pg = await abrir(ctx, 'index.html');
+        const abierta = await pg.evaluate(() => document.getElementById('guia-menu').open);
+        await pg.click('#guia-menu > summary');
+        await pg.reload(); await pg.waitForSelector('#guia-menu');
+        const plegada = await pg.evaluate(() => !document.getElementById('guia-menu').open);
+        await pg.click('#guia-menu > summary');
+        await pg.reload(); await pg.waitForSelector('#guia-menu');
+        const otraVez = await pg.evaluate(() => document.getElementById('guia-menu').open);
+        await ctx.close(); return (abierta && plegada && otraVez) || JSON.stringify({ abierta, plegada, otraVez });
+    });
     await caso('buscador y filtros', async () => {
         const ctx = await contexto(); const pg = await abrir(ctx, 'index.html');
         await pg.fill('#buscar', 'zzzzzz'); const vacio = await pg.locator('.vacio').isVisible();
