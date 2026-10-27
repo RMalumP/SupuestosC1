@@ -479,6 +479,18 @@ class GitSync(unittest.TestCase):
         with self.assertRaises(gs.ErrorGit):
             gs.subir(self.a, ["supuestos/a.html"], "  ", "dia")
 
+    def test_buscar_git_dentro_de_github_desktop(self):
+        with tempfile.TemporaryDirectory() as c:
+            for ver in ("3.4.9", "3.4.10", "3.3.2"):
+                d = Path(c) / "GitHubDesktop" / ("app-" + ver) / "resources" / "app" / "git" / "cmd"
+                d.mkdir(parents=True)
+                (d / "git.exe").write_text("", encoding="utf-8")
+            env = {"LOCALAPPDATA": c}
+            ruta = gs.buscar_git(env, "win32", cual=lambda _n: None)
+            self.assertIn("app-3.4.10", ruta)                       # la versión más nueva
+            self.assertIsNone(gs.buscar_git({"LOCALAPPDATA": c + "_no"}, "win32", cual=lambda _n: None))
+            self.assertEqual(gs.buscar_git(env, "win32", cual=lambda _n: "C:/git.exe"), "C:/git.exe")
+
     def test_sin_clon_y_traduccion(self):
         self.assertFalse(gs.es_clon(self.t))
         self.assertIn("quién eres", gs.traducir("Please tell me who you are"))

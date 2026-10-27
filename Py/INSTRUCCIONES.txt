@@ -890,8 +890,21 @@
      Nunca se suben las copias .bak, la copia de recuperación, las preferencias, PARA_SUBIR ni
      .estado_local.json, aunque aparezcan como cambios.
 
+     SI USAS GITHUB DESKTOP
+       El editor busca git en el PATH y, si no está, dentro de GitHub Desktop
+       (%LOCALAPPDATA%\\GitHubDesktop\\app-*\\resources\\app\\git\\cmd\\git.exe) y en las
+       instalaciones típicas de Git para Windows y Mac, así que normalmente no hay que instalar nada.
+       Dos formas de subir, las dos válidas:
+         · Desde el editor: «☁ Sincronizar». Si dice que GitHub no te reconoce, haz «Push» una vez
+           desde GitHub Desktop (ahí está tu sesión) y vuelve a intentarlo.
+         · Desde GitHub Desktop: «Changes» muestra los mismos archivos que lista «Para subir a GitHub…»
+           en una carpeta clonada; escribe el resumen, «Commit to …» y «Push origin».
+       El aviso amarillo «LF / CRLF» de Windows es normal y no hay que hacer nada.
+       En una carpeta clonada, «Para subir a GitHub…» ya no usa PARA_SUBIR: lista lo mismo que verá
+       GitHub Desktop.
+
      SI ALGO FALLA
-       · «No encuentro git»: instálalo y reinicia el editor.
+       · «No encuentro git»: instálalo (o abre una vez GitHub Desktop) y reinicia el editor.
        · «No es un clon»: la carpeta no tiene «.git»; clona el repositorio (paso 2).
        · «git no sabe quién eres»: haz el paso 4.
        · «GitHub no te ha reconocido»: inicia sesión con GitHub Desktop (paso 5).

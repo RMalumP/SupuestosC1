@@ -8,6 +8,7 @@ import subprocess
 import tkinter as tk
 from tkinter import ttk, messagebox
 
+import git_sync as gs
 import sincronizar_local as sl
 
 
@@ -30,23 +31,41 @@ def abrir(app):
                             "(la carpeta que tiene index.html y «supuestos»).", parent=app)
         return
     sl.asegurar_base(raiz)
+    es_clon = gs.es_clon(raiz)
+    usa_git = es_clon and gs.hay_git()
     v = tk.Toplevel(app)
     v.title("Para subir a GitHub")
     v.transient(app)
     v.resizable(False, False)
     marco = ttk.Frame(v, padding=16)
     marco.pack(fill="both", expand=True)
-    ttk.Label(marco, wraplength=460, justify="left",
-              text="Aquí ves qué archivos han cambiado desde que bajaste el repositorio. "
-                   "Se copian a la carpeta «%s» con la misma estructura; "
-                   "solo tienes que arrastrar su contenido a GitHub." % sl.CARPETA).pack(anchor="w")
+    if es_clon:
+        aviso = ("Esta carpeta es un clon de git: aquí ves lo MISMO que verá GitHub Desktop en «Changes» "
+                 "(archivos nuevos, modificados y borrados respecto a GitHub). Para subirlos usa «Commit» y "
+                 "«Push» en GitHub Desktop, o el botón «☁ Sincronizar» del editor. La carpeta %s no hace falta."
+                 % sl.CARPETA)
+        if not usa_git:
+            aviso = ("Esta carpeta es un clon de git pero el editor no encuentra git, así que no puede listar "
+                     "los cambios aquí. Míralos en GitHub Desktop (pestaña «Changes») y súbelos con «Commit» "
+                     "y «Push».")
+    else:
+        aviso = ("Aquí ves qué archivos han cambiado desde que bajaste el repositorio. "
+                 "Se copian a la carpeta «%s» con la misma estructura; "
+                 "solo tienes que arrastrar su contenido a GitHub." % sl.CARPETA)
+    ttk.Label(marco, wraplength=460, justify="left", text=aviso).pack(anchor="w")
     estado = tk.StringVar()
     lista = tk.Text(marco, width=62, height=14, wrap="none", relief="solid", borderwidth=1)
     lista.pack(fill="both", expand=True, pady=(10, 4))
     ttk.Label(marco, textvariable=estado, wraplength=460, justify="left").pack(anchor="w")
 
     def pintar(res=None):
-        res = res if res is not None else sl.preparar_para_subir(raiz)
+        if res is None:
+            try:
+                res = gs.estado(raiz) if usa_git else (([], [], []) if es_clon else sl.preparar_para_subir(raiz))
+            except gs.ErrorGit as err:
+                res = ([], [], [])
+                estado.set(str(err))
+                return
         nuevos, modif, borrados = res
         lista.configure(state="normal")
         lista.delete("1.0", "end")
@@ -55,7 +74,8 @@ def abrir(app):
                 lista.insert("end", titulo + " (%d)\n" % len(rutas))
                 lista.insert("end", "".join("   · %s\n" % r for r in rutas) + "\n")
         if not (nuevos or modif or borrados):
-            lista.insert("end", "Nada que subir: todo coincide con lo descargado.\n")
+            lista.insert("end", "Nada que subir: todo coincide con lo descargado.\n" if not es_clon or usa_git
+                         else "No se pueden listar los cambios sin git: míralos en GitHub Desktop.\n")
         lista.configure(state="disabled")
         estado.set(sl.resumen(*res))
 

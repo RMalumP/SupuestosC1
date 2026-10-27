@@ -18,8 +18,7 @@ ETIQUETAS = {
 def abrir(app):
     raiz = sl.RAIZ_DEFECTO
     if not gs.hay_git():
-        messagebox.showinfo("Sincronizar", "No encuentro git en este ordenador.\n\nInstálalo desde git-scm.com "
-                            "(o instala GitHub Desktop, que lo trae) y reinicia el editor.", parent=app)
+        messagebox.showinfo("Sincronizar", gs.SIN_GIT, parent=app)
         return
     if not gs.es_clon(raiz):
         messagebox.showinfo("Sincronizar", "Esta carpeta no es un clon del repositorio (no tiene «.git»).\n\n"
