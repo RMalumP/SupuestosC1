@@ -28,6 +28,7 @@
   // >>> SUPUESTOS: una línea por supuesto
   var SUPUESTOS = [
   {"seccion": "temas", "grupo": "iniciales", "archivo": "supuesto_T2I", "letra": "T2I", "ref": "T2I", "titulo": "SUPUESTO TEMA 2 Inicial. Encuadramientos y mas encuadramietos", "desc": "25 preguntas · 45 minutos · Legislación a 10 de octubre de 2026 · Tema 2."},
+  {"seccion": "temas", "grupo": "iniciales", "archivo": "supuesto_tema3lA", "letra": "T3IA", "ref": "T3IA", "titulo": "TEMA 3 INICAL A · AFILIACIÓN. ALTAS Y BAJAS.  CONVENIO ESPECIAL Y ASIMILADAS AL ALTA", "desc": "15 preguntas · 30 minutos · Legislación a 27 de octubre de 2026 · Tema 3."},
   {"seccion": "temas", "grupo": "avanzados", "archivo": "supuesto_T2", "letra": "T2", "ref": "T2", "titulo": "SUPUESTO TEMA 2. Encuadramientos y dolores de cabeza", "desc": "15 preguntas · 30 minutos · Legislación a 10 de octubre de 2026 · Tema 2."},
   {"seccion": "generales", "grupo": "iniciales", "archivo": "supuesto_1I", "letra": "I1", "ref": "S01I", "titulo": "SUPUESTO 1 Inicial. Conceptos básicos de temas 2 y 3", "desc": "15 preguntas · 30 minutos · Legislación a 27 de Septiembre de 2026 · Temas 2 y 3."},
   {"seccion": "generales", "grupo": "iniciales", "archivo": "supuesto_2I", "letra": "I2", "ref": "S02I", "titulo": "SUPUESTO 2 Inicial. Conceptos básicos de temas 4 y 7", "desc": "15 preguntas · 30 minutos · Legislación a 4 de octubre de 2026 · Temas 4 y 7."},
