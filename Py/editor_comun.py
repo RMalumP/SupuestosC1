@@ -171,7 +171,7 @@ FUENTES = [
 _FUENTE_EDITOR = {clave: fam for clave, _n, fam in FUENTES}
 
 # Clases que afectan a un PÁRRAFO entero (no a un trozo de línea)
-CLASES_PARRAFO = {"al-j", "sg-1", "sg-2", "sg-3"}
+CLASES_PARRAFO = {"al-j", "al-i", "sg-1", "sg-2", "sg-3"}
 SANGRIA_PX = 26          # sangría por nivel en el editor
 
 # Cualquier etiqueta HTML del texto (de apertura o de cierre).
@@ -303,17 +303,17 @@ def repintar_formato(widget):
         pos = fin
     pintar(pos, len(contenido), pila)
 
-    # Párrafos justificados o con sangría: se marcan líneas enteras. Tk no
-    # sabe justificar, así que lo justificado se ve con fondo azulado; la
-    # sangría sí se ve de verdad.
+    # Párrafos con sangría o alineados a la izquierda a propósito: se marcan
+    # líneas enteras. Tk no sabe justificar (en la página todo sale justificado
+    # salvo lo marcado «Izq.»), así que solo la sangría se ve de verdad.
     for n, linea in enumerate(contenido.split("\n"), 1):
         env = envoltorio_parrafo(linea)
         if not env:
             continue
         clases = env[0]
         a, b = "%d.0" % n, "%d.end" % n
-        if "al-j" in clases:
-            widget.tag_add("fmt_just", a, b)
+        if "al-i" in clases:
+            widget.tag_add("fmt_izq", a, b)
         nivel = nivel_sangria(clases)
         if nivel:
             widget.tag_add("fmt_sg%d" % nivel, a, b)
@@ -450,8 +450,10 @@ def formato_parrafos(widget, accion):
         nivel = nivel_sangria(clases)
         if accion == "just":
             clases.add("al-j")
+            clases.discard("al-i")
         elif accion == "izq":
             clases.discard("al-j")
+            clases.add("al-i")
         elif accion == "mas":
             nivel = min(3, nivel + 1)
         elif accion == "menos":
@@ -460,7 +462,7 @@ def formato_parrafos(widget, accion):
         if nivel:
             clases.add("sg-%d" % nivel)
         if clases:
-            orden = [c for c in ("al-j", "sg-1", "sg-2", "sg-3") if c in clases]
+            orden = [c for c in ("al-j", "al-i", "sg-1", "sg-2", "sg-3") if c in clases]
             nueva = '<span class="%s">%s</span>' % (" ".join(orden), interior)
         else:
             nueva = interior
@@ -475,7 +477,240 @@ def formato_parrafos(widget, accion):
     return "break"
 
 
-def barra_formato(padre, widget, compacta=False):
+# ──────────────────────────────────────────────────────────────────────
+#  Marcas ocultas («Ver marcas»), cuadros que crecen y ventana «Ampliar»
+# ──────────────────────────────────────────────────────────────────────
+# Como en GPapers, por defecto el cuadro enseña el FORMATO (negrita, cursiva…)
+# y no las marcas <b>…</b>. Las marcas siguen estando en el texto; Tk las
+# esconde con «elide». El botón ‹› (Ctrl+Mayús+M) las vuelve a enseñar.
+RE_PAR_VACIO = re.compile(r"<([a-zA-Z][a-zA-Z0-9]*)\b[^<>]*>\s*</\1\s*>")
+ALTO_MAXIMO = 30                 # líneas hasta las que crece un cuadro solo
+_CAJAS = []                      # cuadros con formato que hay abiertos
+_BOTONES_MARCAS = []             # botones ‹› para ponerlos hundidos/normales
+_estado_marcas = {"ver": None}
+
+
+def ver_marcas():
+    """True si se enseñan las marcas HTML (por defecto no; se recuerda)."""
+    if _estado_marcas["ver"] is None:
+        _estado_marcas["ver"] = bool(_leer_prefs().get("ver_marcas", False))
+    return _estado_marcas["ver"]
+
+
+def poner_ver_marcas(ver):
+    _estado_marcas["ver"] = bool(ver)
+    prefs = _leer_prefs()
+    prefs["ver_marcas"] = bool(ver)
+    _guardar_prefs(prefs)
+    for lista, accion in ((_CAJAS, lambda w: w.tag_configure("fmt_etiqueta", elide=not ver)),
+                          (_BOTONES_MARCAS, lambda b: b.configure(
+                              relief="sunken" if ver else "groove"))):
+        for w in list(lista):
+            try:
+                accion(w)
+            except tk.TclError:
+                lista.remove(w)
+
+
+def solo_etiquetas(trozo):
+    """De un trozo de texto deja SOLO las etiquetas HTML (y quita los pares
+    que queden vacíos). Sirve para borrar lo que se VE sin romper el
+    equilibrio de las marcas que están ocultas."""
+    return quitar_pares_vacios("".join(m.group(0) for m in RE_ETIQUETA_HTML.finditer(trozo)))
+
+
+def quitar_pares_vacios(texto):
+    """Quita <b></b> y similares (de formato) que no encierran nada."""
+    def fuera(m):
+        return "" if m.group(1).lower() in ETIQUETAS_FORMATO else m.group(0)
+    anterior = None
+    while anterior != texto:
+        anterior = texto
+        texto = RE_PAR_VACIO.sub(fuera, texto)
+    return texto
+
+
+def _borrar_visible(widget, ini, fin):
+    """Borra el texto visible entre dos índices y conserva las marcas ocultas."""
+    resto = solo_etiquetas(widget.get(ini, fin))
+    widget.delete(ini, fin)
+    if resto:
+        widget.insert(ini, resto)
+    widget.tag_remove("sel", "1.0", "end")
+
+
+def _limpiar_pares_linea(widget):
+    """Tras borrar, quita los pares vacíos de la línea del cursor."""
+    n = widget.index("insert").split(".")[0]
+    a, b = "%s.0" % n, "%s.end" % n
+    linea = widget.get(a, b)
+    limpia = quitar_pares_vacios(linea)
+    if limpia == linea:
+        return
+    # el cursor se queda tras los mismos caracteres VISIBLES
+    visibles = len(RE_ETIQUETA_HTML.sub("", widget.get(a, "insert")))
+    widget.delete(a, b)
+    widget.insert(a, limpia)
+    pos = 0
+    vistos = 0
+    for m in re.finditer(RE_ETIQUETA_HTML.pattern + r"|.", limpia, re.S):
+        if not RE_ETIQUETA_HTML.fullmatch(m.group(0)):
+            if vistos >= visibles:
+                break
+            vistos += 1
+        pos = m.end()
+    widget.mark_set("insert", "%s.0 + %d chars" % (n, pos))
+
+
+def _retroceso(e):
+    w = e.widget
+    if ver_marcas():
+        return None
+    if w.tag_ranges("sel"):
+        _borrar_visible(w, w.index("sel.first"), w.index("sel.last"))
+        _limpiar_pares_linea(w)
+        return "break"
+    if w.compare("insert", "==", "1.0"):
+        return "break"
+    ant = w.index("insert-1displaychars")
+    _borrar_visible(w, ant, "%s + 1 chars" % ant)
+    _limpiar_pares_linea(w)
+    return "break"
+
+
+def _suprimir(e):
+    w = e.widget
+    if ver_marcas():
+        return None
+    if w.tag_ranges("sel"):
+        _borrar_visible(w, w.index("sel.first"), w.index("sel.last"))
+        _limpiar_pares_linea(w)
+        return "break"
+    sig = w.index("insert+1displaychars")
+    ini = w.index("%s-1displaychars" % sig)
+    if w.compare(ini, "<", "insert") or w.compare(ini, ">=", "end-1c"):
+        return "break"                      # no hay más texto visible por delante
+    _borrar_visible(w, ini, "%s + 1 chars" % ini)
+    _limpiar_pares_linea(w)
+    return "break"
+
+
+def _teclear_sobre_seleccion(e):
+    """Escribir con texto seleccionado lo sustituye, pero sin romper marcas ocultas."""
+    w = e.widget
+    if ver_marcas() or not w.tag_ranges("sel"):
+        return None
+    if (e.state & 0x4) or not (len(e.char) == 1 and (e.char >= " " or e.char in "\r\n")):
+        return None
+    ini, fin = w.index("sel.first"), w.index("sel.last")
+    if w.compare("insert", "<", ini) or w.compare("insert", ">", fin):
+        return None                         # el cursor está fuera: Tk no sustituye nada
+    _borrar_visible(w, ini, fin)
+    w.mark_set("insert", ini)               # lo escrito hereda el formato de lo sustituido
+    return None
+
+
+def _cortar(e):
+    w = e.widget
+    if ver_marcas() or not w.tag_ranges("sel"):
+        return None
+    w.event_generate("<<Copy>>")
+    _borrar_visible(w, w.index("sel.first"), w.index("sel.last"))
+    w.event_generate("<<TextoTocado>>")
+    return "break"
+
+
+def _autoajustar(texto):
+    """Hace que el cuadro crezca con lo que se escribe (como en GPapers)."""
+    if getattr(texto, "_alto_manual", None) or getattr(texto, "_sin_auto", False):
+        return
+    try:
+        if texto.winfo_width() < 60:
+            return
+        cuenta = texto.count("1.0", "end-1c", "displaylines")
+        lineas = (int(cuenta[0]) if cuenta else 0) + 1
+        alto = max(texto._alto_min, min(ALTO_MAXIMO, lineas))
+        if int(texto.cget("height")) != alto:
+            texto.configure(height=alto)
+    except (tk.TclError, TypeError, ValueError):
+        pass
+
+
+def _autoajustar_luego(texto):
+    if getattr(texto, "_auto_pendiente", None):
+        return
+    def hacer():
+        texto._auto_pendiente = None
+        _autoajustar(texto)
+    texto._auto_pendiente = texto.after_idle(hacer)
+
+
+def _asa_ampliar(padre, texto):
+    """Agarradera bajo el cuadro: arrastrar lo agranda; doble clic = automático."""
+    asa = tk.Label(padre, text="⋯⋯  arrastra para ampliar  ·  doble clic: tamaño automático  ⋯⋯",
+                   font=("Segoe UI", 7), foreground="#9a8f84", background="#f4ece0",
+                   cursor="sb_v_double_arrow")
+
+    def arrastrar(e):
+        linea = max(1, tkfont.Font(font=texto.cget("font")).metrics("linespace"))
+        y = e.y_root - texto.winfo_rooty() - 8
+        alto = max(texto._alto_min, min(80, int(y / linea)))
+        texto._alto_manual = alto
+        texto.configure(height=alto)
+
+    def automatico(_e=None):
+        texto._alto_manual = None
+        texto.configure(height=texto._alto_min)
+        _autoajustar(texto)
+
+    asa.bind("<B1-Motion>", arrastrar)
+    asa.bind("<Double-Button-1>", automatico)
+    return asa
+
+
+def ampliar_texto(widget):
+    """Abre el contenido del cuadro en una ventana grande para escribir con holgura."""
+    if getattr(widget, "_ventana_ampliada", None):
+        try:
+            widget._ventana_ampliada.lift()
+            return "break"
+        except tk.TclError:
+            pass
+    v = tk.Toplevel(widget.winfo_toplevel())
+    widget._ventana_ampliada = v
+    v.title("Ampliar texto  ·  Ctrl+Intro: aplicar  ·  cerrar la ventana también aplica")
+    v.geometry("980x640")
+    v.transient(widget.winfo_toplevel())
+    inferior = ttk.Frame(v, style="Panel.TFrame")
+    inferior.pack(side="bottom", fill="x", padx=8, pady=6)
+    marco, grande = caja_texto(v, alto=28, ancho=110, ampliable=False)
+    marco.pack(fill="both", expand=True, padx=8, pady=(8, 0))
+    grande._sin_auto = True
+    poner_texto(grande, sacar_texto(widget))
+    grande.focus_set()
+
+    def aplicar(_e=None):
+        nuevo = sacar_texto(grande)
+        if nuevo != sacar_texto(widget):
+            poner_texto(widget, nuevo)
+            widget.event_generate("<<TextoTocado>>")
+            _autoajustar_luego(widget)
+        widget._ventana_ampliada = None
+        v.destroy()
+        return "break"
+
+    def descartar():
+        widget._ventana_ampliada = None
+        v.destroy()
+
+    ttk.Button(inferior, text="Aplicar y cerrar", command=aplicar).pack(side="right")
+    ttk.Button(inferior, text="Descartar cambios", command=descartar).pack(side="right", padx=6)
+    v.protocol("WM_DELETE_WINDOW", aplicar)
+    grande.bind("<Control-Return>", aplicar)
+    return "break"
+
+
+def barra_formato(padre, widget, compacta=False, ampliable=True):
     """Barra de botones de formato de un cuadro de texto."""
     barra = ttk.Frame(padre, style="Panel.TFrame")
     fuente = ("Segoe UI", 8 if compacta else 9)
@@ -543,13 +778,14 @@ def barra_formato(padre, widget, compacta=False):
     menu_fuente.configure(menu=m3)
     _consejo(menu_fuente, "Tipografía  ·  <span class=\"ff-…\">…</span>")
 
-    # Párrafo: «Izq.» es como se ve por defecto; «Just.» ajusta el párrafo al
-    # ancho de la línea; «Sang+/Sang-» lo meten más o menos hacia dentro.
+    # Párrafo: por defecto el texto sale justificado; «Izq.» deja un párrafo a la
+    # izquierda y «Just.» lo vuelve a justificar; «Sang+/Sang-» lo meten más o menos hacia dentro.
     boton("Izq.", lambda: formato_parrafos(widget, "izq"),
-          "Quitar el justificado (alinear a la izquierda, como está por defecto)  ·  Ctrl+L",
+          "Alinear a la izquierda este párrafo (por defecto el texto sale justificado)  ·  "
+          "<span class=\"al-i\">…</span>  ·  Ctrl+L",
           ancho_b=5, font=fuente)
     boton("Just.", lambda: formato_parrafos(widget, "just"),
-          "Justificar: ajustar al ancho de la línea el párrafo  ·  "
+          "Justificar este párrafo (útil si en el supuesto apagaste el justificado)  ·  "
           "<span class=\"al-j\">…</span>  ·  Ctrl+J",
           ancho_b=5, font=fuente)
     boton("Sang+", lambda: formato_parrafos(widget, "mas"),
@@ -561,6 +797,16 @@ def barra_formato(padre, widget, compacta=False):
           ancho_b=5, font=fuente)
     boton("✕", lambda: quitar_formato(widget),
           "Quitar el formato de lo seleccionado", font=fuente)
+
+    # Ver / ocultar las marcas HTML y ampliar el cuadro a una ventana grande
+    b_marcas = boton("‹›", lambda: poner_ver_marcas(not ver_marcas()),
+                     "Ver u ocultar las marcas de formato (<b>, <i>…)  ·  Ctrl+Mayús+M",
+                     font=fuente)
+    b_marcas.configure(relief="sunken" if ver_marcas() else "groove")
+    _BOTONES_MARCAS.append(b_marcas)
+    if ampliable:
+        boton("⤢", lambda: ampliar_texto(widget),
+              "Ampliar: abre el texto en una ventana grande  ·  Ctrl+Mayús+E", font=fuente)
     return barra
 
 
@@ -590,7 +836,7 @@ def _consejo(widget, texto):
     widget.bind("<ButtonPress>", ocultar, add="+")
 
 
-def caja_texto(padre, alto=4, ancho=90, formato=True):
+def caja_texto(padre, alto=4, ancho=90, formato=True, ampliable=True):
     """Cuadro de texto multilínea con su barra de desplazamiento y, salvo
     que se pida lo contrario (formato=False), con su barra de botones de
     formato encima."""
@@ -606,12 +852,28 @@ def caja_texto(padre, alto=4, ancho=90, formato=True):
     if formato:
         texto._formato = True
         texto._fuentes_formato = []
-        texto.tag_configure("fmt_just", background="#e6eefb")
         for nivel in (1, 2, 3):
             texto.tag_configure("fmt_sg%d" % nivel, lmargin1=SANGRIA_PX * nivel,
                                 lmargin2=SANGRIA_PX * nivel)
-        texto.tag_configure("fmt_etiqueta", foreground="#b3aaa0")
-        barra_formato(marco, texto, compacta=(alto <= 3)).pack(fill="x", pady=(0, 2))
+        texto.tag_configure("fmt_etiqueta", foreground="#b3aaa0", elide=not ver_marcas())
+        _CAJAS.append(texto)
+        barra_formato(marco, texto, compacta=(alto <= 3), ampliable=ampliable
+                      ).pack(fill="x", pady=(0, 2))
+        # Con las marcas ocultas, borrar y escribir sobre una selección se hace
+        # por caracteres VISIBLES para no dejar etiquetas a medias.
+        texto.bind("<BackSpace>", _retroceso)
+        texto.bind("<Delete>", _suprimir)
+        texto.bind("<KeyPress>", _teclear_sobre_seleccion, add="+")
+        texto.bind("<<Cut>>", _cortar)
+        for pulsacion in ("<Control-Shift-M>", "<Control-Shift-m>"):
+            texto.bind(pulsacion, lambda e: (poner_ver_marcas(not ver_marcas()), "break")[1])
+        if ampliable:
+            for pulsacion in ("<Control-Shift-E>", "<Control-Shift-e>"):
+                texto.bind(pulsacion, lambda e: ampliar_texto(e.widget))
+            texto._alto_min = alto
+            texto._alto_manual = None
+            texto.bind("<Configure>", lambda e: _autoajustar_luego(texto), add="+")
+            texto.bind("<KeyRelease>", lambda e: _autoajustar_luego(texto), add="+")
         texto.bind("<KeyRelease>", lambda e: _repintar_luego(texto), add="+")
         texto.bind("<<Paste>>", lambda e: _repintar_luego(texto), add="+")
         atajos = [("b", "<b>", "</b>"), ("i", "<i>", "</i>"),
@@ -637,6 +899,8 @@ def caja_texto(padre, alto=4, ancho=90, formato=True):
     cuerpo.pack(fill="both", expand=True)
     texto.pack(side="left", fill="both", expand=True)
     barra.pack(side="right", fill="y")
+    if formato and ampliable:
+        _asa_ampliar(marco, texto).pack(fill="x")
     return marco, texto
 
 
@@ -644,6 +908,8 @@ def poner_texto(widget, valor):
     widget.delete("1.0", "end")
     widget.insert("1.0", "" if valor is None else str(valor))
     repintar_formato(widget)
+    if getattr(widget, "_alto_min", None):
+        _autoajustar_luego(widget)
 
 
 def sacar_texto(widget):

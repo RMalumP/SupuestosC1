@@ -77,6 +77,15 @@
 
     /* ── Favoritas (corazón). Se pueden desactivar en el supuesto (config.corazon:false, desde el editor
        de Python) o en el panel ⚙ de cada persona. ── */
+    /* Justificado por defecto (enunciado, preguntas, justificaciones): se apaga por supuesto con
+       config.justificar = {enunciado:false, pregunta:false, motivacion:false} desde el editor. */
+    (function () {
+        var j = (typeof EXAM_CONFIG !== 'undefined' && EXAM_CONFIG && EXAM_CONFIG.justificar) || {};
+        var c = document.documentElement.classList;
+        if (j.enunciado === false) c.add('no-just-enun');
+        if (j.pregunta === false) c.add('no-just-preg');
+        if (j.motivacion === false) c.add('no-just-mot');
+    })();
     function corazonDisponible() { return !(typeof EXAM_CONFIG !== 'undefined' && EXAM_CONFIG && EXAM_CONFIG.corazon === false); }
     function aplicarCorazon() { document.documentElement.classList.toggle('sin-corazon', !corazonDisponible() || S.get('corazon', true) === false); }
     function pintarFav(i) {
@@ -308,19 +317,30 @@
         document.body.appendChild(fondo);
     }
 
+    /* Opciones del panel ⚙ que el editor puede ocultar o dejar activadas (config.panel). Sin dato = todo igual que siempre. */
+    function opcionPanel(k) {
+        var p = (typeof EXAM_CONFIG !== 'undefined' && EXAM_CONFIG && EXAM_CONFIG.panel) || {};
+        return p[k] && typeof p[k] === 'object' ? p[k] : {};
+    }
+    S.opcionPanel = opcionPanel;
+
     /* ── Panel ⚙: tamaño de letra y tema oscuro ── */
     function ajustesVisuales() {
         var panel = $('settings-panel');
         if (!panel || $('row-visual')) return;
+        var op = opcionPanel('fuente'), ot = opcionPanel('tema');
+        if (op.visible === false && ot.visible === false) return;
         var fila = document.createElement('div');
         fila.className = 'settings-row'; fila.id = 'row-visual';
         fila.innerHTML =
-            '<label>Tamaño de letra</label><div class="fuente-btns">' +
+            (op.visible === false ? '' : '<label>Tamaño de letra</label><div class="fuente-btns">' +
             '<button type="button" data-f="normal">A</button><button type="button" data-f="grande">A+</button>' +
-            '<button type="button" data-f="enorme">A++</button></div>' +
-            '<div class="settings-check" style="margin-top:12px"><label><input type="checkbox" id="tema-oscuro-toggle">' +
-            '<span>Tema oscuro</span></label></div>';
+            '<button type="button" data-f="enorme">A++</button></div>') +
+            (ot.visible === false ? '' : '<div class="settings-check" style="margin-top:12px"><label><input type="checkbox" id="tema-oscuro-toggle">' +
+            '<span>Tema oscuro</span></label></div>');
         panel.appendChild(fila);
+        // «Empieza activado»: solo vale mientras la persona no haya elegido nada
+        if (ot.activa === true && S.get('tema', null) === null) document.documentElement.setAttribute('data-tema', 'oscuro');
         var actual = S.get('fuente', 'normal');
         fila.querySelectorAll('[data-f]').forEach(function (b) {
             b.classList.toggle('on', b.dataset.f === actual);
@@ -330,8 +350,10 @@
             });
         });
         var t = $('tema-oscuro-toggle');
-        t.checked = document.documentElement.getAttribute('data-tema') === 'oscuro';
-        t.addEventListener('change', function () { S.setTema(t.checked); });
+        if (t) {
+            t.checked = document.documentElement.getAttribute('data-tema') === 'oscuro';
+            t.addEventListener('change', function () { S.setTema(t.checked); });
+        }
     }
 
     /* ── Enganches ── */

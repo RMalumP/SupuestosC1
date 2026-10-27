@@ -114,13 +114,16 @@ class PestanaEnunciados:
                "Cada vez que pulsas ENTER empieza un párrafo nuevo en la página (la línea en blanco "
                "entre párrafos es opcional). Con los botones de arriba (o con Ctrl+B, Ctrl+I, "
                "Ctrl+U, Ctrl+T y Ctrl+R) se pone en negrita, cursiva, subrayado, tachado, "
-               "resaltado y otro tamaño de letra lo que esté seleccionado. «Just.» (Ctrl+J) "
-               "justifica —ajusta al ancho de la línea— el párrafo donde esté el cursor o los "
-               "seleccionados; «Izq.» (Ctrl+L) quita el justificado. «Sang+» (tecla Tab) mete "
+               "resaltado y otro tamaño de letra lo que esté seleccionado; el formato se ve directamente "
+               "(las marcas <b>…</b> están ocultas: el botón ‹› o Ctrl+Mayús+M las enseña). "
+               "El texto sale JUSTIFICADO por defecto en la página; «Izq.» (Ctrl+L) deja a la "
+               "izquierda el párrafo donde esté el cursor o los seleccionados y «Just.» (Ctrl+J) "
+               "lo vuelve a justificar. «Sang+» (tecla Tab) mete "
                "el párrafo más hacia dentro que el anterior, hasta tres niveles, y «Sang-» "
                "(Mayús+Tab) lo saca. El menú «Fuente» cambia la tipografía de lo seleccionado. "
-               "Los párrafos justificados se ven aquí con fondo azulado y justificados en la "
-               "página; las tipografías se ven aquí de forma aproximada."
+               "El cuadro crece solo al escribir; arrastra la franja de abajo para ampliarlo o "
+               "pulsa ⤢ (Ctrl+Mayús+E) para escribir en una ventana grande. "
+               "Las tipografías se ven aquí de forma aproximada."
                ).pack(anchor="w", padx=8, pady=(8, 2))
         marco, self.txt_bloque_parr = caja_texto(pb, alto=9)
         marco.pack(fill="both", expand=True, padx=8)

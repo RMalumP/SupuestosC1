@@ -108,6 +108,26 @@ class PestanaGeneral:
                                variable=self.var_cfg_subrayar, command=self._tocado)
         chk2.pack(anchor="w", padx=10, pady=(0, 10))
 
+        caja = ttk.LabelFrame(m, text=" Texto justificado ")
+        caja.pack(fill="x", padx=16, pady=6)
+        rotulo(caja, "Justificado por defecto", "config.justificar",
+               'text-align: justify en .fact-block, .q-text y .feedback-body', con_titulo=False,
+               ayuda=
+                    "Por defecto el texto sale justificado (alineado a los dos márgenes) en el "
+                    "enunciado, en las preguntas con sus respuestas y en las justificaciones. "
+                    "Desmarca una parte si en este supuesto la quieres alineada a la izquierda. "
+                    "Un párrafo suelto puede quedar a la izquierda con el botón «Izq.» del "
+                    "editor de texto."
+               ).pack(anchor="w", padx=10, pady=(8, 4))
+        self.var_just = {}
+        for clave, texto in (("enunciado", "Justificar el enunciado"),
+                             ("pregunta", "Justificar las preguntas y sus respuestas"),
+                             ("motivacion", "Justificar las justificaciones (motivación y consejo)")):
+            self.var_just[clave] = tk.BooleanVar(value=True)
+            ttk.Checkbutton(caja, text=texto, variable=self.var_just[clave],
+                            command=self._tocado).pack(anchor="w", padx=10, pady=(0, 4))
+        ttk.Frame(caja, height=6).pack()
+
         caja = ttk.LabelFrame(m, text=" Número de preguntas (automático) ")
         caja.pack(fill="x", padx=16, pady=6)
         rotulo(caja, "Nº de preguntas",
@@ -252,6 +272,10 @@ class PestanaGeneral:
         self.var_cfg_respuestas.set(self._etiquetas_respuestas[pos])
         self.var_cfg_corazon.set(cfg.get("corazon", True) is not False)
         self.var_cfg_subrayar.set(cfg.get("subrayar", True) is not False)
+        just = cfg.get("justificar") if isinstance(cfg.get("justificar"), dict) else {}
+        for clave, var in self.var_just.items():
+            var.set(just.get(clave, True) is not False)
+        self.cargar_panel_opciones(cfg)
         tema = self.datos.get("tema") or TEMA_DEFECTO
         for clave in TEMA_DEFECTO:
             self.w_tema[clave].set(tema.get(clave, TEMA_DEFECTO[clave]))
@@ -271,6 +295,8 @@ class PestanaGeneral:
         cfg["respuestas"] = next((v for v, t in RESPUESTAS_EXAMEN if t == etiqueta), 0)
         cfg["corazon"] = bool(self.var_cfg_corazon.get())
         cfg["subrayar"] = bool(self.var_cfg_subrayar.get())
+        cfg["justificar"] = {k: bool(v.get()) for k, v in self.var_just.items()}
+        cfg["panel"] = self.volcar_panel_opciones()
         self.datos["tema"] = {
             clave: color_valido(self.w_tema[clave].get(), TEMA_DEFECTO[clave])
             for clave in TEMA_DEFECTO}

@@ -27,6 +27,47 @@ class PestanaEnvio:
                        "y «envio»."
                   ).pack(anchor="w", padx=16, pady=(0, 10))
 
+        # ---------- 0. interruptor general de todas las opciones ----------
+        caja = ttk.LabelFrame(m, text=" Opciones de la página: activar o desactivar ")
+        caja.pack(fill="x", padx=16, pady=6)
+        ttk.Label(caja, style="Ayuda.TLabel", wraplength=860, justify="left",
+                  text="Aquí están TODAS las opciones del panel ⚙ y de la lectura. Marca las que "
+                       "quieres que tenga este supuesto; las que desmarques no se ven en la "
+                       "página. Más abajo (A y B) puedes además cambiar sus textos. Los botones "
+                       "de abajo marcan o desmarcan todo de una vez."
+                  ).pack(anchor="w", padx=10, pady=(8, 6))
+        self.var_panel = {}
+        for clave, texto, activa in (
+                ("fuente", "Tamaño de letra (A, A+, A++)", None),
+                ("tema", "Tema oscuro", "Empieza en oscuro"),
+                ("deslizar", "Deslizar para cambiar de pregunta (móvil)", "Empieza activado"),
+                ("atajos", "Atajos de teclado (?)", None)):
+            marco = ttk.Frame(caja, style="Panel.TFrame")
+            marco.pack(fill="x", padx=10, pady=1)
+            v = tk.BooleanVar(value=True)
+            ttk.Checkbutton(marco, text=texto, variable=v, command=self._tocado).pack(side="left")
+            self.var_panel[clave] = {"visible": v}
+            if activa:
+                va = tk.BooleanVar(value=PANEL_DEFECTO[clave]["activa"])
+                ttk.Checkbutton(marco, text=activa, variable=va,
+                                command=self._tocado).pack(side="left", padx=(18, 0))
+                self.var_panel[clave]["activa"] = va
+        for texto, var in (("Corazón de favoritas ♥", self.var_cfg_corazon),
+                           ("Subrayar con colores", self.var_cfg_subrayar),
+                           ("Justificar el enunciado", self.var_just["enunciado"]),
+                           ("Justificar las preguntas y respuestas", self.var_just["pregunta"]),
+                           ("Justificar las justificaciones", self.var_just["motivacion"])):
+            ttk.Checkbutton(caja, text=texto, variable=var,
+                            command=self._tocado).pack(anchor="w", padx=10, pady=1)
+        botones = ttk.Frame(caja, style="Panel.TFrame")
+        botones.pack(fill="x", padx=10, pady=(8, 10))
+        ttk.Button(botones, text="Activar todas", command=lambda: self.poner_todas_opciones(True)
+                   ).pack(side="left")
+        ttk.Button(botones, text="Desactivar todas", command=lambda: self.poner_todas_opciones(False)
+                   ).pack(side="left", padx=6)
+        ttk.Button(botones, text="Restablecer", command=self.restablecer_opciones
+                   ).pack(side="left")
+
         # ---------- A. cabecera y panel ⚙ ----------
         caja = ttk.LabelFrame(m, text=" Cabecera y panel de opciones (⚙) ")
         caja.pack(fill="x", padx=16, pady=6)
@@ -289,6 +330,45 @@ class PestanaEnvio:
             if not bloque:
                 continue
             bloque["envio"] = {c: v.get().strip() for c, v in campos.items()}
+
+    # ---------- interruptor general de opciones ----------
+    def _todas_las_casillas_se_ve(self):
+        """Casillas «se ve» de la cabecera y la botonera + las opciones extra."""
+        variables = [campos["visible"] for campos in self.w_ui.values() if "visible" in campos]
+        variables += [c["visible"] for c in self.var_panel.values()]
+        variables += [self.var_cfg_corazon, self.var_cfg_subrayar]
+        variables += list(self.var_just.values())
+        return variables
+
+    def poner_todas_opciones(self, valor):
+        for var in self._todas_las_casillas_se_ve():
+            var.set(bool(valor))
+        self._tocado()
+
+    def restablecer_opciones(self):
+        for clave, campos in self.w_ui.items():
+            for campo, var in campos.items():
+                if isinstance(var, tk.BooleanVar):
+                    var.set(bool(INTERFAZ_DEFECTO[clave].get(campo, True)))
+        for clave, campos in self.var_panel.items():
+            for campo, var in campos.items():
+                var.set(PANEL_DEFECTO[clave][campo])
+        self.var_cfg_corazon.set(True)
+        self.var_cfg_subrayar.set(True)
+        for var in self.var_just.values():
+            var.set(True)
+        self._tocado()
+
+    def cargar_panel_opciones(self, cfg):
+        panel = cfg.get("panel") if isinstance(cfg.get("panel"), dict) else {}
+        for clave, campos in getattr(self, "var_panel", {}).items():
+            dado = panel.get(clave) if isinstance(panel.get(clave), dict) else {}
+            for campo, var in campos.items():
+                var.set(dado.get(campo, PANEL_DEFECTO[clave][campo]) is not False)
+
+    def volcar_panel_opciones(self):
+        return {clave: {campo: bool(var.get()) for campo, var in campos.items()}
+                for clave, campos in getattr(self, "var_panel", {}).items()}
 
     # ---------- cargar / volcar la pestaña ----------
     def cargar_botones(self):

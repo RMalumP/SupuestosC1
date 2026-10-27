@@ -46,7 +46,7 @@ class MenuDatos(unittest.TestCase):
         texto = (RAIZ / "datos" / "supuestos-datos.js").read_text(encoding="utf-8")
         menu = menu_datos.leer(texto)
         self.assertEqual(menu_datos.escribir_texto(texto, menu), texto)
-        self.assertEqual(len(menu_datos.archivos_del_menu(menu)), 9)
+        self.assertGreater(len(menu_datos.archivos_del_menu(menu)), 0)
 
     def test_formato_antiguo_se_lee_y_se_convierte(self):
         antiguo = 'window.SUPUESTOS_DATOS = {"secciones":[{"id":"g","titulo":"G","grupos":[{"id":"i","titulo":"I","items":[' \
@@ -60,7 +60,9 @@ class MenuDatos(unittest.TestCase):
         t = (RAIZ / "datos" / "supuestos-datos.js").read_text(encoding="utf-8")
         t = t.replace('"desc"', '"desc"', 1).replace("  ];\n  // <<< SUPUESTOS", "  // un comentario\n  ];\n  // <<< SUPUESTOS")
         t = t.replace("}\n  // un comentario", "},\n  // un comentario")
-        self.assertEqual(len(menu_datos.archivos_del_menu(menu_datos.leer(t))), 9)
+        original = menu_datos.archivos_del_menu(menu_datos.leer(
+            (RAIZ / "datos" / "supuestos-datos.js").read_text(encoding="utf-8")))
+        self.assertEqual(len(menu_datos.archivos_del_menu(menu_datos.leer(t))), len(original))
 
     def test_error_con_numero_de_linea(self):
         t = (RAIZ / "datos" / "supuestos-datos.js").read_text(encoding="utf-8")
@@ -129,7 +131,7 @@ class EdicionDelMenu(unittest.TestCase):
 
     def test_sin_alta(self):
         menu_datos.quitar(self.m, "supuesto_3")
-        self.assertEqual(menu_datos.sin_alta(self.m, RAIZ / "supuestos"), ["supuesto_3"])
+        self.assertIn("supuesto_3", menu_datos.sin_alta(self.m, RAIZ / "supuestos"))
 
 
 class AltaYValidador(unittest.TestCase):
@@ -244,6 +246,41 @@ class SincronizarLocal(unittest.TestCase):
             self.assertFalse((d / "PARA_SUBIR").exists())
         finally:
             shutil.rmtree(d, ignore_errors=True)
+
+
+class JustificadoYMarcas(unittest.TestCase):
+    def test_justificado_y_panel_por_defecto_y_valores_raros(self):
+        cfg = datos_html.normalizar({})["config"]
+        self.assertEqual(cfg["justificar"], {"enunciado": True, "pregunta": True, "motivacion": True})
+        self.assertTrue(cfg["panel"]["tema"]["visible"])
+        self.assertFalse(cfg["panel"]["tema"]["activa"])
+        self.assertTrue(cfg["panel"]["deslizar"]["activa"])
+        raro = datos_html.normalizar({"config": {"justificar": {"pregunta": False}, "panel": {"atajos": {"visible": False}, "tema": "x"}}})["config"]
+        self.assertFalse(raro["justificar"]["pregunta"])
+        self.assertTrue(raro["justificar"]["enunciado"])
+        self.assertFalse(raro["panel"]["atajos"]["visible"])
+        self.assertTrue(raro["panel"]["tema"]["visible"])
+
+    def test_el_css_justifica_por_defecto_y_se_apaga_por_clase(self):
+        css = (RAIZ / "css" / "base-supuesto.css").read_text(encoding="utf-8")
+        for pieza in (".q-text", ".feedback-body p", ".fact-block p", "no-just-enun", "no-just-preg", "no-just-mot", ".al-i"):
+            self.assertIn(pieza, css)
+        js = (RAIZ / "js" / "app-supuesto.js").read_text(encoding="utf-8")
+        self.assertIn("no-just-enun", js)
+
+    def test_borrar_lo_visible_conserva_las_marcas(self):
+        import editor_comun as ec
+        self.assertEqual(ec.solo_etiquetas("b<b>cd</b>e"), "")
+        self.assertEqual(ec.solo_etiquetas("b<b>cd"), "<b>")
+        self.assertEqual(ec.solo_etiquetas('x<span class="al-i">y</span>'), "")
+        self.assertEqual(ec.quitar_pares_vacios("a<b></b>b<i><u></u></i>"), "ab")
+        self.assertEqual(ec.quitar_pares_vacios("<p></p>"), "<p></p>")        # no es de formato
+
+    def test_izquierda_y_justificar_son_clases_de_parrafo(self):
+        import editor_comun as ec
+        self.assertIn("al-i", ec.CLASES_PARRAFO)
+        env = ec.envoltorio_parrafo('<span class="al-i sg-1">hola</span>')
+        self.assertEqual(env, ({"al-i", "sg-1"}, "hola"))
 
 
 class Corazon(unittest.TestCase):

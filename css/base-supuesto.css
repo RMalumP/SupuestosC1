@@ -677,3 +677,17 @@ body.hide-qtags .q-tag { display: none; }
             .nav-group-label { flex-basis: 68px; font-size: 0.48rem; letter-spacing: 0.08em; white-space: normal; }
             .home-btn, .settings-wrap { flex-shrink: 0; }
         }
+
+
+/* Justificado POR DEFECTO en enunciado, preguntas y justificaciones.
+   Cada supuesto puede apagarlo desde el editor (config.justificar):
+   la página pone en <html> la clase no-just-enun / no-just-preg /
+   no-just-mot. Un párrafo suelto puede quedar a la izquierda con
+   <span class="al-i">…</span> (botón «Izq.» del editor). */
+.fact-block p, .statement p, .q-text, .option > span:last-child,
+.feedback-body p, .feedback-body .tip { text-align: justify; text-justify: inter-word; }
+html.no-just-enun .fact-block p, html.no-just-enun .statement p,
+html.no-just-preg .q-text, html.no-just-preg .option > span:last-child,
+html.no-just-mot .feedback-body p, html.no-just-mot .feedback-body .tip { text-align: left; }
+.al-i { display: block; text-align: left !important; }
+.ci-answers .al-i { display: inline; }

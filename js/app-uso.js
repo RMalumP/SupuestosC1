@@ -146,13 +146,13 @@
         else if (k === 'm' && S.sup) { e.preventDefault(); S.sup.marcar(current); }
         else if (k === 'h' && S.sup && S.sup.corazonDisponible() && S.get('corazon', true) !== false) { e.preventDefault(); S.sup.favorita(current); }
         else if (k === 'n' && S.sup) { e.preventDefault(); S.sup.nota(current); }
-        else if (k === '?') { e.preventDefault(); ayuda(); }
+        else if (k === '?' && !(S.opcionPanel && S.opcionPanel('atajos').visible === false)) { e.preventDefault(); ayuda(); }
     });
 
     /* ── Deslizar para cambiar de pregunta (móvil) ── */
     var x0 = 0, y0 = 0, t0 = 0, desliza = false;
     document.addEventListener('touchstart', function (e) {
-        var t = e.target, ok = e.touches.length === 1 && S.get && S.get('deslizar', true) &&
+        var t = e.target, ok = e.touches.length === 1 && S.get && S.get('deslizar', !(S.opcionPanel && S.opcionPanel('deslizar').activa === false)) &&
             !(t.closest && t.closest('#nav-header, input, textarea, select, .table-scroll, .timeline, #settings-panel, .supc1-modal, #overlay'));
         desliza = !!ok;
         if (ok) { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; t0 = Date.now(); }
@@ -173,15 +173,16 @@
     if (panel && !$('row-uso') && S.get) {
         var fila = document.createElement('div');
         fila.className = 'settings-row'; fila.id = 'row-uso';
-        fila.innerHTML = '<div class="settings-check"><label><input type="checkbox" id="deslizar-toggle"><span>Deslizar para cambiar de pregunta</span></label></div>' +
+        var od = S.opcionPanel ? S.opcionPanel('deslizar') : {}, oa = S.opcionPanel ? S.opcionPanel('atajos') : {};
+        fila.innerHTML = (od.visible === false ? '' : '<div class="settings-check"><label><input type="checkbox" id="deslizar-toggle"><span>Deslizar para cambiar de pregunta</span></label></div>') +
             (S.sup && S.sup.corazonDisponible() ? '<div class="settings-check" style="margin-top:8px"><label><input type="checkbox" id="corazon-toggle"><span>Mostrar el corazón de favoritas ♥</span></label></div>' : '') +
-            '<div style="margin-top:8px"><button type="button" class="btn-mini" id="atajos-btn">Atajos de teclado (?)</button></div>';
+            (oa.visible === false ? '' : '<div style="margin-top:8px"><button type="button" class="btn-mini" id="atajos-btn">Atajos de teclado (?)</button></div>');
         panel.appendChild(fila);
-        var d = $('deslizar-toggle'); d.checked = S.get('deslizar', true);
-        d.addEventListener('change', function () { S.set('deslizar', d.checked); });
+        var d = $('deslizar-toggle');
+        if (d) { d.checked = S.get('deslizar', od.activa !== false); d.addEventListener('change', function () { S.set('deslizar', d.checked); }); }
         var cz = $('corazon-toggle');
         if (cz) { cz.checked = S.get('corazon', true) !== false; cz.addEventListener('change', function () { S.set('corazon', cz.checked); S.sup.aplicarCorazon(); }); }
-        $('atajos-btn').addEventListener('click', ayuda);
+        if ($('atajos-btn')) $('atajos-btn').addEventListener('click', ayuda);
     }
 
     /* Anunciar el resultado al corregir */
