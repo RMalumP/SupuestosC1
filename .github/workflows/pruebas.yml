@@ -10,10 +10,11 @@ on:
     branches: [claude/plantillas_editor]
   pull_request:
 
-# Una subida nueva cancela las pruebas antiguas de la misma rama.
+# En un pull request, una subida nueva cancela las pruebas antiguas. En la rama base
+# nunca se cancela una ejecución: cada una pone al día las referencias de lo que cambió.
 concurrency:
-  group: pruebas-${{ github.ref }}
-  cancel-in-progress: true
+  group: pruebas-${{ github.event_name == 'push' && github.sha || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   python:
@@ -39,6 +40,8 @@ jobs:
     name: navegador (${{ matrix.grupos }})
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v5
         with:
@@ -61,9 +64,80 @@ jobs:
         if: steps.cache-pw.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
 
+      # Al subir a la rama base, las referencias (tests/golden/) de los supuestos que se han
+      # tocado o añadido se regeneran aquí antes de probar, y el trabajo «referencias» las guarda.
+      # Lo que no se ha tocado (CSS, JS, menú…) sigue comparándose con la referencia de siempre.
+      - name: Poner al día las referencias de los supuestos tocados
+        if: github.event_name == 'push' && contains(matrix.grupos, 'estilos')
+        env:
+          ANTES: ${{ github.event.before }}
+        run: |
+          paginas=""
+          if [ -n "$ANTES" ] && ! echo "$ANTES" | grep -qE '^0+$' && git cat-file -e "$ANTES^{commit}" 2>/dev/null; then
+            cambios=$(git diff --name-only "$ANTES" "$GITHUB_SHA")
+            for f in $(echo "$cambios" | grep -E '^supuestos/[^/]+\.html$' || true); do paginas="$paginas,$(basename "$f")"; done
+            if echo "$cambios" | grep -qx 'datos/supuestos-datos.js'; then paginas="$paginas,index.html"; fi
+          fi
+          paginas="${paginas#,}"
+          echo "Páginas a poner al día: ${paginas:-ninguna}"
+          if [ -n "$paginas" ]; then
+            node tests/run.js envios estilos --actualizar --paginas="$paginas"
+          fi
+          if ! git diff --quiet -- tests/golden; then
+            mkdir -p referencias && cp tests/golden/*.json referencias/
+            echo "HAY_REFERENCIAS=1" >> "$GITHUB_ENV"
+          fi
+
+      - name: Guardar las referencias nuevas
+        if: env.HAY_REFERENCIAS == '1'
+        uses: actions/upload-artifact@v4
+        with:
+          name: referencias
+          path: referencias/
+
       - name: Pruebas en el navegador
         run: node tests/run.js ${{ matrix.grupos }}
 
       - name: Guardar el informe si algo falla
         if: failure()
         run: echo "Mira el registro de «Pruebas en el navegador» para ver qué comprobación falla."
+
+  # Guarda en la rama las referencias puestas al día (solo si todas las pruebas pasan).
+  # Los commits del bot no lanzan otra ejecución de «Pruebas».
+  referencias:
+    needs: [python, navegador]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    concurrency:
+      group: referencias
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Descargar las referencias nuevas
+        id: descarga
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: referencias
+          path: referencias
+
+      - name: Commit de las referencias
+        if: steps.descarga.outcome == 'success'
+        run: |
+          cp referencias/*.json tests/golden/
+          if git diff --quiet -- tests/golden; then echo "Sin cambios"; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/golden
+          git commit -m "Pruebas: referencias puestas al día automáticamente por los supuestos tocados"
+          for i in 1 2 3; do
+            git pull --rebase origin "$GITHUB_REF_NAME" && git push origin "HEAD:$GITHUB_REF_NAME" && exit 0
+            git rebase --abort 2>/dev/null || true
+            sleep 5
+          done
+          echo "::error::No se pudieron guardar las referencias (conflicto con otra subida); vuelve a ejecutar la prueba."
+          exit 1

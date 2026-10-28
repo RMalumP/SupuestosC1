@@ -27,5 +27,15 @@ cambio es el que querías y guarda la nueva referencia con:
 
 y sube también los archivos de tests/golden/ junto con el cambio.
 
+Referencias de supuestos nuevos o tocados (automático en GitHub)
+
+  Cuando subes a la rama base un supuesto nuevo o cambiado (supuestos/*.html), o el menú
+  (datos/supuestos-datos.js), el CI regenera solo las referencias de ESAS páginas, prueba contra
+  ellas y, si todo lo demás pasa, las guarda en un commit propio («Pruebas: referencias puestas al
+  día…»). No hay que pedir ni editar nada. Lo que no se ha tocado (CSS, JS, plantillas…) sigue
+  comparándose con la referencia de siempre, así que un cambio de diseño imprevisto sigue fallando.
+  En pull requests no se actualiza nada: ahí las referencias siguen siendo estrictas.
+  En local, para una sola página:  node tests/run.js envios estilos --actualizar --paginas=supuesto_X.html
+
 En GitHub se ejecutan solas en cada subida (pestaña «Actions»), con
 .github/workflows/pruebas.yml.
