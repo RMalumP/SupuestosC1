@@ -73,4 +73,24 @@
         t.classList.add('instalar');
     }
     window.addEventListener('load', function () { setTimeout(mostrar, 1500); });
+
+    /* ── Botón fijo «Instalar app» (pie del menú): sigue ahí aunque se haya cerrado el aviso ── */
+    var item = document.getElementById('instalar-item'), btn = document.getElementById('btn-instalar');
+    if (item && btn && !instalada) {
+        item.hidden = false;
+        btn.addEventListener('click', function () {
+            if (evento) {
+                evento.prompt();
+                evento.userChoice.then(function () { evento = null; });
+                return;
+            }
+            var ua = navigator.userAgent;
+            alert(/iphone|ipad|ipod/i.test(ua)
+                ? 'Pulsa Compartir y «Añadir a pantalla de inicio».'
+                : /android/i.test(ua)
+                    ? 'Abre el menú ⋮ de Chrome y elige «Instalar aplicación» (o «Añadir a pantalla de inicio»). Si no aparece, recarga la página y espera unos segundos.'
+                    : 'Usa el icono de instalar de la barra de direcciones del navegador, o el menú ⋮ → «Instalar Supuestos C1».');
+        });
+        window.addEventListener('appinstalled', function () { item.hidden = true; });
+    }
 })();
