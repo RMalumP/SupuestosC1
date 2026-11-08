@@ -392,6 +392,25 @@ class EditorApp(PestanaGeneral,
         self.refrescar_lista_preg(n)
         self.cuaderno.select(3)
 
+    def ir_a_sitio(self, ruta):
+        """Salta al sitio de un texto (de «Buscar en todo»): pregunta, enunciado,
+        hecho, hito, bloque o datos generales."""
+        if not ruta:
+            return
+        self.volcar_todo()
+        if ruta[0] == "preguntas":
+            self.ir_a_pregunta(ruta[1])
+        elif ruta[0] == "enunciados":
+            self.i_bloque = ruta[3] if len(ruta) > 3 and ruta[2] == "factBlocks" else None
+            self.i_hito = ruta[3] if len(ruta) > 3 and ruta[2] == "timeline" else None
+            self.refrescar_lista_enun(ruta[1])
+            self.cuaderno.select(2)
+        elif ruta[0] == "bloques":
+            self.refrescar_lista_sec(ruta[1])
+            self.cuaderno.select(1)
+        else:
+            self.cuaderno.select(0)
+
     def _mover_con_atajo(self, paso):
         if self.cuaderno.index("current") == 3:
             self.mover_pregunta(paso)

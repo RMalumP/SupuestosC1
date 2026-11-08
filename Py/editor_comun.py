@@ -26,6 +26,7 @@ import publicar                  # versión, historial, recientes, ayuda, impugn
 from archivos import escribir_seguro, huella_disco
 import git_sync                  # git (comprobar si hay cambios nuevos en GitHub)
 import segundo_plano             # trabajos largos (git, descargas) sin congelar la ventana
+import revision                  # las reglas de revisión (lista, guardar, Comprobar, validador)
 
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, colorchooser, simpledialog

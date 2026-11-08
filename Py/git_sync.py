@@ -28,7 +28,7 @@ import tempfile
 from datetime import date
 from pathlib import Path
 
-PREFIJOS_FUERA = (".recuperacion_", "PARA_SUBIR/", ".git/", ".historial/")
+PREFIJOS_FUERA = (".recuperacion_", ".vista_previa_", "PARA_SUBIR/", ".git/", ".historial/")
 NOMBRES_FUERA = {".editor_prefs.json", ".estado_local.json", ".DS_Store", "Thumbs.db"}
 SUFIJOS_FUERA = (".bak", ".pyc", ".tmp")
 DESTINOS = ("dia", "actual", "principal")

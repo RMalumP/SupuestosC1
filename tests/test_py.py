@@ -330,6 +330,25 @@ class Herramientas(unittest.TestCase):
         self.assertEqual(hd.reemplazar(d, "plazo", "término"), 2)
         self.assertIn("término", d["preguntas"][0]["q"])
 
+    def test_buscar_en_todo_sin_que_estorbe_el_formato(self):
+        d = self.datos()
+        e = datos_html.enunciado_vacio("E1")
+        e["factBlocks"] = [datos_html.bloque_hechos_vacio("H1")]
+        e["factBlocks"][0]["paragraphs"] = ["Recurso en plazo de diez <b>días</b> hábiles."]
+        e["timeline"] = [datos_html.hito_vacio()]
+        e["timeline"][0]["text"] = "Diez días después"
+        d["enunciados"] = [e]
+        d["preguntas"][2]["law"] = "art. 1 · <i>diez</i> días"
+        rutas = [r for _n, r, _d, _f in hd.buscar(d, "diez días")]
+        self.assertIn(("enunciados", 0, "factBlocks", 0, "paragraphs", 0), rutas)
+        self.assertIn(("enunciados", 0, "timeline", 0, "text"), rutas)
+        self.assertIn(("preguntas", 2, "law"), rutas)
+        # Solo en un sitio y sin perder la negrita.
+        n = hd.reemplazar(d, "diez días", "quince días", solo={("enunciados", 0, "factBlocks", 0, "paragraphs", 0)})
+        self.assertEqual(n, 1)
+        self.assertEqual(e["factBlocks"][0]["paragraphs"][0], "Recurso en plazo de quince días hábiles.")
+        self.assertEqual(e["timeline"][0]["text"], "Diez días después")
+
     def test_importar_texto(self):
         t = ("1) ¿Cuál es?\na) uno\nb) *dos\nc) tres\nMotivación: art. 1\n\n"
              "2) Varias\na) x\nb) y\nc) z\nCorrecta: a, c\n\nsolo texto\n")
@@ -355,7 +374,29 @@ class Herramientas(unittest.TestCase):
         d["preguntas"][2]["a"] = ["igual", "igual", "x", "y"]
         f = hd.problemas_por_pregunta(d)
         self.assertEqual(f[1][0], "error")
-        self.assertEqual(f[2][0], "aviso")
+        self.assertEqual(f[2], ("error", "opciones repetidas"))   # igual que el validador
+        d["preguntas"][2]["a"] = ["a", "b", "c", "d"]
+        d["preguntas"][2]["law"] = ""
+        self.assertEqual(hd.problemas_por_pregunta(d)[2], ("aviso", "sin motivación"))
+
+    def test_un_solo_revisor(self):
+        import revision
+        d = self.datos()
+        d["preguntas"][0]["a"] = ["a", "b", "c", "d"]
+        d["preguntas"][0]["correctas"] = [0, 2]                 # varias sin «múltiple»
+        d["preguntas"][1]["a"] = ["e", "f", "g", "h"]
+        d["preguntas"][1]["correctas"] = [9]                    # apunta fuera
+        h = revision.revisar(d)
+        self.assertEqual(revision.por_pregunta(h)[0], ("error", "varias correctas"))
+        self.assertEqual(revision.por_pregunta(h)[1], ("error", "correcta perdida"))
+        # Lo que marca la lista es exactamente lo que impide publicar.
+        graves = hd.errores_graves(d)
+        self.assertTrue(any(g.startswith("Pregunta 1:") for g in graves))
+        self.assertTrue(any(g.startswith("Pregunta 2:") for g in graves))
+        # El JSON tal cual del archivo (formato antiguo con «c») también vale.
+        crudo = {"config": {"titulo": "T", "minutos": 10},
+                 "preguntas": [{"q": "x", "a": ["a", "b"], "c": 1, "law": "art. 1"}]}
+        self.assertEqual(revision.errores(revision.revisar(crudo)), [])
 
     def test_recuperacion(self):
         with tempfile.TemporaryDirectory() as c:
@@ -613,7 +654,7 @@ class Fase1Fallos(unittest.TestCase):
         self.assertIsNone(hd.error_id_enunciado(d, e1, "E1b"))
         self.assertEqual(hd.renombrar_enunciado(d, e1, "E1b"), 1)
         self.assertEqual(d["preguntas"][0]["statementId"], "E1b")
-        self.assertEqual(hd.errores_graves(d), [])
+        self.assertFalse([g for g in hd.errores_graves(d) if "enunciado" in g.lower()])
 
     def test_guardar_avisa_de_enunciados_que_no_existen(self):
         d = datos_html.datos_vacios()

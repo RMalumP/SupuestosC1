@@ -9,15 +9,12 @@ from tkinter import ttk, filedialog, messagebox
 
 import herramientas_datos as hd
 
-NOMBRE_CAMPO = {"q": "pregunta", "a": "opción", "law": "motivación", "tip": "consejo"}
-
-
 def buscar_reemplazar(app):
     app.volcar_todo()
     d = tk.Toplevel(app)
-    d.title("Buscar y reemplazar")
+    d.title("Buscar y reemplazar en todo el supuesto")
     d.transient(app)
-    d.geometry("760x460")
+    d.geometry("820x500")
     marco = ttk.Frame(d, padding=10)
     marco.pack(fill="both", expand=True)
 
@@ -28,9 +25,13 @@ def buscar_reemplazar(app):
     ttk.Label(marco, text="Reemplazar por").grid(row=1, column=0, sticky="w")
     ttk.Entry(marco, textvariable=v_nuevo, width=50).grid(row=1, column=1, sticky="we", padx=6, pady=2)
     ttk.Checkbutton(marco, text="Distinguir mayúsculas", variable=v_mayus).grid(row=2, column=1, sticky="w")
+    ttk.Label(marco, style="Ayuda.TLabel",
+              text="Busca en preguntas, opciones, motivaciones, enunciados, hechos, hitos y títulos. "
+                   "La negrita y demás formato no estorban.").grid(row=2, column=1, sticky="e")
     marco.columnconfigure(1, weight=1)
 
-    lista = tk.Listbox(marco, activestyle="none", font=("Consolas", 9))
+    lista = tk.Listbox(marco, activestyle="none", font=("Consolas", 9), selectmode="extended",
+                       exportselection=False)
     lista.grid(row=3, column=0, columnspan=3, sticky="nsew", pady=8)
     marco.rowconfigure(3, weight=1)
     lbl = ttk.Label(marco, text="")
@@ -41,26 +42,32 @@ def buscar_reemplazar(app):
         app.volcar_todo()
         hallazgos[:] = hd.buscar(app.datos, v_busca.get(), v_mayus.get())
         lista.delete(0, "end")
-        for n, campo, i, frag in hallazgos:
-            extra = " %s" % "ABCDEFG"[i] if campo == "a" else ""
-            lista.insert("end", "P%-3d %-10s %s" % (n + 1, NOMBRE_CAMPO[campo] + extra, frag))
-        lbl.config(text="%d coincidencias." % len(hallazgos))
+        for _n, _ruta, donde, frag in hallazgos:
+            lista.insert("end", "%-28s %s" % (donde[:28], frag))
+        lbl.config(text="%d sitio(s) con coincidencias." % len(hallazgos))
 
     def ir(*_):
         sel = lista.curselection()
         if sel:
-            app.ir_a_pregunta(hallazgos[sel[0]][0])
+            app.ir_a_sitio(hallazgos[sel[0]][1])
 
-    def reemplazar():
+    def reemplazar(solo_marcados=False):
         if not v_busca.get():
             return
+        solo = None
+        if solo_marcados:
+            solo = {hallazgos[i][1] for i in lista.curselection()}
+            if not solo:
+                messagebox.showinfo("Reemplazar", "Marca antes uno o varios resultados de la lista.", parent=d)
+                return
+        donde = "en los %d sitio(s) marcados" % len(solo) if solo else "en TODO el supuesto"
         if not messagebox.askyesno("Reemplazar",
-                                   "¿Cambiar «%s» por «%s» en todo el supuesto?\n\n"
-                                   "(Se puede deshacer con Ctrl+Z.)" % (v_busca.get(), v_nuevo.get()),
+                                   "¿Cambiar «%s» por «%s» %s?\n\n"
+                                   "(Se puede deshacer con Ctrl+Z.)" % (v_busca.get(), v_nuevo.get(), donde),
                                    parent=d):
             return
         app.anotar_historial()
-        n = hd.reemplazar(app.datos, v_busca.get(), v_nuevo.get(), v_mayus.get())
+        n = hd.reemplazar(app.datos, v_busca.get(), v_nuevo.get(), v_mayus.get(), solo=solo)
         app.recargar_tras_cambio()
         buscar()
         lbl.config(text="%d sustituciones hechas." % n)
@@ -69,7 +76,9 @@ def buscar_reemplazar(app):
     fila = ttk.Frame(marco)
     fila.grid(row=5, column=0, columnspan=3, sticky="e")
     ttk.Button(fila, text="Buscar", command=buscar).pack(side="left", padx=3)
-    ttk.Button(fila, text="Ir a la pregunta", command=ir).pack(side="left", padx=3)
+    ttk.Button(fila, text="Ir allí", command=ir).pack(side="left", padx=3)
+    ttk.Button(fila, text="Reemplazar en los marcados",
+               command=lambda: reemplazar(True)).pack(side="left", padx=3)
     ttk.Button(fila, text="Reemplazar todo", command=reemplazar).pack(side="left", padx=3)
     ttk.Button(fila, text="Cerrar", command=d.destroy).pack(side="left", padx=3)
     lista.bind("<Double-Button-1>", ir)

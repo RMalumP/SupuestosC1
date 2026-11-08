@@ -7,3 +7,4 @@ PARA_SUBIR/
 .editor_prefs.json
 .recuperacion_*.json
 .historial/
+.vista_previa_*

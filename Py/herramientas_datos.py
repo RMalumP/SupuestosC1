@@ -21,6 +21,7 @@ import re
 from pathlib import Path
 
 import datos_html
+import revision
 
 LETRAS = "ABCDEFG"
 CAMPOS = (("q", "pregunta"), ("a", "opción"), ("law", "motivación"), ("tip", "consejo"))
@@ -78,45 +79,119 @@ def _patron(texto, sensible):
     return re.compile(re.escape(texto), 0 if sensible else re.IGNORECASE)
 
 
-def _campos(p):
-    yield "q", None, p.get("q", "")
-    for i, t in enumerate(p.get("a", [])):
-        yield "a", i, t
-    yield "law", None, p.get("law", "")
-    yield "tip", None, p.get("tip", "")
+LETRAS_OPCION = "ABCDEFG"
+RE_TAG = re.compile(r"<[^<>]*>")
+RE_PAR_VACIO = re.compile(r"<(b|i|u|s|mark|span|strong|em)\b[^<>]*></\1\s*>", re.I)
+
+
+def sitios(datos):
+    """Todos los textos del supuesto que se pueden buscar: (ruta, dónde, valor).
+    ruta: tupla de claves para llegar al texto, p. ej. ("preguntas", 3, "a", 1)."""
+    cfg = datos.get("config") or {}
+    if isinstance(cfg.get("titulo"), str):
+        yield ("config", "titulo"), "Título del supuesto", cfg["titulo"]
+    for k, b in enumerate(datos.get("bloques") or []):
+        if isinstance(b.get("titulo"), str):
+            yield ("bloques", k, "titulo"), "Bloque %s · título" % b.get("id", k + 1), b["titulo"]
+    for k, e in enumerate(datos.get("enunciados") or []):
+        ide = e.get("id") or "E%d" % (k + 1)
+        for campo, nombre in (("title", "título"), ("ambito", "materias"), ("ref", "referencia")):
+            if isinstance(e.get(campo), str):
+                yield ("enunciados", k, campo), "%s · %s" % (ide, nombre), e[campo]
+        for j, h in enumerate(e.get("factBlocks") or []):
+            idh = h.get("id") or "H%d" % (j + 1)
+            if isinstance(h.get("title"), str):
+                yield ("enunciados", k, "factBlocks", j, "title"), "%s · %s · título" % (ide, idh), h["title"]
+            for m, par in enumerate(h.get("paragraphs") or []):
+                yield ("enunciados", k, "factBlocks", j, "paragraphs", m), \
+                    "%s · %s · párrafo %d" % (ide, idh, m + 1), par
+        for j, h in enumerate(e.get("timeline") or []):
+            for campo, nombre in (("date", "fecha"), ("text", "texto")):
+                if isinstance(h.get(campo), str):
+                    yield ("enunciados", k, "timeline", j, campo), "%s · hito %d · %s" % (ide, j + 1, nombre), h[campo]
+    for n, p in enumerate(datos.get("preguntas") or []):
+        yield ("preguntas", n, "q"), "P%d · pregunta" % (n + 1), p.get("q", "")
+        for i, t in enumerate(p.get("a", [])):
+            yield ("preguntas", n, "a", i), "P%d · opción %s" % (n + 1, LETRAS_OPCION[i % 7]), t
+        for campo, nombre in (("law", "motivación"), ("tip", "consejo"), ("tag", "etiqueta")):
+            yield ("preguntas", n, campo), "P%d · %s" % (n + 1, nombre), p.get(campo, "")
+
+
+def poner_en(datos, ruta, valor):
+    sitio = datos
+    for clave in ruta[:-1]:
+        sitio = sitio[clave]
+    sitio[ruta[-1]] = valor
+
+
+def _visible(texto):
+    """(texto sin etiquetas HTML, posición en el original de cada letra visible)."""
+    vis, pos, i = [], [], 0
+    for m in RE_TAG.finditer(texto):
+        for k in range(i, m.start()):
+            vis.append(texto[k])
+            pos.append(k)
+        i = m.end()
+    for k in range(i, len(texto)):
+        vis.append(texto[k])
+        pos.append(k)
+    return "".join(vis), pos
+
+
+def _coincidencias(texto, pat):
+    """[(inicio, fin) en el texto original] de lo que se ve, aunque haya negritas
+    u otras marcas por medio («diez <b>días</b>» se encuentra buscando «diez días»)."""
+    vis, pos = _visible(texto or "")
+    return [(pos[m.start()], pos[m.end() - 1] + 1) for m in pat.finditer(vis) if m.end() > m.start()]
 
 
 def buscar(datos, texto, sensible=False):
-    """Lista de (n.º de pregunta desde 0, campo, índice de opción o None, fragmento)."""
+    """Lista de (n.º de pregunta desde 0 o None, ruta, dónde, fragmento) en TODO el supuesto
+    (preguntas, enunciados, hechos, hitos y títulos). Las marcas de formato no estorban."""
     if not texto:
         return []
     pat = _patron(texto, sensible)
     salida = []
-    for n, p in enumerate(datos["preguntas"]):
-        for campo, i, valor in _campos(p):
-            m = pat.search(valor or "")
-            if m:
-                a = max(0, m.start() - 25)
-                salida.append((n, campo, i, (valor[a:m.end() + 25]).replace("\n", " ")))
+    for ruta, donde, valor in sitios(datos):
+        trozos = _coincidencias(valor or "", pat)
+        if trozos:
+            vis = _visible(valor)[0]
+            m = pat.search(vis)
+            a = max(0, m.start() - 25)
+            frag = vis[a:m.end() + 25].replace("\n", " ")
+            n = ruta[1] if ruta[0] == "preguntas" else None
+            salida.append((n, ruta, donde + (" (×%d)" % len(trozos) if len(trozos) > 1 else ""), frag))
     return salida
 
 
-def reemplazar(datos, texto, nuevo, sensible=False):
-    """Cambia en todo el supuesto. Devuelve cuántas sustituciones hizo."""
+def _reemplazar_en(texto, pat, nuevo):
+    """Cambia lo visible; las marcas que hubiera dentro de lo cambiado se conservan
+    justo detrás del texto nuevo (no se pierde ni se rompe ningún formato)."""
+    trozos = _coincidencias(texto, pat)
+    for ini, fin in reversed(trozos):
+        marcas = "".join(RE_TAG.findall(texto[ini:fin]))
+        texto = texto[:ini] + nuevo + marcas + texto[fin:]
+    if trozos:
+        previo = None
+        while previo != texto:                       # <b></b> que se ha quedado vacío
+            previo = texto
+            texto = RE_PAR_VACIO.sub("", texto)
+    return texto, len(trozos)
+
+
+def reemplazar(datos, texto, nuevo, sensible=False, solo=None):
+    """Cambia en todo el supuesto (o solo en las rutas de `solo`). Devuelve cuántas sustituciones hizo."""
     if not texto:
         return 0
     pat = _patron(texto, sensible)
     total = 0
-    for p in datos["preguntas"]:
-        for clave in ("q", "law", "tip"):
-            p[clave], n = pat.subn(lambda m: nuevo, p.get(clave, "") or "")
+    for ruta, _donde, valor in list(sitios(datos)):
+        if solo is not None and ruta not in solo:
+            continue
+        cambiado, n = _reemplazar_en(valor or "", pat, nuevo)
+        if n:
+            poner_en(datos, ruta, cambiado)
             total += n
-        nuevas = []
-        for t in p.get("a", []):
-            t2, n = pat.subn(lambda m: nuevo, t or "")
-            total += n
-            nuevas.append(t2)
-        p["a"] = nuevas
     return total
 
 
@@ -255,24 +330,9 @@ def importar_csv(texto, bloque_id="B1", statement_id=None):
 
 # ── fallos por pregunta ──────────────────────────────────────────────
 def problemas_por_pregunta(datos):
-    """{n.º de pregunta desde 0: ('error'|'aviso', texto)}"""
-    res = {}
-    for n, p in enumerate(datos["preguntas"]):
-        opciones = p.get("a", [])
-        norm = [" ".join(t.lower().split()) for t in opciones if t.strip()]
-        if not p.get("q", "").strip():
-            res[n] = ("error", "sin texto")
-        elif any(not t.strip() for t in opciones):
-            res[n] = ("error", "opción vacía")
-        elif len(opciones) < datos_html.MIN_OPCIONES:
-            res[n] = ("error", "pocas opciones")
-        elif len(set(norm)) != len(norm):
-            res[n] = ("aviso", "opciones repetidas")
-        elif not p.get("law", "").strip():
-            res[n] = ("aviso", "sin motivación")
-        elif p.get("multiple") and len(p.get("correctas") or []) < 2:
-            res[n] = ("aviso", "múltiple con una correcta")
-    return res
+    """{n.º de pregunta desde 0: ('error'|'aviso', texto)} — las mismas reglas que
+    «Comprobar», el aviso al guardar y el validador (revision.py)."""
+    return revision.por_pregunta(revision.revisar(datos))
 
 
 # ── autoguardado ─────────────────────────────────────────────────────
@@ -298,24 +358,8 @@ def leer_recuperacion(destino):
 
 # ── revisión: errores graves, repetidas, estadísticas, citas ───────────
 def errores_graves(datos):
-    """Fallos que conviene arreglar ANTES de guardar: lista de textos."""
-    salida = []
-    for n, (nivel, motivo) in sorted(problemas_por_pregunta(datos).items()):
-        if nivel == "error":
-            salida.append("Pregunta %d: %s" % (n + 1, motivo))
-    for n, p in enumerate(datos["preguntas"], 1):
-        if not (p.get("correctas") or []):
-            salida.append("Pregunta %d: sin respuesta correcta marcada" % n)
-    ids = [str(e.get("id") or "") for e in datos.get("enunciados", [])]
-    if any(not i.strip() for i in ids):
-        salida.append("Hay un enunciado sin identificador")
-    for i in sorted({i for i in ids if i and ids.count(i) > 1}):
-        salida.append("Identificador de enunciado repetido: %s" % i)
-    for n, p in enumerate(datos["preguntas"], 1):
-        sid = p.get("statementId")
-        if sid and sid not in ids:
-            salida.append("Pregunta %d: apunta al enunciado %s, que no existe" % (n, sid))
-    return salida
+    """Fallos que conviene arreglar ANTES de guardar o publicar: lista de textos."""
+    return revision.errores(revision.revisar(datos))
 
 
 # ── identificadores de enunciado ─────────────────────────────────────

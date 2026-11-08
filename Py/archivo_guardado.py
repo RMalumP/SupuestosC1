@@ -415,20 +415,40 @@ class ArchivoGuardado:
         self.wait_window(ventana)
         return resultado[0] if resultado else None
 
+    PREFIJO_PREVIA = ".vista_previa_"
+
     def ver_navegador(self):
-        if self.ruta is None or self.hay_cambios:
-            if not messagebox.askyesno(
-                    "Guardar antes de ver",
-                    "Para verlo en el navegador hay que guardar el archivo.\n\n¿Guardo ahora?",
-                    parent=self):
-                return
-            if not self.guardar():
-                return
-        webbrowser.open(self.ruta.resolve().as_uri())
-        self.estado("Abierto en el navegador: %s" % self.ruta.name)
+        """Abre el supuesto en el navegador. Con cambios sin guardar NO obliga a guardar:
+        escribe una copia temporal junto al supuesto («.vista_previa_….htm», que no se sube
+        ni sale en el menú) y la abre; se borra al cerrar el editor."""
+        self.volcar_todo()
+        if self.ruta is not None and not self.hay_cambios:
+            webbrowser.open(self.ruta.resolve().as_uri())
+            self.estado("Abierto en el navegador: %s" % self.ruta.name)
+            return
+        carpeta = self.ruta.parent if self.ruta else Path(sincronizar_local.RAIZ_DEFECTO) / "supuestos"
+        nombre = (self.ruta.stem if self.ruta else "sin_guardar")
+        previa = carpeta / ("%s%s.htm" % (self.PREFIJO_PREVIA, nombre))
+        try:
+            escribir_html(previa, self.html_base, self.datos, self.modo, copia=False)
+        except (OSError, ValueError) as err:
+            messagebox.showerror("Vista previa", "No he podido preparar la vista previa:\n\n%s" % err, parent=self)
+            return
+        self._previas = getattr(self, "_previas", set()) | {previa}
+        webbrowser.open(previa.resolve().as_uri())
+        self.estado("Vista previa SIN GUARDAR en el navegador (el archivo no se ha tocado).")
+
+    def _borrar_previas(self):
+        for previa in getattr(self, "_previas", set()):
+            try:
+                previa.unlink()
+            except OSError:
+                pass
+        self._previas = set()
 
     def _al_cerrar(self):
         self.volcar_todo()
+        self._borrar_previas()
         self._prefs["geometria"] = self.geometry()
         self._prefs["ver_marcas"] = ver_marcas()
         self._prefs["ver_ayudas"] = ver_ayudas()

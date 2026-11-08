@@ -154,6 +154,19 @@
         actual los que tengan un motor antiguo → abre la ventana de subir. El número de
         versión (config/version.js, v28.9 → v28.10) sube justo al pulsar «☁ Subir»; si
         cierras sin subir, no cambia. Sin git (carpeta no clonada) prepara PARA_SUBIR.
+    VER SIN GUARDAR (botón «🌐 Ver», F5)
+        Si hay cambios sin guardar, abre en el navegador una copia temporal
+        («.vista_previa_….htm», junto al supuesto). El archivo de verdad no se toca y la
+        copia se borra al cerrar el editor. No se sube a GitHub ni sale en el menú.
+    BUSCAR Y REEMPLAZAR (Ctrl+F) EN TODO EL SUPUESTO
+        Busca en preguntas, opciones, motivaciones, consejos, etiquetas, enunciados,
+        bloques de hechos, hitos y títulos. La negrita y demás marcas no estorban
+        («diez <b>días</b>» sale buscando «diez días»). «Ir allí» salta a la pestaña y al
+        sitio; «Reemplazar en los marcados» cambia solo los resultados que selecciones.
+    UNA SOLA REVISIÓN
+        Los colores de la lista de preguntas, el aviso al guardar, «Comprobar», «Publicar»
+        y el validador del proyecto (validar_supuestos.py) usan las mismas reglas
+        (Py/revision.py): si la lista no marca nada en rojo, la publicación no se para.
     LA BARRA DE ARRIBA
         Solo lo de cada día: Abrir, Guardar, Ver, Comprobar y Publicar. Nuevo, Guardar
         como, Menú de inicio y Para subir están en los menús Archivo y Herramientas.

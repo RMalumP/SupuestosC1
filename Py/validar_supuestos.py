@@ -20,6 +20,7 @@ from pathlib import Path
 RAIZ = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import menu_datos  # noqa: E402  (va junto a este archivo)
+import revision  # noqa: E402
 RE_JSON = re.compile(r'<script\b[^>]*\bid=["\']datos-supuesto["\'][^>]*>(.*?)</script>', re.S | re.I)
 RE_MOTOR = re.compile(r'<meta\s+name=["\']motor-plantilla["\']\s+content=["\'](\d+)["\']', re.I)
 RE_REFS = re.compile(r'(?:href|src)=["\']([^"\']+)["\']', re.I)
@@ -36,10 +37,6 @@ def err(donde, msg):
 
 def aviso(donde, msg):
     avisos.append("AVISO  %s: %s" % (donde, msg))
-
-
-def norm(t):
-    return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", str(t))).strip().lower()
 
 
 def validar_supuesto(ruta, motor_actual):
@@ -71,80 +68,11 @@ def validar_supuesto(ruta, motor_actual):
         if not (ruta.parent / r.split("?")[0].split("#")[0]).exists():
             err(nom, "el archivo enlazado «%s» no existe" % r)
 
-    cfg = d.get("config") or {}
-    if not str(cfg.get("titulo", "")).strip():
-        err(nom, "config.titulo está vacío")
-    try:
-        if float(cfg.get("minutos", 0)) <= 0:
-            err(nom, "config.minutos debe ser mayor que 0")
-    except (TypeError, ValueError):
-        err(nom, "config.minutos no es un número")
-
-    bloques = d.get("bloques") or []
-    ids_b = [b.get("id") for b in bloques]
-    for i, n in Counter(ids_b).items():
-        if n > 1:
-            err(nom, "el bloque «%s» está repetido" % i)
-    enun = d.get("enunciados") or []
-    ids_e = [e.get("id") for e in enun]
-    for i, n in Counter(ids_e).items():
-        if n > 1:
-            err(nom, "el enunciado «%s» está repetido" % i)
-    hechos = {}
-    for e in enun:
-        hs = [h.get("id") for h in (e.get("factBlocks") or []) if h.get("id")]
-        for i, n in Counter(hs).items():
-            if n > 1:
-                err(nom, "en el enunciado %s el hecho «%s» está repetido" % (e.get("id"), i))
-        hechos[e.get("id")] = set(hs)
-
-    preguntas = d.get("preguntas") or []
-    if not preguntas:
-        err(nom, "no tiene preguntas")
-    vistos = Counter(norm(q.get("q", "")) for q in preguntas)
-    for i, q in enumerate(preguntas, 1):
-        p = "%s, pregunta %d" % (nom, i)
-        if not norm(q.get("q", "")):
-            err(p, "el enunciado de la pregunta está vacío")
-        elif vistos[norm(q["q"])] > 1:
-            aviso(p, "hay otra pregunta con el mismo texto")
-        ops = q.get("a") or []
-        if len(ops) < 2:
-            err(p, "tiene menos de 2 opciones")
-        for k, o in enumerate(ops):
-            if not norm(o):
-                err(p, "la opción %s está vacía" % "ABCDEFG"[k % 7])
-        if len({norm(o) for o in ops}) < len(ops):
-            err(p, "hay opciones repetidas")
-        cor = q.get("correctas")
-        if cor is None and isinstance(q.get("c"), int):
-            cor = [q["c"]]
-        if not cor:
-            err(p, "no tiene ninguna respuesta correcta marcada")
-        else:
-            if any((not isinstance(c, int)) or c < 0 or c >= len(ops) for c in cor):
-                err(p, "una respuesta correcta apunta a una opción que no existe")
-            if len(set(cor)) != len(cor):
-                err(p, "respuestas correctas repetidas")
-            if len(cor) > 1 and not q.get("multiple"):
-                err(p, "tiene varias correctas pero no está marcada como respuesta múltiple")
-            if q.get("multiple") and len(cor) < 2:
-                aviso(p, "está marcada como múltiple pero solo tiene una correcta")
-            r = q.get("respuestas")
-            if isinstance(r, int) and r:
-                # (si «respuestas» supera el nº de opciones el motor usa todas: no es un problema)
-                if r < len(cor) + (1 if len(ops) > len(cor) else 0):
-                    err(p, "«respuestas» (%d) es demasiado pequeño para incluir las correctas" % r)
-        if not norm(q.get("law", "")):
-            aviso(p, "no tiene motivación legal (campo «law»)")
-        if q.get("bloqueId") and q["bloqueId"] not in ids_b:
-            err(p, "pertenece al bloque «%s», que no existe" % q["bloqueId"])
-        sid = q.get("statementId")
-        if sid and sid not in ids_e:
-            err(p, "usa el enunciado «%s», que no existe" % sid)
-        for f in q.get("factIds") or []:
-            if sid and f not in hechos.get(sid, set()):
-                err(p, "se vincula al hecho «%s», que no está en el enunciado %s" % (f, sid))
+    # Las reglas de los datos son las mismas que usa el editor (Py/revision.py).
+    for h in revision.revisar(d):
+        donde = nom if h.pregunta is None else "%s, pregunta %d" % (nom, h.pregunta + 1)
+        texto = re.sub(r"^Pregunta \d+: ", "", h.texto)
+        (err if h.nivel == "error" else aviso)(donde, texto[:1].lower() + texto[1:])
 
     env = d.get("envio") or {}
     if not str(env.get("url", "")).startswith("https://docs.google.com/forms/"):

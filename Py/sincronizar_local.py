@@ -84,7 +84,7 @@ def foto(raiz):
     for dirpath, dirnames, nombres in os.walk(raiz):
         dirnames[:] = [d for d in dirnames if d not in CARPETAS_FUERA]
         for n in nombres:
-            if n in ARCHIVOS_FUERA or n.endswith(SUFIJOS_FUERA) or n.startswith(".recuperacion_"):
+            if n in ARCHIVOS_FUERA or n.endswith(SUFIJOS_FUERA) or n.startswith((".recuperacion_", ".vista_previa_")):
                 continue
             p = Path(dirpath) / n
             res[p.relative_to(raiz).as_posix()] = _huella(p)
