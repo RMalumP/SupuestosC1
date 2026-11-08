@@ -595,6 +595,18 @@ class ListasYSangria(unittest.TestCase):
         import editor_comun
         self.ec = editor_comun
 
+    def test_negrita_que_cruza_la_ultima_linea_con_sangria(self):
+        eq = self.ec.equilibrar_etiquetas
+        self.assertEqual(eq('<span class="sg-1"><b>3) </b>Tres. <b></span>\n¿Cuáles?</b>'),
+                         '<span class="sg-1"><b>3) </b>Tres. </span>\n<b>¿Cuáles?</b>')
+        self.assertEqual(eq('<b>a\n\n<span class="sg-1">b</span></b>'),
+                         '<b>a</b>\n\n<span class="sg-1"><b>b</b></span>')
+        self.assertEqual(eq('<b>x<i>y</b>z</i>'), '<b>x<i>y</i></b><i>z</i>')
+        self.assertEqual(eq('texto </b> suelto'), 'texto  suelto')
+        bien = '<span class="al-j">uno <b>dos</b></span>\n<span class="vi">•\t</span>tres'
+        self.assertEqual(eq(bien), bien)
+        self.assertEqual(eq(eq('<b>a\nb')), '<b>a</b>\n<b>b</b>')
+
     def test_lista_pegada_de_word(self):
         ec = self.ec
         self.assertEqual(ec.colgar_vineta("•\tJuan Gómez"),

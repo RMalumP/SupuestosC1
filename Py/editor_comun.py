@@ -1067,11 +1067,93 @@ def sacar_texto(widget):
     return widget.get("1.0", "end-1c")
 
 
+def _es_parrafo(etiqueta):
+    m = RE_CLASE_HTML.search(etiqueta)
+    return bool(m) and etiqueta[1:5].lower() == "span" and bool(set(m.group(1).split()) & CLASES_PARRAFO)
+
+
+def equilibrar_etiquetas(texto):
+    """Repara el formato que cruza líneas o párrafos, p. ej.
+        <span class="sg-1">Tres. <b></span>\\n¿Cuáles?</b>
+     →  <span class="sg-1">Tres. </span>\\n<b>¿Cuáles?</b>
+    Cada línea queda con sus etiquetas cerradas: la negrita que sigue en la
+    línea de abajo se reabre allí (dentro de su sangría, si la tiene), y una
+    etiqueta que se cierra antes que otra abierta dentro cierra primero esa."""
+    texto = str(texto or "")
+    if "<" not in texto:
+        return texto
+    out, pila, pendientes = [], [], []      # pila: [(nombre, apertura, es_parrafo)]
+
+    def abrir_pendientes():
+        for nombre, ap in pendientes:
+            out.append(ap)
+            pila.append((nombre, ap, False))
+        pendientes.clear()
+
+    pos = 0
+    for m in re.finditer(r"\n|" + RE_ETIQUETA_HTML.pattern, texto):
+        trozo = texto[pos:m.start()]
+        if trozo:
+            abrir_pendientes()
+            out.append(trozo)
+        pos = m.end()
+        tok = m.group(0)
+        if tok == "\n":
+            # Fin de línea: se cierra todo y lo que no es párrafo se reabre en la siguiente.
+            seguir = [(n, ap) for n, ap, par in pila if not par]
+            for n, _ap, _par in reversed(pila):
+                out.append("</%s>" % n)
+            pila.clear()
+            pendientes.extend(seguir)
+            out.append("\n")
+            continue
+        nombre = m.group(1).lower()
+        if nombre not in ETIQUETAS_FORMATO or tok.endswith("/>"):
+            abrir_pendientes()
+            out.append(tok)
+            continue
+        if tok.startswith("</"):
+            # ¿Era una etiqueta que aún no se había reabierto? Entonces sobra.
+            for k in range(len(pendientes) - 1, -1, -1):
+                if pendientes[k][0] == nombre:
+                    del pendientes[k]
+                    break
+            else:
+                k = next((i for i in range(len(pila) - 1, -1, -1) if pila[i][0] == nombre), None)
+                if k is None:
+                    continue                      # cierre suelto: fuera
+                encima = pila[k + 1:]
+                for n, _ap, _par in reversed(encima):
+                    out.append("</%s>" % n)
+                out.append(tok)
+                cerrada = pila[k]
+                del pila[k:]
+                dentro = [(n, ap) for n, ap, par in encima if not par]
+                if cerrada[2]:
+                    pendientes[:0] = dentro       # se reabren después del párrafo
+                else:
+                    for n, ap in dentro:
+                        out.append(ap)
+                        pila.append((n, ap, False))
+            continue
+        par = _es_parrafo(tok)
+        if not par:
+            abrir_pendientes()
+        out.append(tok)
+        pila.append((nombre, tok, par))
+    if texto[pos:]:
+        abrir_pendientes()
+        out.append(texto[pos:])
+    for n, _ap, _par in reversed(pila):
+        out.append("</%s>" % n)
+    return quitar_pares_vacios("".join(out))
+
+
 def limpiar_texto(valor):
     """Limpia un texto SIN perder los saltos de línea (Enter): quita los
     espacios sobrantes de cada línea y las líneas en blanco del principio
     y del final, y no deja más de una línea en blanco seguida."""
-    crudo = str(valor or "").replace("\r\n", "\n").replace("\r", "\n")
+    crudo = equilibrar_etiquetas(str(valor or "").replace("\r\n", "\n").replace("\r", "\n"))
     lineas = [colgar_vineta(" ".join(l.split()) if "\t" not in l else l.strip())
               for l in crudo.split("\n")]
     return re.sub(r"\n{3,}", "\n\n", "\n".join(lineas).strip("\n"))
