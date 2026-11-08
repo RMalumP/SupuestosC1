@@ -7,9 +7,10 @@
 
     var css = document.createElement('style');
     css.textContent =
-        '.supc1-toast{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:5000;max-width:min(92vw,520px);' +
+        '.supc1-toast{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:5000;width:calc(100% - 24px);max-width:520px;box-sizing:border-box;' +
         'background:#3d2a20;color:#fdf8f0;border:1px solid #8fc4d9;border-radius:14px;padding:12px 14px;display:flex;gap:12px;' +
         'align-items:center;box-shadow:0 10px 30px rgba(0,0,0,.35);font:600 .85rem/1.35 "Source Serif 4",Georgia,serif}' +
+        '.supc1-toast span{flex:1;min-width:0}' +
         '.supc1-toast button{font:700 .66rem "JetBrains Mono",monospace;letter-spacing:.1em;text-transform:uppercase;border:0;' +
         'border-radius:99px;padding:9px 14px;cursor:pointer;background:#8fc4d9;color:#2b2118;white-space:nowrap}' +
         '.supc1-toast .cerrar{background:transparent;color:#b8dceb;padding:6px}';
