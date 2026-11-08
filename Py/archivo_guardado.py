@@ -5,9 +5,21 @@ ABRIR, GUARDAR Y CERRAR
 Parte del editor de supuestos: los métodos de esta parte de la ventana viven aquí
 y EditorApp (editor_supuestos.py) los hereda. No se ejecuta solo.
 """
-from editor_comun import *  # noqa: F401,F403
+import herramientas_datos as herr
+import json
+import menu_datos
+import os
+import re
+import sincronizar_local
+import tkinter as tk
+import webbrowser
+from tkinter import filedialog, messagebox, ttk
+from editor_comun import (  # noqa: F401
+    ARCHIVO_MENU, GRUPOS_MENU, PLANTILLA_BASE, PREFS, Path, _guardar_prefs, bloque_vacio,
+    bloques_se_pierden, datos_vacios, escribir_html, escribir_menu, ficha_menu, grupo_en_menu,
+    huella_disco, leer_html, leer_menu, lista_de_grupo, ruta_menu_de, ver_ayudas, ver_marcas,
+    version_motor)
 import publicar as herr_pub
-from editor_comun import (_guardar_prefs)  # noqa: F401
 
 
 class ArchivoGuardado:

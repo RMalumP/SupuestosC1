@@ -5,8 +5,14 @@ PESTAÑA 4 · PREGUNTAS Y RESPUESTAS
 Parte del editor de supuestos: los métodos de esta parte de la ventana viven aquí
 y EditorApp (editor_supuestos.py) los hereda. No se ejecuta solo.
 """
-from editor_comun import *  # noqa: F401,F403
-from editor_comun import _consejo  # noqa: F401
+import operaciones
+import revision
+import tkinter as tk
+from tkinter import messagebox, ttk
+from editor_comun import (  # noqa: F401
+    C_FONDO, C_VERDE, LETRAS, MAX_OPCIONES, MIN_OPCIONES, MarcoScroll, OPCIONES_POR_DEFECTO,
+    _consejo, caja_texto, limpiar_texto, poner_texto, pregunta_vacia, registrar_ayuda, resumen,
+    rotulo, sacar_texto)
 
 
 class PestanaPreguntas:
@@ -21,7 +27,7 @@ class PestanaPreguntas:
         divisor = ttk.PanedWindow(panel, orient="horizontal")
         divisor.pack(fill="both", expand=True, padx=8, pady=8)
 
-        izq = ttk.Frame(divisor, width=330)
+        izq = ttk.Frame(divisor, width=380)
         izq.pack_propagate(False)
         divisor.add(izq, weight=0)
 
@@ -37,23 +43,41 @@ class PestanaPreguntas:
                   ).pack(anchor="w", pady=(0, 6))
         registrar_ayuda(ay)
 
-        self.lst_preg = tk.Listbox(izq, font=("Consolas", 9), height=20,
-                                   activestyle="none", exportselection=False)
-        self.lst_preg.pack(fill="both", expand=True)
-        self.lst_preg.bind("<<ListboxSelect>>", self._sel_pregunta)
+        # Filtro: desplegable (todas, con errores, de un bloque…) y texto a buscar.
+        filtro = ttk.Frame(izq)
+        filtro.pack(fill="x", pady=(0, 4))
+        self.var_filtro_preg = tk.StringVar(value="Todas")
+        self.combo_filtro_preg = ttk.Combobox(filtro, textvariable=self.var_filtro_preg, state="readonly",
+                                              width=16, values=operaciones.FILTROS_FIJOS)
+        self.combo_filtro_preg.pack(side="left")
+        self.combo_filtro_preg.bind("<<ComboboxSelected>>", lambda e: self.refrescar_lista_preg())
+        self.var_buscar_preg = tk.StringVar()
+        ent_f = ttk.Entry(filtro, textvariable=self.var_buscar_preg)
+        ent_f.pack(side="left", fill="x", expand=True, padx=(4, 0))
+        _consejo(ent_f, "Escribe para ver solo las preguntas que lo contienen (texto, opciones, "
+                        "motivación o etiqueta) o su número.")
+        self.var_buscar_preg.trace_add("write", lambda *_: self._filtro_luego())
 
-        bot = ttk.Frame(izq)
-        bot.pack(fill="x", pady=6)
-        ttk.Button(bot, text="＋ Añadir pregunta", command=self.anadir_pregunta,
-                   style="Accion.TButton", width=17).grid(row=0, column=0, columnspan=2, padx=1, pady=1)
-        ttk.Button(bot, text="⧉ Duplicar", command=self.duplicar_pregunta,
-                   width=8).grid(row=0, column=2, padx=1, pady=1)
-        ttk.Button(bot, text="🗑 Borrar", command=self.borrar_pregunta,
-                   width=11).grid(row=1, column=0, padx=1, pady=1)
-        ttk.Button(bot, text="▲ Subir", command=lambda: self.mover_pregunta(-1),
-                   width=8).grid(row=1, column=1, padx=1, pady=1)
-        ttk.Button(bot, text="▼ Bajar", command=lambda: self.mover_pregunta(1),
-                   width=8).grid(row=1, column=2, padx=1, pady=1)
+        marco_lista = ttk.Frame(izq)
+        marco_lista.pack(fill="both", expand=True)
+        cols = ("num", "bloque", "enun", "texto", "estado")
+        self.arbol_preg = ttk.Treeview(marco_lista, columns=cols, show="headings",
+                                       selectmode="extended", height=20)
+        for col, titulo, ancho, estira in (("num", "Nº", 30, False), ("bloque", "Bl.", 34, False),
+                                           ("enun", "En.", 34, False), ("texto", "Pregunta", 160, True),
+                                           ("estado", "", 48, False)):
+            self.arbol_preg.heading(col, text=titulo, anchor="w")
+            self.arbol_preg.column(col, width=ancho, minwidth=24, stretch=estira, anchor="w")
+        self.arbol_preg.tag_configure("error", foreground="#b91c1c")
+        self.arbol_preg.tag_configure("aviso", foreground="#b45309")
+        barra_l = ttk.Scrollbar(marco_lista, orient="vertical", command=self.arbol_preg.yview)
+        self.arbol_preg.configure(yscrollcommand=barra_l.set)
+        self.arbol_preg.pack(side="left", fill="both", expand=True)
+        barra_l.pack(side="left", fill="y")
+        self.arbol_preg.bind("<<TreeviewSelect>>", self._sel_pregunta)
+        self.arbol_preg.bind("<Delete>", lambda e: self.borrar_pregunta())
+        self.lbl_filtro_preg = ttk.Label(izq, text="", style="Tec.TLabel")
+        self.lbl_filtro_preg.pack(anchor="w")
 
         cont = MarcoScroll(divisor)
         divisor.add(cont, weight=1)
@@ -464,31 +488,42 @@ class PestanaPreguntas:
         self._tocado()
 
     # ---------- lista de preguntas ----------
-    def refrescar_lista_preg(self, seleccionar=None):
+    def refrescar_lista_preg(self, seleccionar=None, marcadas=None):
+        """Vuelve a pintar la lista (con el filtro puesto) y selecciona `seleccionar`
+        (y, si se dan, también `marcadas`, para seguir con varias elegidas)."""
         self._silencio = True
-        self.lst_preg.delete(0, "end")
-        fallos = herr.problemas_por_pregunta(self.datos)
-        for i, p in enumerate(self.datos["preguntas"]):
-            marca = "📝" if self.tipo_de_bloque(p["bloqueId"]) == "test" else "📁"
-            foco = "🔎" if p.get("factIds") else " "
-            varias = "☑" if p.get("multiple") else " "
-            etiqueta = "%02d %s%-3s %-3s%s%s %s" % (i + 1, marca, p["bloqueId"],
-                                                    p["statementId"] or "--", foco, varias,
-                                                    resumen(p["q"], 22))
-            gravedad = fallos.get(i)
-            if gravedad:
-                etiqueta += "  " + ("✗ " if gravedad[0] == "error" else "! ") + gravedad[1]
-            self.lst_preg.insert("end", etiqueta)
-            if gravedad:
-                self.lst_preg.itemconfig("end", foreground="#b91c1c" if gravedad[0] == "error" else "#b45309")
+        arbol = self.arbol_preg
+        arbol.delete(*arbol.get_children())
+        hallazgos = revision.revisar(self.datos)
+        filtro = self.var_filtro_preg.get() or "Todas"
+        valores = operaciones.opciones_de_filtro(self.datos)
+        self.combo_filtro_preg["values"] = valores
+        if filtro not in valores:
+            filtro = "Todas"
+            self.var_filtro_preg.set(filtro)
+        visibles = set(operaciones.filtrar(self.datos, filtro, self.var_buscar_preg.get(), hallazgos))
+        for f in operaciones.filas(self.datos, hallazgos):
+            if f["n"] not in visibles:
+                continue
+            estado = f["marcas"]
+            if f["nivel"]:
+                estado += (" ✗ " if f["nivel"] == "error" else " ! ") + f["motivo"]
+            arbol.insert("", "end", iid=str(f["n"]), tags=(f["nivel"],) if f["nivel"] else (),
+                         values=("%02d" % f["num"], f["bloque"], f["enunciado"],
+                                 resumen(f["texto"], 60), estado.strip()))
+        total = len(self.datos["preguntas"])
+        self.lbl_filtro_preg.config(text="" if len(visibles) == total else
+                                    "Se ven %d de %d preguntas (filtro: %s)." % (len(visibles), total, filtro))
         if seleccionar is None:
             seleccionar = self.i_preg
         if self.datos["preguntas"]:
-            if seleccionar is None or seleccionar >= len(self.datos["preguntas"]):
+            if seleccionar is None or seleccionar >= total:
                 seleccionar = 0
-            self.lst_preg.selection_clear(0, "end")
-            self.lst_preg.selection_set(seleccionar)
-            self.lst_preg.see(seleccionar)
+            elegir = [str(i) for i in sorted(set(marcadas or []) | {seleccionar}) if str(i) in arbol.get_children()]
+            if elegir:
+                arbol.selection_set(elegir)
+                arbol.focus(str(seleccionar) if str(seleccionar) in elegir else elegir[0])
+                arbol.see(str(seleccionar) if str(seleccionar) in elegir else elegir[0])
         else:
             seleccionar = None
         self._silencio = False
@@ -500,14 +535,36 @@ class PestanaPreguntas:
             self.lbl_num_preg.config(text="%d PREGUNTAS" % len(self.datos["preguntas"]))
         self._pintar_titulo()
 
+    def _filtro_luego(self):
+        """Al escribir en el filtro se espera un momento (no se repinta en cada letra)."""
+        if getattr(self, "_espera_filtro", None):
+            self.after_cancel(self._espera_filtro)
+        self._espera_filtro = self.after(250, self._aplicar_filtro)
+
+    def _aplicar_filtro(self):
+        self._espera_filtro = None
+        self.volcar_pregunta()
+        self.refrescar_lista_preg()
+
+    def preguntas_marcadas(self):
+        """Índices de las preguntas elegidas en la lista (una o varias)."""
+        sel = sorted(int(x) for x in self.arbol_preg.selection())
+        if not sel and self.i_preg is not None:
+            sel = [self.i_preg]
+        return sel
+
     def _sel_pregunta(self, _e=None):
         if self._silencio:
             return
-        sel = self.lst_preg.curselection()
-        if not sel or sel[0] == self.i_preg:
+        sel = self.arbol_preg.selection()
+        if not sel:
+            return
+        foco = self.arbol_preg.focus()
+        nuevo = int(foco) if foco in sel else int(sel[0])
+        if nuevo == self.i_preg:
             return
         self.volcar_pregunta()
-        self.i_preg = sel[0]
+        self.i_preg = nuevo
         self.cargar_pregunta()
 
     def pregunta_actual(self):
@@ -597,44 +654,50 @@ class PestanaPreguntas:
         self.estado("Pregunta nº %d añadida al bloque %s." % (destino + 1, bid))
 
     def duplicar_pregunta(self):
-        p = self.pregunta_actual()
-        if p is None:
+        marcadas = self.preguntas_marcadas()
+        if not marcadas:
             return
         self.volcar_pregunta()
-        copia = json.loads(json.dumps(p))
-        self.datos["preguntas"].insert(self.i_preg + 1, copia)
-        self.refrescar_lista_preg(self.i_preg + 1)
+        copias = operaciones.duplicar_varias(self.datos["preguntas"], marcadas)
+        self.refrescar_lista_preg(copias[0], marcadas=copias)
         self.refrescar_lista_sec(self.i_sec)
         self._tocado()
+        if len(copias) > 1:
+            self.estado("%d preguntas duplicadas." % len(copias))
 
     def borrar_pregunta(self):
-        p = self.pregunta_actual()
-        if p is None:
+        marcadas = self.preguntas_marcadas()
+        if not marcadas:
             return
-        if not messagebox.askyesno(
-                "Borrar pregunta",
-                "¿Borrar la pregunta nº %d?\n\n%s" % (self.i_preg + 1, resumen(p["q"], 70)),
-                parent=self):
+        if len(marcadas) == 1:
+            p = self.datos["preguntas"][marcadas[0]]
+            pregunta = "¿Borrar la pregunta nº %d?\n\n%s" % (marcadas[0] + 1, resumen(p["q"], 70))
+        else:
+            pregunta = "¿Borrar las %d preguntas marcadas (%s)?" % (
+                len(marcadas), ", ".join(str(i + 1) for i in marcadas[:12]) + ("…" if len(marcadas) > 12 else ""))
+        if not messagebox.askyesno("Borrar", pregunta + "\n\n(Se puede deshacer con Ctrl+Z fuera de los cuadros de texto.)",
+                                   parent=self):
             return
-        del self.datos["preguntas"][self.i_preg]
-        self.refrescar_lista_preg(max(0, self.i_preg - 1))
+        self.volcar_pregunta()
+        operaciones.borrar_varias(self.datos["preguntas"], marcadas)
+        self.i_preg = None
+        self.refrescar_lista_preg(max(0, marcadas[0] - 1))
         self.refrescar_lista_sec(self.i_sec)
         self._tocado()
 
     def mover_pregunta(self, paso):
-        """Mueve la pregunta dentro de SU bloque. Para cambiarla de bloque se
-        usa el desplegable «Bloque del examen»."""
-        if self.i_preg is None:
-            return
-        destino = self.i_preg + paso
-        lista = self.datos["preguntas"]
-        if destino < 0 or destino >= len(lista):
-            return
-        if lista[destino]["bloqueId"] != lista[self.i_preg]["bloqueId"]:
-            self.estado("La pregunta ya está en el borde de su bloque. Para cambiarla de "
-                        "bloque usa el desplegable «Bloque del examen».")
+        """Mueve la pregunta (o las marcadas) dentro de SU bloque. Para cambiarla de
+        bloque se usa el desplegable «Bloque»."""
+        marcadas = self.preguntas_marcadas()
+        if not marcadas:
             return
         self.volcar_pregunta()
-        lista[self.i_preg], lista[destino] = lista[destino], lista[self.i_preg]
-        self.refrescar_lista_preg(destino)
+        actual = self.i_preg
+        nuevos = operaciones.mover_varias(self.datos["preguntas"], marcadas, paso)
+        if nuevos is None:
+            self.estado("Ya está en el borde de su bloque. Para cambiarla de bloque usa el "
+                        "desplegable «Bloque».")
+            return
+        foco = actual + paso if actual in marcadas else nuevos[0]
+        self.refrescar_lista_preg(foco, marcadas=nuevos)
         self._tocado()

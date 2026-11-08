@@ -5,7 +5,11 @@ PESTAÑA 6 · COMPROBAR (informe de revisión)
 Parte del editor de supuestos: los métodos de esta parte de la ventana viven aquí
 y EditorApp (editor_supuestos.py) los hereda. No se ejecuta solo.
 """
-from editor_comun import *  # noqa: F401,F403
+import normas_enlaces
+import revision
+from tkinter import ttk
+from editor_comun import (  # noqa: F401
+    TEMA_DEFECTO, caja_texto, datos_a_json, nUm, poner_texto)
 
 
 class PestanaComprobar:

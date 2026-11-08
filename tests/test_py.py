@@ -295,8 +295,10 @@ class Corazon(unittest.TestCase):
 class Editor(unittest.TestCase):
     def test_el_editor_se_importa_con_un_tkinter_falso(self):
         import editor_supuestos as e
-        self.assertTrue(callable(e.leer_html) and callable(e.escribir_menu))
-        self.assertEqual(e.version_motor('<meta name="motor-plantilla" content="9">'), 9)
+        import editor_comun as ec
+        self.assertTrue(isinstance(e.EditorApp, type))
+        self.assertTrue(callable(ec.leer_html) and callable(ec.escribir_menu))
+        self.assertEqual(ec.version_motor('<meta name="motor-plantilla" content="9">'), 9)
         import ventana_menu, ventana_subir          # las ventanas también deben cargar
         self.assertTrue(callable(ventana_menu.abrir) and callable(ventana_subir.abrir))
 
@@ -628,6 +630,49 @@ class GitSync(unittest.TestCase):
         self.assertFalse(gs.es_clon(self.t))
         self.assertIn("quién eres", gs.traducir("Please tell me who you are"))
         self.assertIn("Actualizo a.html", gs.mensaje_sugerido([], ["x/a.html"], []))
+
+
+class ListaDePreguntas(unittest.TestCase):
+    """Operaciones de la lista de preguntas sin ventana (operaciones.py)."""
+
+    def datos(self):
+        d = datos_html.datos_vacios()
+        d["bloques"] = [dict(d["bloques"][0], id="B1"), dict(d["bloques"][0], id="B2")]
+        d["preguntas"] = []
+        for i in range(6):
+            p = datos_html.pregunta_vacia(None, "B1" if i < 4 else "B2")
+            p["q"] = "Pregunta %d sobre <b>plazos</b>" % i if i % 2 else "Pregunta %d" % i
+            p["a"] = ["a%d" % i, "b%d" % i, "c%d" % i]
+            p["law"] = "art. %d" % i
+            d["preguntas"].append(p)
+        return d
+
+    def test_mover_varias_sin_salir_del_bloque(self):
+        import operaciones as op
+        d = self.datos()
+        q = [p["q"] for p in d["preguntas"]]
+        self.assertEqual(op.mover_varias(d["preguntas"], [1, 2], -1), [0, 1])
+        self.assertEqual([p["q"] for p in d["preguntas"]][:3], [q[1], q[2], q[0]])
+        self.assertIsNone(op.mover_varias(d["preguntas"], [0, 1], -1))          # ya arriba del todo
+        self.assertIsNone(op.mover_varias(d["preguntas"], [3], 1))              # la 4 es de otro bloque
+        self.assertEqual(op.mover_varias(d["preguntas"], [0, 2], 1), [1, 3])     # no seguidas
+
+    def test_borrar_duplicar_y_filtrar(self):
+        import operaciones as op
+        d = self.datos()
+        self.assertEqual(op.duplicar_varias(d["preguntas"], [0, 1]), [2, 3])
+        self.assertEqual(len(d["preguntas"]), 8)
+        self.assertEqual(op.borrar_varias(d["preguntas"], [2, 3]), 2)
+        self.assertEqual(len(d["preguntas"]), 6)
+        self.assertEqual(op.filtrar(d, "Todas", "plazos"), [1, 3, 5])           # sin mirar la negrita
+        self.assertEqual(op.filtrar(d, "Bloque B2"), [4, 5])
+        d["preguntas"][2]["law"] = ""
+        self.assertEqual(op.filtrar(d, "Sin motivación"), [2])
+        self.assertEqual(op.filtrar(d, "Con avisos"), [2])
+        d["preguntas"][3]["q"] = ""
+        self.assertEqual(op.filtrar(d, "Con errores"), [3])
+        self.assertIn(4, op.filtrar(d, "Todas", "5"))                            # también por número
+        self.assertIn("Bloque B1", op.opciones_de_filtro(d))
 
 
 class Fase1Fallos(unittest.TestCase):

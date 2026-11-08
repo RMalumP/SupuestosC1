@@ -163,6 +163,12 @@
         bloques de hechos, hitos y títulos. La negrita y demás marcas no estorban
         («diez <b>días</b>» sale buscando «diez días»). «Ir allí» salta a la pestaña y al
         sitio; «Reemplazar en los marcados» cambia solo los resultados que selecciones.
+    LISTA DE PREGUNTAS (pestaña 4)
+        Columnas: número, bloque, enunciado, pregunta y estado (✗ error, ! aviso, 🔎 modo
+        foco, ☑ múltiple). Arriba, un filtro («Con errores», «Sin motivación», «Bloque B2»,
+        «Enunciado E1»…) y una caja para buscar por texto o número. Con Ctrl+clic o
+        Mayús+clic se marcan varias: Subir, Bajar, Duplicar y Borrar (o Supr) actúan sobre
+        todas a la vez, sin sacarlas de su bloque.
     UNA SOLA REVISIÓN
         Los colores de la lista de preguntas, el aviso al guardar, «Comprobar», «Publicar»
         y el validador del proyecto (validar_supuestos.py) usan las mismas reglas

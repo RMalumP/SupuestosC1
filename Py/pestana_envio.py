@@ -5,7 +5,12 @@ PESTAÑA 5 · BOTONES, OPCIONES Y ENVÍO
 Parte del editor de supuestos: los métodos de esta parte de la ventana viven aquí
 y EditorApp (editor_supuestos.py) los hereda. No se ejecuta solo.
 """
-from editor_comun import *  # noqa: F401,F403
+import tkinter as tk
+from tkinter import ttk
+from editor_comun import (  # noqa: F401
+    CAMPOS_BOTONERA, CAMPOS_CABECERA, CAMPOS_ENVIO, CAMPOS_ENVIO_BLOQUE, CAMPOS_ENVIO_DETALLE,
+    CAMPOS_ESTADO, ENTRADAS_PREGUNTA_DETALLE, ENVIO_DEFECTO, INTERFAZ_DEFECTO, MarcoScroll,
+    PANEL_DEFECTO, envio_detalle_por_defecto, normalizar_casillas_detalle, resumen, rotulo)
 
 
 class PestanaEnvio:

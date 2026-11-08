@@ -5,7 +5,13 @@ PESTAÑA 3 · ENUNCIADOS (hechos y línea de tiempo)
 Parte del editor de supuestos: los métodos de esta parte de la ventana viven aquí
 y EditorApp (editor_supuestos.py) los hereda. No se ejecuta solo.
 """
-from editor_comun import *  # noqa: F401,F403
+import herramientas_datos as herr
+import json
+import tkinter as tk
+from tkinter import messagebox, simpledialog, ttk
+from editor_comun import (  # noqa: F401
+    CAMPOS_ENUNCIADO, MarcoScroll, bloque_hechos_vacio, caja_texto, enunciado_vacio, hito_vacio,
+    limpiar_texto, nuevo_id_hecho, partir_parrafos, poner_texto, resumen, rotulo, sacar_texto)
 
 
 class PestanaEnunciados:

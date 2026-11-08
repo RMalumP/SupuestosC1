@@ -26,11 +26,8 @@
 ════════════════════════════════════════════════════════════════════════
 """
 
-import json
-import os
 import re
 import sys
-import webbrowser
 from pathlib import Path
 
 # Los módulos del editor (menu_datos, datos_html, alta_menu…) están junto a este archivo.
@@ -49,8 +46,22 @@ if __name__ == "__main__":
         import sincronizar_local
         sys.exit(sincronizar_local.main(sys.argv[1:]))
 
-from editor_comun import *  # noqa: F401,F403
-from editor_comun import (_leer_prefs)  # noqa: F401
+import git_sync
+import herramientas_datos as herr
+import publicar
+import segundo_plano
+import sincronizar_local
+import tkinter as tk
+import ventana_extra
+import ventana_herramientas
+import ventana_menu
+import ventana_subir
+import ventana_sync
+from tkinter import messagebox, ttk
+from editor_comun import (  # noqa: F401
+    APP_TITULO, AUTOGUARDADO_MS, C_AYUDA, C_FONDO, C_PANEL, C_ROJO, C_TEC, C_TINTA, PREFS,
+    _leer_prefs, ajustar_ayudas, datos_vacios, huella_disco, normalizar, poner_ver_ayudas,
+    poner_ver_marcas, ver_ayudas, ver_marcas)
 from pestana_general import PestanaGeneral
 from pestana_bloques import PestanaBloques
 from pestana_enunciados import PestanaEnunciados
