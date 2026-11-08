@@ -5,9 +5,21 @@ ABRIR, GUARDAR Y CERRAR
 Parte del editor de supuestos: los métodos de esta parte de la ventana viven aquí
 y EditorApp (editor_supuestos.py) los hereda. No se ejecuta solo.
 """
-from editor_comun import *  # noqa: F401,F403
+import herramientas_datos as herr
+import json
+import menu_datos
+import os
+import re
+import sincronizar_local
+import tkinter as tk
+import webbrowser
+from tkinter import filedialog, messagebox, ttk
+from editor_comun import (  # noqa: F401
+    ARCHIVO_MENU, GRUPOS_MENU, PLANTILLA_BASE, PREFS, Path, _guardar_prefs, bloque_vacio,
+    bloques_se_pierden, datos_vacios, escribir_html, escribir_menu, ficha_menu, grupo_en_menu,
+    huella_disco, leer_html, leer_menu, lista_de_grupo, ruta_menu_de, ver_ayudas, ver_marcas,
+    version_motor)
 import publicar as herr_pub
-from editor_comun import (_guardar_prefs)  # noqa: F401
 
 
 class ArchivoGuardado:
@@ -103,6 +115,27 @@ class ArchivoGuardado:
         self._refrescar_todo()
         self.estado("Supuesto nuevo en blanco. Empieza por la pestaña «1 · Datos generales».")
 
+    def abrir_como_nuevo(self, datos, mensaje=""):
+        """Carga unos datos hechos en el programa (un simulacro) sobre la plantilla
+        en blanco, sin archivo todavía: al guardar se pide el nombre."""
+        if not self._confirmar_descartar():
+            return False
+        base = Path(__file__).resolve().parent / PLANTILLA_BASE
+        try:
+            self.datos, self.modo, self.html_base = leer_html(base)
+        except (OSError, ValueError, json.JSONDecodeError) as err:
+            messagebox.showerror("Falta la plantilla", "No se puede leer «%s»:\n%s" % (PLANTILLA_BASE, err),
+                                 parent=self)
+            return False
+        for k in ("config", "bloques", "enunciados", "preguntas"):
+            self.datos[k] = datos[k]
+        self.ruta = None
+        self._refrescar_todo()
+        self.hay_cambios = True
+        self._pintar_titulo()
+        self.estado(mensaje or "Supuesto nuevo sin guardar.")
+        return True
+
     def abrir(self):
         if not self._confirmar_descartar():
             return
@@ -137,6 +170,7 @@ class ArchivoGuardado:
                                  "%s\n\n%s" % (Path(ruta).name, err), parent=self)
             return
         self.ruta = Path(ruta)
+        self._huella = huella_disco(self.ruta)
         herr_pub.anotar_reciente(self._prefs, self.ruta)
         self._recordar_carpeta()
         self.hay_cambios = False
@@ -272,7 +306,30 @@ class ArchivoGuardado:
         self.html_base = plantilla
         self.estado("Página rehecha con la plantilla actual (versión %d)." % nueva)
 
+    def cambiado_fuera(self, destino=None):
+        """¿El archivo abierto ha cambiado en el disco desde que se abrió o se guardó?
+        (por «Traer lo último» de GitHub, la ventana del menú, otro programa…)"""
+        destino = Path(destino or self.ruta) if (destino or self.ruta) else None
+        if destino is None or self.ruta is None or getattr(self, "_huella", None) is None:
+            return False
+        try:
+            if destino.resolve() != self.ruta.resolve():
+                return False
+        except OSError:
+            return False
+        ahora = huella_disco(destino)
+        return ahora is not None and ahora != self._huella
+
     def _escribir(self, destino):
+        if self.cambiado_fuera(destino) and not messagebox.askyesno(
+                "El archivo ha cambiado fuera del editor",
+                "«%s» se ha modificado en el disco después de abrirlo aquí (por ejemplo al "
+                "traer lo último de GitHub o desde la ventana del menú).\n\n"
+                "Si guardas, esos cambios se pierden y se queda lo que ves en el editor.\n\n"
+                "¿Guardar de todas formas? (Con «No» no se guarda: puedes cerrar sin guardar "
+                "y volver a abrirlo para ver la versión del disco.)" % Path(destino).name,
+                icon="warning", parent=self):
+            return False
         self._prefs["carpeta"] = str(Path(destino).parent)
         self._poner_motor_al_dia()
         if self.modo != "json" and bloques_se_pierden(self.datos):
@@ -303,6 +360,8 @@ class ArchivoGuardado:
             messagebox.showerror("No se ha podido guardar", str(err), parent=self)
             return False
         self.ruta = Path(destino)
+        self._huella = huella_disco(self.ruta)
+        self._aviso_disco = None
         self.hay_cambios = False
         self._pintar_titulo()
         self.estado("Guardado en %s   (%d preguntas)"
@@ -389,22 +448,43 @@ class ArchivoGuardado:
         self.wait_window(ventana)
         return resultado[0] if resultado else None
 
+    PREFIJO_PREVIA = ".vista_previa_"
+
     def ver_navegador(self):
-        if self.ruta is None or self.hay_cambios:
-            if not messagebox.askyesno(
-                    "Guardar antes de ver",
-                    "Para verlo en el navegador hay que guardar el archivo.\n\n¿Guardo ahora?",
-                    parent=self):
-                return
-            if not self.guardar():
-                return
-        webbrowser.open(self.ruta.resolve().as_uri())
-        self.estado("Abierto en el navegador: %s" % self.ruta.name)
+        """Abre el supuesto en el navegador. Con cambios sin guardar NO obliga a guardar:
+        escribe una copia temporal junto al supuesto («.vista_previa_….htm», que no se sube
+        ni sale en el menú) y la abre; se borra al cerrar el editor."""
+        self.volcar_todo()
+        if self.ruta is not None and not self.hay_cambios:
+            webbrowser.open(self.ruta.resolve().as_uri())
+            self.estado("Abierto en el navegador: %s" % self.ruta.name)
+            return
+        carpeta = self.ruta.parent if self.ruta else Path(sincronizar_local.RAIZ_DEFECTO) / "supuestos"
+        nombre = (self.ruta.stem if self.ruta else "sin_guardar")
+        previa = carpeta / ("%s%s.htm" % (self.PREFIJO_PREVIA, nombre))
+        try:
+            escribir_html(previa, self.html_base, self.datos, self.modo, copia=False)
+        except (OSError, ValueError) as err:
+            messagebox.showerror("Vista previa", "No he podido preparar la vista previa:\n\n%s" % err, parent=self)
+            return
+        self._previas = getattr(self, "_previas", set()) | {previa}
+        webbrowser.open(previa.resolve().as_uri())
+        self.estado("Vista previa SIN GUARDAR en el navegador (el archivo no se ha tocado).")
+
+    def _borrar_previas(self):
+        for previa in getattr(self, "_previas", set()):
+            try:
+                previa.unlink()
+            except OSError:
+                pass
+        self._previas = set()
 
     def _al_cerrar(self):
         self.volcar_todo()
+        self._borrar_previas()
         self._prefs["geometria"] = self.geometry()
         self._prefs["ver_marcas"] = ver_marcas()
+        self._prefs["ver_ayudas"] = ver_ayudas()
         _guardar_prefs(self._prefs)
         if self.hay_cambios:
             r = messagebox.askyesnocancel(

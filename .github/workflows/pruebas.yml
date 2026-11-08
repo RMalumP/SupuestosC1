@@ -29,6 +29,17 @@ jobs:
       - name: Pruebas de Python (menú, alta, lectura del HTML)
         run: python3 tests/test_py.py
 
+      # La ventana del editor con Tk de verdad, en una pantalla virtual: que se monte,
+      # abra todos los supuestos y responda (formato, Ctrl+Z, buscar, vista previa).
+      - name: Instalar Tk y pantalla virtual
+        run: |
+          paquetes="python3-tk xvfb"
+          sudo apt-get install -y --no-install-recommends $paquetes \
+            || (sudo apt-get update -q && sudo apt-get install -y --no-install-recommends $paquetes)
+
+      - name: Prueba de la ventana del editor
+        run: xvfb-run -a /usr/bin/python3 tests/test_ventana.py
+
   navegador:
     runs-on: ubuntu-latest
     timeout-minutes: 20

@@ -19,6 +19,8 @@ import json
 import re
 from pathlib import Path
 
+from archivos import escribir_seguro
+
 ARCHIVO_MENU = "datos/supuestos-datos.js"
 
 # Valores por defecto de una instalación nueva
@@ -185,7 +187,7 @@ def leer_archivo(ruta):
 
 
 def escribir_archivo(ruta, texto_antiguo, menu):
-    Path(ruta).write_text(escribir_texto(texto_antiguo, menu), encoding="utf-8")
+    escribir_seguro(ruta, escribir_texto(texto_antiguo, menu))
 
 
 def archivos_del_menu(menu):

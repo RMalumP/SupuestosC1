@@ -5,7 +5,12 @@ PESTAÑA 1 · DATOS GENERALES
 Parte del editor de supuestos: los métodos de esta parte de la ventana viven aquí
 y EditorApp (editor_supuestos.py) los hereda. No se ejecuta solo.
 """
-from editor_comun import *  # noqa: F401,F403
+import os
+import tkinter as tk
+from tkinter import colorchooser, filedialog, messagebox, ttk
+from editor_comun import (  # noqa: F401
+    CAMPOS_CONFIG, CAMPOS_TEMA, C_VERDE, LOGO_POR_DEFECTO, MarcoScroll, Path, RESPUESTAS_EXAMEN,
+    TEMA_DEFECTO, color_valido, nUm, numero, rotulo)
 
 
 class PestanaGeneral:

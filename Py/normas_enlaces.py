@@ -11,6 +11,8 @@ Cada norma tiene:
 import re
 from pathlib import Path
 
+from archivos import escribir_seguro
+
 ARCHIVO = Path(__file__).resolve().parent.parent / "datos" / "normas-datos.js"
 
 _CABECERA_POR_DEFECTO = """/* ════════════════════════════════════════════════════════════════
@@ -74,4 +76,4 @@ def escribir(normas, cabecera=_CABECERA_POR_DEFECTO, ruta=ARCHIVO):
         nota = ("   // " + n["nota"]) if n.get("nota") else ""
         lineas.append("    " + cuerpo + coma + nota)
     texto = "%swindow.NORMAS = [\n%s\n];\n" % (cabecera, "\n".join(lineas))
-    Path(ruta).write_text(texto, encoding="utf-8")
+    escribir_seguro(ruta, texto)

@@ -726,3 +726,30 @@ html.no-just-mot .feedback-body p, html.no-just-mot .feedback-body .tip { text-a
     border: 1.5px solid var(--t-line, rgba(61,42,32,.25)); border-radius: 10px;
 }
 .supc1-dialogo-campo:focus { outline: 2px solid var(--blue-deep); outline-offset: 1px; }
+
+
+/* ── Sangría, justificado y listas dentro de los textos con saltos de línea ──
+   La pregunta, las respuestas, la motivación, el consejo y los hitos respetan
+   los saltos de línea (white-space: pre-line). Un párrafo con sangría o
+   justificado es un bloque, y el salto que lo sigue pintaba además una línea
+   en blanco: entre dos líneas con sangría salía un hueco, pero tras la última
+   no. Como «inline-block» a todo el ancho, el salto solo termina la línea. */
+:is(.q-text, .option > span:last-child, .feedback-body p, .feedback-body .tip,
+    .tl-item, .ci-q, .ci-law, .ci-tip) :is(.al-j, .al-i, .sg-1, .sg-2, .sg-3, .cg) {
+    display: inline-block; width: 100%; box-sizing: border-box; vertical-align: top;
+}
+:is(.q-text, .option > span:last-child, .feedback-body p, .feedback-body .tip,
+    .tl-item, .ci-q, .ci-law, .ci-tip) .sg-1 { width: calc(100% - 1.5em); }
+:is(.q-text, .option > span:last-child, .feedback-body p, .feedback-body .tip,
+    .tl-item, .ci-q, .ci-law, .ci-tip) .sg-2 { width: calc(100% - 3em); }
+:is(.q-text, .option > span:last-child, .feedback-body p, .feedback-body .tip,
+    .tl-item, .ci-q, .ci-law, .ci-tip) .sg-3 { width: calc(100% - 4.5em); }
+
+/* Listas pegadas de Word («•<tabulador>texto»): el editor separa la viñeta
+   (<span class="vi">) y marca el párrafo con «cg». Sangría francesa: la
+   viñeta queda fuera y TODAS las líneas del texto alineadas, también la
+   última, que antes volvía debajo de la viñeta. */
+.cg { display: block; padding-left: 1.6em; text-indent: -1.6em; }
+.cg > .vi { display: inline-block; min-width: 1.6em; text-indent: 0; }
+.ci-answers .cg { display: inline; padding-left: 0; text-indent: 0; }
+.ci-answers .cg > .vi { display: inline; min-width: 0; margin-right: 0.3em; }

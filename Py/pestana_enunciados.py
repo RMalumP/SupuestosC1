@@ -5,7 +5,13 @@ PESTAÑA 3 · ENUNCIADOS (hechos y línea de tiempo)
 Parte del editor de supuestos: los métodos de esta parte de la ventana viven aquí
 y EditorApp (editor_supuestos.py) los hereda. No se ejecuta solo.
 """
-from editor_comun import *  # noqa: F401,F403
+import herramientas_datos as herr
+import json
+import tkinter as tk
+from tkinter import messagebox, simpledialog, ttk
+from editor_comun import (  # noqa: F401
+    CAMPOS_ENUNCIADO, MarcoScroll, bloque_hechos_vacio, caja_texto, enunciado_vacio, hito_vacio,
+    limpiar_texto, nuevo_id_hecho, partir_parrafos, poner_texto, resumen, rotulo, sacar_texto)
 
 
 class PestanaEnunciados:
@@ -62,9 +68,21 @@ class PestanaEnunciados:
         for clave, visible, tecnico, html, ayuda in CAMPOS_ENUNCIADO:
             rotulo(caja, visible, tecnico, html, ayuda).pack(anchor="w", padx=10, pady=(8, 2))
             var = tk.StringVar()
-            ent = ttk.Entry(caja, textvariable=var, font=("Georgia", 10))
-            ent.pack(fill="x", padx=10, pady=(0, 2))
-            self._vigilar(ent)
+            if clave == "id":
+                # El identificador une el enunciado con sus preguntas: no se
+                # escribe a mano (dejaría las preguntas sueltas), se cambia
+                # con «Renombrar…», que también actualiza las preguntas.
+                linea = ttk.Frame(caja, style="Panel.TFrame")
+                linea.pack(fill="x", padx=10, pady=(0, 2))
+                ent = ttk.Entry(linea, textvariable=var, font=("Georgia", 10),
+                                state="readonly", width=16)
+                ent.pack(side="left")
+                ttk.Button(linea, text="✎ Renombrar…", command=self.renombrar_enunciado
+                           ).pack(side="left", padx=(6, 0))
+            else:
+                ent = ttk.Entry(caja, textvariable=var, font=("Georgia", 10))
+                ent.pack(fill="x", padx=10, pady=(0, 2))
+                self._vigilar(ent)
             self.w_enun[clave] = var
         ttk.Frame(caja, height=8).pack()
 
@@ -243,9 +261,34 @@ class PestanaEnunciados:
         if e is None:
             return
         for clave, *_ in CAMPOS_ENUNCIADO:
-            e[clave] = self.w_enun[clave].get().strip()
+            if clave != "id":                    # el id solo cambia con «Renombrar…»
+                e[clave] = self.w_enun[clave].get().strip()
         self.volcar_bloque()
         self.volcar_hito()
+
+    def renombrar_enunciado(self):
+        """Cambia el identificador del enunciado y el de todas sus preguntas."""
+        e = self.enunciado_actual()
+        if e is None:
+            return
+        self.volcar_enunciado()
+        self.volcar_pregunta()
+        nuevo = simpledialog.askstring(
+            "Renombrar enunciado",
+            "Nuevo identificador para «%s» (letras, números, - y _).\n"
+            "Sus preguntas se actualizan solas." % e["id"],
+            initialvalue=e["id"], parent=self)
+        if nuevo is None:
+            return
+        error = herr.error_id_enunciado(self.datos, e, nuevo)
+        if error:
+            messagebox.showerror("Renombrar enunciado", error, parent=self)
+            return
+        cuantas = herr.renombrar_enunciado(self.datos, e, nuevo.strip())
+        self.refrescar_lista_enun(self.i_enun)
+        self.refrescar_lista_preg(self.i_preg)
+        self._tocado()
+        self.estado("Enunciado renombrado a %s (%d pregunta(s) actualizadas)." % (e["id"], cuantas))
 
     def anadir_enunciado(self):
         self.volcar_enunciado()

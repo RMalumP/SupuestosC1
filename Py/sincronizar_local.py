@@ -37,7 +37,7 @@ ESTADO = ".estado_local.json"
 LEEME = "LEEME_SUBIR.txt"
 RAIZ_DEFECTO = Path(__file__).resolve().parent.parent
 CARPETAS_FUERA = {".git", ".github_cache", "node_modules", "__pycache__", ".historial", CARPETA}
-ARCHIVOS_FUERA = {ESTADO, ".editor_prefs.json", ".DS_Store", "Thumbs.db"}
+ARCHIVOS_FUERA = {ESTADO, ".editor_prefs.json", ".impugnaciones_estado.json", ".DS_Store", "Thumbs.db"}
 SUFIJOS_FUERA = (".bak", ".pyc", ".tmp")
 
 
@@ -84,7 +84,7 @@ def foto(raiz):
     for dirpath, dirnames, nombres in os.walk(raiz):
         dirnames[:] = [d for d in dirnames if d not in CARPETAS_FUERA]
         for n in nombres:
-            if n in ARCHIVOS_FUERA or n.endswith(SUFIJOS_FUERA) or n.startswith(".recuperacion_"):
+            if n in ARCHIVOS_FUERA or n.endswith(SUFIJOS_FUERA) or n.startswith((".recuperacion_", ".vista_previa_")):
                 continue
             p = Path(dirpath) / n
             res[p.relative_to(raiz).as_posix()] = _huella(p)
@@ -128,6 +128,23 @@ def diferencias(raiz):
 def _motor_de(html):
     m = datos_html.RE_MOTOR.search(html or "")
     return int(m.group(1)) if m else 0
+
+
+def paginas_atrasadas(raiz):
+    """Supuestos cuya página es de un motor anterior al de la plantilla (sin tocar nada)."""
+    raiz = Path(raiz)
+    plantilla_ruta = raiz / "Py" / datos_html.PLANTILLA_BASE
+    if not plantilla_ruta.is_file():
+        return []
+    nuevo = _motor_de(plantilla_ruta.read_text(encoding="utf-8"))
+    res = []
+    for p in sorted((raiz / "supuestos").glob("*.html")):
+        try:
+            if _motor_de(p.read_text(encoding="utf-8")) < nuevo:
+                res.append(p.name)
+        except OSError:
+            continue
+    return res
 
 
 def poner_al_dia(raiz):

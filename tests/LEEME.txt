@@ -39,3 +39,10 @@ Referencias de supuestos nuevos o tocados (automático en GitHub)
 
 En GitHub se ejecutan solas en cada subida (pestaña «Actions»), con
 .github/workflows/pruebas.yml.
+
+Pruebas del editor de Python
+
+  python3 tests/test_py.py                 la lógica (sin ventana; usa un tkinter de mentira)
+  xvfb-run -a python3 tests/test_ventana.py   la ventana de verdad en una pantalla virtual
+                                              (en un ordenador con pantalla, sin xvfb-run)
+  En GitHub se ejecutan las dos en el trabajo «python».

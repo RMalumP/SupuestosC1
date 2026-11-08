@@ -8,16 +8,14 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 
 import herramientas_datos as hd
-
-NOMBRE_CAMPO = {"q": "pregunta", "a": "opción", "law": "motivación", "tip": "consejo"}
-
+import importar_word
 
 def buscar_reemplazar(app):
     app.volcar_todo()
     d = tk.Toplevel(app)
-    d.title("Buscar y reemplazar")
+    d.title("Buscar y reemplazar en todo el supuesto")
     d.transient(app)
-    d.geometry("760x460")
+    d.geometry("820x500")
     marco = ttk.Frame(d, padding=10)
     marco.pack(fill="both", expand=True)
 
@@ -28,9 +26,13 @@ def buscar_reemplazar(app):
     ttk.Label(marco, text="Reemplazar por").grid(row=1, column=0, sticky="w")
     ttk.Entry(marco, textvariable=v_nuevo, width=50).grid(row=1, column=1, sticky="we", padx=6, pady=2)
     ttk.Checkbutton(marco, text="Distinguir mayúsculas", variable=v_mayus).grid(row=2, column=1, sticky="w")
+    ttk.Label(marco, style="Ayuda.TLabel",
+              text="Busca en preguntas, opciones, motivaciones, enunciados, hechos, hitos y títulos. "
+                   "La negrita y demás formato no estorban.").grid(row=2, column=1, sticky="e")
     marco.columnconfigure(1, weight=1)
 
-    lista = tk.Listbox(marco, activestyle="none", font=("Consolas", 9))
+    lista = tk.Listbox(marco, activestyle="none", font=("Consolas", 9), selectmode="extended",
+                       exportselection=False)
     lista.grid(row=3, column=0, columnspan=3, sticky="nsew", pady=8)
     marco.rowconfigure(3, weight=1)
     lbl = ttk.Label(marco, text="")
@@ -41,26 +43,32 @@ def buscar_reemplazar(app):
         app.volcar_todo()
         hallazgos[:] = hd.buscar(app.datos, v_busca.get(), v_mayus.get())
         lista.delete(0, "end")
-        for n, campo, i, frag in hallazgos:
-            extra = " %s" % "ABCDEFG"[i] if campo == "a" else ""
-            lista.insert("end", "P%-3d %-10s %s" % (n + 1, NOMBRE_CAMPO[campo] + extra, frag))
-        lbl.config(text="%d coincidencias." % len(hallazgos))
+        for _n, _ruta, donde, frag in hallazgos:
+            lista.insert("end", "%-28s %s" % (donde[:28], frag))
+        lbl.config(text="%d sitio(s) con coincidencias." % len(hallazgos))
 
     def ir(*_):
         sel = lista.curselection()
         if sel:
-            app.ir_a_pregunta(hallazgos[sel[0]][0])
+            app.ir_a_sitio(hallazgos[sel[0]][1])
 
-    def reemplazar():
+    def reemplazar(solo_marcados=False):
         if not v_busca.get():
             return
+        solo = None
+        if solo_marcados:
+            solo = {hallazgos[i][1] for i in lista.curselection()}
+            if not solo:
+                messagebox.showinfo("Reemplazar", "Marca antes uno o varios resultados de la lista.", parent=d)
+                return
+        donde = "en los %d sitio(s) marcados" % len(solo) if solo else "en TODO el supuesto"
         if not messagebox.askyesno("Reemplazar",
-                                   "¿Cambiar «%s» por «%s» en todo el supuesto?\n\n"
-                                   "(Se puede deshacer con Ctrl+Z.)" % (v_busca.get(), v_nuevo.get()),
+                                   "¿Cambiar «%s» por «%s» %s?\n\n"
+                                   "(Se puede deshacer con Ctrl+Z.)" % (v_busca.get(), v_nuevo.get(), donde),
                                    parent=d):
             return
         app.anotar_historial()
-        n = hd.reemplazar(app.datos, v_busca.get(), v_nuevo.get(), v_mayus.get())
+        n = hd.reemplazar(app.datos, v_busca.get(), v_nuevo.get(), v_mayus.get(), solo=solo)
         app.recargar_tras_cambio()
         buscar()
         lbl.config(text="%d sustituciones hechas." % n)
@@ -69,7 +77,9 @@ def buscar_reemplazar(app):
     fila = ttk.Frame(marco)
     fila.grid(row=5, column=0, columnspan=3, sticky="e")
     ttk.Button(fila, text="Buscar", command=buscar).pack(side="left", padx=3)
-    ttk.Button(fila, text="Ir a la pregunta", command=ir).pack(side="left", padx=3)
+    ttk.Button(fila, text="Ir allí", command=ir).pack(side="left", padx=3)
+    ttk.Button(fila, text="Reemplazar en los marcados",
+               command=lambda: reemplazar(True)).pack(side="left", padx=3)
     ttk.Button(fila, text="Reemplazar todo", command=reemplazar).pack(side="left", padx=3)
     ttk.Button(fila, text="Cerrar", command=d.destroy).pack(side="left", padx=3)
     lista.bind("<Double-Button-1>", ir)
@@ -81,7 +91,8 @@ AYUDA = ("Pega las preguntas separadas por una línea en blanco:\n\n"
          "1) Texto de la pregunta\na) opción\nb) *opción correcta (con * delante)\nc) opción\nd) opción\n"
          "Motivación: texto opcional\nConsejo: texto opcional\n\n"
          "En lugar del *, también vale una línea «Correcta: b» (o «b, c» si es múltiple).\n"
-         "Un CSV (pregunta; a; b; c; d; correcta; motivación; consejo) se abre con «Abrir archivo…».")
+         "Un CSV (pregunta; a; b; c; d; correcta; motivación; consejo) o un Word (.docx) se abren con\n"
+         "«Abrir archivo…». Del Word se conservan negrita, cursiva, subrayado, resaltado y listas.")
 
 
 def importar(app):
@@ -89,7 +100,7 @@ def importar(app):
     d = tk.Toplevel(app)
     d.title("Importar preguntas")
     d.transient(app)
-    d.geometry("760x560")
+    d.geometry("820x640")
     marco = ttk.Frame(d, padding=10)
     marco.pack(fill="both", expand=True)
     ttk.Label(marco, text=AYUDA, justify="left", style="Ayuda.TLabel").pack(anchor="w")
@@ -101,13 +112,27 @@ def importar(app):
     combo.current(0)
     combo.pack(side="left", padx=6)
     caja = tk.Text(marco, wrap="word", font=("Consolas", 10), undo=True)
-    caja.pack(fill="both", expand=True)
-    estado = {"csv": False}
+    estado = {"csv": False, "docx": None}
+    v_negrita = tk.BooleanVar(value=True)
+
+    def cargar_docx():
+        try:
+            texto = importar_word.texto_para_importar(estado["docx"], v_negrita.get())
+        except (OSError, ValueError, KeyError) as err:
+            messagebox.showerror("Importar", "No se ha podido leer el Word:\n%s" % err, parent=d)
+            return
+        caja.delete("1.0", "end")
+        caja.insert("1.0", texto)
 
     def abrir_archivo():
-        ruta = filedialog.askopenfilename(parent=d, filetypes=[("Texto o CSV", "*.txt *.csv"),
+        ruta = filedialog.askopenfilename(parent=d, filetypes=[("Texto, CSV o Word", "*.txt *.csv *.docx"),
                                                               ("Todos", "*.*")])
         if not ruta:
+            return
+        estado["csv"] = ruta.lower().endswith(".csv")
+        estado["docx"] = ruta if ruta.lower().endswith(".docx") else None
+        if estado["docx"]:
+            cargar_docx()
             return
         try:
             with open(ruta, encoding="utf-8-sig") as f:
@@ -115,9 +140,14 @@ def importar(app):
         except (OSError, UnicodeDecodeError) as err:
             messagebox.showerror("Importar", str(err), parent=d)
             return
-        estado["csv"] = ruta.lower().endswith(".csv")
         caja.delete("1.0", "end")
         caja.insert("1.0", texto)
+
+    def cambio_negrita():
+        if estado["docx"] and messagebox.askyesno(
+                "Importar", "¿Volver a leer el Word con este ajuste? Se pierde lo que hayas cambiado en la caja.",
+                parent=d):
+            cargar_docx()
 
     def hacer():
         texto = caja.get("1.0", "end")
@@ -145,7 +175,10 @@ def importar(app):
         d.destroy()
 
     pie = ttk.Frame(marco)
-    pie.pack(fill="x", pady=(8, 0))
+    pie.pack(side="bottom", fill="x", pady=(8, 0))      # antes que la caja: que no la tape al encoger
+    caja.pack(fill="both", expand=True)
     ttk.Button(pie, text="Abrir archivo…", command=abrir_archivo).pack(side="left")
+    ttk.Checkbutton(pie, text="Word: la opción entera en negrita o resaltada es la correcta",
+                    variable=v_negrita, command=cambio_negrita).pack(side="left", padx=8)
     ttk.Button(pie, text="Cerrar", command=d.destroy).pack(side="right")
     ttk.Button(pie, text="Importar", command=hacer, style="Accion.TButton").pack(side="right", padx=6)

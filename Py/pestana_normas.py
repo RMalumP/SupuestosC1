@@ -5,7 +5,11 @@ PESTAÑA 7 · NORMAS (ENLACES AL BOE)
 Parte del editor de supuestos: los métodos de esta parte de la ventana viven aquí
 y EditorApp (editor_supuestos.py) los hereda. No se ejecuta solo.
 """
-from editor_comun import *  # noqa: F401,F403
+import normas_enlaces
+import sincronizar_local
+import tkinter as tk
+import webbrowser
+from tkinter import messagebox, ttk
 
 
 class PestanaNormas:

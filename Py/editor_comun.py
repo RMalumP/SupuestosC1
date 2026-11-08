@@ -10,6 +10,7 @@ import os
 import re
 import sys
 import webbrowser
+from contextlib import contextmanager
 from pathlib import Path
 
 import menu_datos            # lista del menú
@@ -22,10 +23,14 @@ import ventana_herramientas      # ventanas «Buscar y reemplazar» e «Importar
 import ventana_sync              # ventana «Sincronizar con GitHub» (git)
 import ventana_extra             # estadísticas, repetidas, vista previa, ayuda, impugnaciones…
 import publicar                  # versión, historial, recientes, ayuda, impugnaciones (sin ventana)
+from archivos import escribir_seguro, huella_disco
 import git_sync                  # git (comprobar si hay cambios nuevos en GitHub)
+import segundo_plano             # trabajos largos (git, descargas) sin congelar la ventana
+import revision                  # las reglas de revisión (lista, guardar, Comprobar, validador)
+import operaciones               # mover, borrar, duplicar y filtrar preguntas (sin ventana)
 
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox, colorchooser
+from tkinter import ttk, filedialog, messagebox, colorchooser, simpledialog
 from tkinter import font as tkfont
 
 # Todo lo que no es ventana (valores por defecto, normalizar, leer_html, escribir_html,
@@ -85,21 +90,111 @@ class MarcoScroll(ttk.Frame):
             self.lienzo.yview_scroll(int(-1 * (evento.delta / 40)), "units")
 
 
+_AYUDAS = []                     # marcos de ayuda técnica: se ocultan o enseñan juntos
+_estado_ayudas = {"ver": None}
+
+
+def ver_ayudas():
+    """True si se enseñan las ayudas técnicas (campo del archivo, HTML y
+    explicación larga). Por defecto no: la ventana queda más compacta y la
+    explicación sale en un globo al pasar el ratón por el nombre del campo."""
+    if _estado_ayudas["ver"] is None:
+        _estado_ayudas["ver"] = bool(_leer_prefs().get("ver_ayudas", False))
+    return _estado_ayudas["ver"]
+
+
+def _mostrar_ayuda(bloque, ver):
+    """El bloque de ayuda es siempre el ÚLTIMO hijo de su marco: al volver a
+    colocarlo con pack queda en su sitio."""
+    if ver:
+        if not bloque.winfo_manager():
+            bloque.pack(**(getattr(bloque, "_como", None) or {"anchor": "w", "fill": "x"}))
+    elif bloque.winfo_manager() == "pack":
+        bloque._como = {k: v for k, v in bloque.pack_info().items() if k != "in"}
+        bloque.pack_forget()
+        if not bloque.master.pack_slaves():
+            bloque.master.configure(height=1)    # un marco vacío no encoge solo
+
+
+def registrar_ayuda(bloque):
+    """Un marco ya colocado con pack que es solo ayuda técnica (y el último
+    hijo de su marco): se oculta o enseña con el menú Ver › Ayudas técnicas."""
+    _AYUDAS.append(bloque)
+    if not ver_ayudas():
+        _mostrar_ayuda(bloque, False)
+    return bloque
+
+
+def poner_ver_ayudas(ver):
+    _estado_ayudas["ver"] = bool(ver)
+    prefs = _leer_prefs()
+    prefs["ver_ayudas"] = bool(ver)
+    _guardar_prefs(prefs)
+    for bloque in list(_AYUDAS):
+        try:
+            _mostrar_ayuda(bloque, ver)
+        except tk.TclError:
+            _AYUDAS.remove(bloque)
+
+
+def ajustar_al_ancho(etiqueta, minimo=200, margen=12):
+    """El texto largo de una etiqueta se parte según el ancho real de su
+    marco, en vez de a un número fijo de píxeles."""
+    padre = etiqueta.master
+    etiqueta._ajustada = True
+
+    def ajustar(ev):
+        ancho = max(minimo, ev.width - margen)
+        if abs(int(str(etiqueta.cget("wraplength") or 0)) - ancho) > 8:
+            etiqueta.configure(wraplength=ancho)
+    padre.bind("<Configure>", ajustar, add="+")
+
+
+def ajustar_ayudas(raiz):
+    """Todas las explicaciones largas (estilo Ayuda) se parten según el ancho
+    real de la ventana: en pantallas pequeñas no se cortan y en grandes no
+    quedan en una columna estrecha."""
+    pendientes = [raiz]
+    while pendientes:
+        w = pendientes.pop()
+        pendientes.extend(w.winfo_children())
+        try:
+            if (w.winfo_class() == "TLabel" and str(w.cget("style")) == "Ayuda.TLabel"
+                    and int(str(w.cget("wraplength") or 0)) > 400
+                    and not getattr(w, "_ajustada", False)):
+                ajustar_al_ancho(w)
+        except (tk.TclError, ValueError):
+            pass
+
+
 def rotulo(padre, visible, tecnico, html, ayuda="", con_titulo=True):
     """Rótulo doble de un campo:
          línea 1 → nombre tal y como se ve en la página publicada
          línea 2 → nombre del campo en el archivo + elemento HTML donde acaba
          línea 3 → (opcional) dónde se ve exactamente
     con_titulo=False omite la línea 1 (cuando el recuadro ya la lleva escrita).
+    Las líneas 2 y 3 son «ayudas técnicas»: se ocultan o enseñan todas a la vez
+    (menú Ver); ocultas, la explicación sale en un globo sobre el nombre.
     """
     marco = ttk.Frame(padre, style="Panel.TFrame")
     if con_titulo:
-        ttk.Label(marco, text=visible, style="Campo.TLabel").pack(anchor="w")
-    ttk.Label(marco, text="%s   →   HTML: %s" % (tecnico, html),
+        titulo = ttk.Label(marco, text=visible, style="Campo.TLabel")
+        titulo.pack(anchor="w")
+        globo = ayuda or ""
+        if tecnico:
+            globo = (globo + "\n\n" if globo else "") + "%s  →  %s" % (tecnico, html)
+        _consejo(titulo, globo, solo_si=lambda: not ver_ayudas())
+    bloque = ttk.Frame(marco, style="Panel.TFrame")
+    ttk.Label(bloque, text="%s   →   HTML: %s" % (tecnico, html),
               style="Tec.TLabel").pack(anchor="w")
     if ayuda:
-        ttk.Label(marco, text=ayuda, style="Ayuda.TLabel",
-                  wraplength=820, justify="left").pack(anchor="w", pady=(1, 0))
+        et = ttk.Label(bloque, text=ayuda, style="Ayuda.TLabel",
+                       wraplength=820, justify="left")
+        et.pack(anchor="w", pady=(1, 0))
+        ajustar_al_ancho(et)
+    bloque.pack(anchor="w", fill="x")
+    if con_titulo:
+        registrar_ayuda(bloque)
     return marco
 
 
@@ -171,8 +266,9 @@ FUENTES = [
 _FUENTE_EDITOR = {clave: fam for clave, _n, fam in FUENTES}
 
 # Clases que afectan a un PÁRRAFO entero (no a un trozo de línea)
-CLASES_PARRAFO = {"al-j", "al-i", "sg-1", "sg-2", "sg-3"}
+CLASES_PARRAFO = {"al-j", "al-i", "sg-1", "sg-2", "sg-3", "cg"}
 SANGRIA_PX = 26          # sangría por nivel en el editor
+SANGRIA_FRANCESA_PX = 22 # en las listas, cuánto entran las líneas de debajo
 
 # Cualquier etiqueta HTML del texto (de apertura o de cierre).
 RE_ETIQUETA_HTML = re.compile(r"</?\s*([a-zA-Z][a-zA-Z0-9]*)\b[^<>]*>")
@@ -315,7 +411,9 @@ def repintar_formato(widget):
         if "al-i" in clases:
             widget.tag_add("fmt_izq", a, b)
         nivel = nivel_sangria(clases)
-        if nivel:
+        if "cg" in clases:
+            widget.tag_add("fmt_cg%d" % nivel, a, b)
+        elif nivel:
             widget.tag_add("fmt_sg%d" % nivel, a, b)
     # Las etiquetas, siempre en gris por encima de todo lo demás.
     widget.tag_raise("fmt_etiqueta")
@@ -332,6 +430,40 @@ def _repintar_luego(widget):
     widget._repintado_pendiente = widget.after(120, lambda: repintar_formato(widget))
 
 
+@contextmanager
+def un_paso(widget):
+    """Agrupa varios cambios del cuadro en UN solo paso de Ctrl+Z."""
+    try:
+        auto = widget.cget("autoseparators")
+        widget.configure(autoseparators=False)
+        widget.edit_separator()
+    except (tk.TclError, AttributeError):
+        auto = None
+    try:
+        yield
+    finally:
+        if auto is not None:
+            try:
+                widget.edit_separator()
+                widget.configure(autoseparators=auto)
+            except tk.TclError:
+                pass
+
+
+def parrafo_del_cursor(widget):
+    """Si la línea del cursor está envuelta en un párrafo (sangría, justificado,
+    lista), devuelve (n.º de línea, clases, columna donde empieza el texto,
+    columna donde acaba, columna del cursor). Si no, None."""
+    n, col = (int(x) for x in widget.index("insert").split("."))
+    linea = widget.get("%d.0" % n, "%d.end" % n)
+    env = envoltorio_parrafo(linea)
+    if not env:
+        return None
+    m = re.match(r'^\s*<span class="[^"]*">', linea)
+    fin = len(linea.rstrip()) - len("</span>")
+    return n, env[0], m.end(), fin, col
+
+
 def envolver_formato(widget, apertura, cierre):
     """Envuelve lo seleccionado (o deja el cursor dentro de las etiquetas,
     si no hay nada seleccionado)."""
@@ -341,8 +473,9 @@ def envolver_formato(widget, apertura, cierre):
     except tk.TclError:
         ini = fin = widget.index("insert")
     largo = len(widget.get(ini, fin))
-    widget.insert(fin, cierre)
-    widget.insert(ini, apertura)
+    with un_paso(widget):
+        widget.insert(fin, cierre)
+        widget.insert(ini, apertura)
     dentro = widget.index("%s + %d chars" % (ini, len(apertura)))
     if largo:
         widget.tag_remove("sel", "1.0", "end")
@@ -389,8 +522,9 @@ def quitar_formato(widget):
     limpio = RE_ETIQUETA_HTML.sub(fuera, trozo)
     if limpio == trozo:
         return "break"
-    widget.delete(ini, fin)
-    widget.insert(ini, limpio)
+    with un_paso(widget):
+        widget.delete(ini, fin)
+        widget.insert(ini, limpio)
     repintar_formato(widget)
     widget.event_generate("<<TextoTocado>>")
     return "break"
@@ -435,46 +569,91 @@ def formato_parrafos(widget, accion):
     try:
         ini = widget.index("sel.first")
         fin = widget.index("sel.last")
+        habia_seleccion = True
     except tk.TclError:
         ini = fin = widget.index("insert")
+        habia_seleccion = False
     l1, l2 = int(ini.split(".")[0]), int(fin.split(".")[0])
     if l2 > l1 and fin.endswith(".0"):      # la selección acaba al principio de una línea
         l2 -= 1
-    for n in range(l1, l2 + 1):
-        a, b = "%d.0" % n, "%d.end" % n
-        linea = widget.get(a, b)
-        if not linea.strip():
-            continue
-        env = envoltorio_parrafo(linea)
-        clases, interior = (set(env[0]), env[1]) if env else (set(), linea.strip())
-        nivel = nivel_sangria(clases)
-        if accion == "just":
-            clases.add("al-j")
-            clases.discard("al-i")
-        elif accion == "izq":
-            clases.discard("al-j")
-            clases.add("al-i")
-        elif accion == "mas":
-            nivel = min(3, nivel + 1)
-        elif accion == "menos":
-            nivel = max(0, nivel - 1)
-        clases -= {"sg-1", "sg-2", "sg-3"}
-        if nivel:
-            clases.add("sg-%d" % nivel)
-        if clases:
-            orden = [c for c in ("al-j", "al-i", "sg-1", "sg-2", "sg-3") if c in clases]
-            nueva = '<span class="%s">%s</span>' % (" ".join(orden), interior)
-        else:
-            nueva = interior
-        if nueva != linea:
-            widget.delete(a, b)
-            widget.insert(a, nueva)
-    widget.tag_remove("sel", "1.0", "end")
-    widget.tag_add("sel", "%d.0" % l1, "%d.end" % l2)
+    # Sin selección, el cursor vuelve después al mismo carácter visible
+    visibles = len(RE_ETIQUETA_HTML.sub("", widget.get("%d.0" % l1, "insert")))
+    cambiado = False
+    with un_paso(widget):
+        for n in range(l1, l2 + 1):
+            cambiado |= _formato_una_linea(widget, n, accion, vacia_vale=not habia_seleccion)
+    if habia_seleccion:
+        widget.tag_remove("sel", "1.0", "end")
+        widget.tag_add("sel", "%d.0" % l1, "%d.end" % l2)
+    else:
+        poner_cursor_visible(widget, l1, visibles)
     widget.focus_set()
     repintar_formato(widget)
-    widget.event_generate("<<TextoTocado>>")
+    if cambiado:
+        widget.event_generate("<<TextoTocado>>")
     return "break"
+
+
+def _formato_una_linea(widget, n, accion, vacia_vale=False):
+    """Aplica la acción de párrafo a la línea n. True si la ha cambiado."""
+    a, b = "%d.0" % n, "%d.end" % n
+    linea = widget.get(a, b)
+    if not linea.strip() and not (vacia_vale and accion == "mas"):
+        return False
+    env = envoltorio_parrafo(linea)
+    clases, interior = (set(env[0]), env[1]) if env else (set(), linea.strip())
+    nivel = nivel_sangria(clases)
+    if accion == "just":
+        clases.add("al-j")
+        clases.discard("al-i")
+    elif accion == "izq":
+        clases.discard("al-j")
+        clases.add("al-i")
+    elif accion == "mas":
+        nivel = min(3, nivel + 1)
+    elif accion == "menos":
+        nivel = max(0, nivel - 1)
+    clases -= {"sg-1", "sg-2", "sg-3"}
+    if nivel:
+        clases.add("sg-%d" % nivel)
+    nueva = envolver_parrafo(clases, interior)
+    if nueva != linea:
+        widget.delete(a, b)
+        widget.insert(a, nueva)
+        return True
+    return False
+
+
+ORDEN_CLASES_PARRAFO = ("al-j", "al-i", "sg-1", "sg-2", "sg-3", "cg")
+
+
+def envolver_parrafo(clases, interior):
+    """Línea con su envoltorio de párrafo (o sin él, si no quedan clases).
+    Una línea vacía con sangría conserva el envoltorio para poder escribir dentro."""
+    clases = [c for c in ORDEN_CLASES_PARRAFO if c in clases]
+    if not clases:
+        return interior
+    return '<span class="%s">%s</span>' % (" ".join(clases), interior)
+
+
+def poner_cursor_visible(widget, n, visibles):
+    """Deja el cursor de la línea n tras `visibles` caracteres visibles. Pasa por
+    encima de las marcas de apertura (queda DENTRO del formato) pero se para
+    antes de las de cierre, para que lo que se escriba no se salga del párrafo."""
+    linea = widget.get("%d.0" % n, "%d.end" % n)
+    pos = vistos = 0
+    for m in re.finditer(RE_ETIQUETA_HTML.pattern + r"|.", linea, re.S):
+        trozo = m.group(0)
+        if RE_ETIQUETA_HTML.fullmatch(trozo):
+            if vistos >= visibles and trozo.startswith("</"):
+                break
+        else:
+            if vistos >= visibles:
+                break
+            vistos += 1
+        pos = m.end()
+    widget.mark_set("insert", "%d.0 + %d chars" % (n, pos))
+    widget.see("insert")
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -566,15 +745,21 @@ def _retroceso(e):
     w = e.widget
     if ver_marcas():
         return None
-    if w.tag_ranges("sel"):
-        _borrar_visible(w, w.index("sel.first"), w.index("sel.last"))
+    with un_paso(w):
+        if w.tag_ranges("sel"):
+            _borrar_visible(w, w.index("sel.first"), w.index("sel.last"))
+            _limpiar_pares_linea(w)
+            return "break"
+        par = parrafo_del_cursor(w)
+        if par and par[4] <= par[2] and nivel_sangria(par[1]):
+            # Al principio de una línea con sangría, Retroceso la saca un nivel
+            # (como en un procesador de textos) en vez de pegarla a la anterior.
+            return formato_parrafos(w, "menos")
+        if w.compare("insert", "==", "1.0"):
+            return "break"
+        ant = w.index("insert-1displaychars")
+        _borrar_visible(w, ant, "%s + 1 chars" % ant)
         _limpiar_pares_linea(w)
-        return "break"
-    if w.compare("insert", "==", "1.0"):
-        return "break"
-    ant = w.index("insert-1displaychars")
-    _borrar_visible(w, ant, "%s + 1 chars" % ant)
-    _limpiar_pares_linea(w)
     return "break"
 
 
@@ -590,17 +775,27 @@ def _suprimir(e):
     ini = w.index("%s-1displaychars" % sig)
     if w.compare(ini, "<", "insert") or w.compare(ini, ">=", "end-1c"):
         return "break"                      # no hay más texto visible por delante
-    _borrar_visible(w, ini, "%s + 1 chars" % ini)
-    _limpiar_pares_linea(w)
+    with un_paso(w):
+        _borrar_visible(w, ini, "%s + 1 chars" % ini)
+        _limpiar_pares_linea(w)
     return "break"
 
 
 def _teclear_sobre_seleccion(e):
-    """Escribir con texto seleccionado lo sustituye, pero sin romper marcas ocultas."""
+    """Escribir con texto seleccionado lo sustituye, pero sin romper marcas ocultas.
+    Sin selección, lo escrito al principio o al final de una línea con sangría
+    (o justificada, o de lista) entra DENTRO de su párrafo, no fuera de las marcas."""
     w = e.widget
-    if ver_marcas() or not w.tag_ranges("sel"):
+    if ver_marcas():
         return None
-    if (e.state & 0x4) or not (len(e.char) == 1 and (e.char >= " " or e.char in "\r\n")):
+    if (e.state & 0x4) or not (len(e.char) == 1 and e.char >= " "):
+        return None
+    if not w.tag_ranges("sel"):
+        par = parrafo_del_cursor(w)
+        if par:
+            n, _clases, a, b, col = par
+            if col < a or col > b:
+                w.mark_set("insert", "%d.%d" % (n, a if col < a else b))
         return None
     ini, fin = w.index("sel.first"), w.index("sel.last")
     if w.compare("insert", "<", ini) or w.compare("insert", ">", fin):
@@ -610,12 +805,46 @@ def _teclear_sobre_seleccion(e):
     return None
 
 
+def _intro(e):
+    """Intro en una línea con sangría o de lista: la nueva línea sigue igual
+    (como en un procesador de textos). Intro en una línea así VACÍA la deja normal."""
+    w = e.widget
+    if ver_marcas() or w.tag_ranges("sel"):
+        return None
+    par = parrafo_del_cursor(w)
+    if not par:
+        return None
+    n, clases, a, b, col = par
+    col = min(max(col, a), b)
+    linea = w.get("%d.0" % n, "%d.end" % n)
+    antes, despues = linea[a:col], linea[col:b]
+    vineta = RE_VI.search(antes)
+    texto = RE_ETIQUETA_HTML.sub("", RE_VI.sub("", antes + despues))
+    with un_paso(w):
+        if not texto.strip():
+            w.delete("%d.0" % n, "%d.end" % n)          # línea vacía: fin de la lista
+            w.mark_set("insert", "%d.0" % n)
+        else:
+            resto = despues
+            if vineta:                                   # la nueva línea, con la viñeta siguiente
+                despues = '<span class="vi">%s</span>' % siguiente_vineta(vineta.group(1)) + despues
+            nueva = envolver_parrafo(clases, despues)
+            w.delete("%d.0" % n, "%d.end" % n)
+            w.insert("%d.0" % n, envolver_parrafo(clases, antes) + "\n" + nueva)
+            # el cursor, justo donde empieza el texto (tras la viñeta, dentro del párrafo)
+            w.mark_set("insert", "%d.%d" % (n + 1, len(nueva) - len("</span>") - len(resto)))
+    repintar_formato(w)
+    w.event_generate("<<TextoTocado>>")
+    return "break"
+
+
 def _cortar(e):
     w = e.widget
     if ver_marcas() or not w.tag_ranges("sel"):
         return None
     w.event_generate("<<Copy>>")
-    _borrar_visible(w, w.index("sel.first"), w.index("sel.last"))
+    with un_paso(w):
+        _borrar_visible(w, w.index("sel.first"), w.index("sel.last"))
     w.event_generate("<<TextoTocado>>")
     return "break"
 
@@ -810,28 +1039,49 @@ def barra_formato(padre, widget, compacta=False, ampliable=True):
     return barra
 
 
-def _consejo(widget, texto):
-    """Globo de ayuda amarillo al pasar el ratón por encima."""
-    estado = {"ventana": None}
+RETARDO_GLOBO_MS = 500
 
-    def mostrar(_e=None):
-        if estado["ventana"] or not texto:
+
+def _consejo(widget, texto, solo_si=None):
+    """Globo de ayuda amarillo al dejar el ratón medio segundo encima
+    (al pasar de largo no sale). solo_si: función que dice si toca enseñarlo."""
+    estado = {"ventana": None, "espera": None}
+
+    def mostrar():
+        estado["espera"] = None
+        if estado["ventana"] or not texto or (solo_si and not solo_si()):
             return
-        v = tk.Toplevel(widget)
+        try:
+            v = tk.Toplevel(widget)
+        except tk.TclError:
+            return
         v.wm_overrideredirect(True)
-        v.wm_geometry("+%d+%d" % (widget.winfo_rootx() + 6,
-                                  widget.winfo_rooty() + widget.winfo_height() + 4))
+        x = widget.winfo_rootx() + 6
+        ancho_pantalla = widget.winfo_screenwidth()
         tk.Label(v, text=texto, background="#fff8dc", foreground="#3b2f26",
                  relief="solid", borderwidth=1, font=("Segoe UI", 8),
-                 padx=6, pady=2).pack()
+                 padx=6, pady=2, justify="left", wraplength=460).pack()
+        v.update_idletasks()
+        x = max(0, min(x, ancho_pantalla - v.winfo_reqwidth() - 4))
+        v.wm_geometry("+%d+%d" % (x, widget.winfo_rooty() + widget.winfo_height() + 4))
         estado["ventana"] = v
 
+    def entrar(_e=None):
+        if estado["espera"] is None and not estado["ventana"]:
+            estado["espera"] = widget.after(RETARDO_GLOBO_MS, mostrar)
+
     def ocultar(_e=None):
+        if estado["espera"] is not None:
+            try:
+                widget.after_cancel(estado["espera"])
+            except tk.TclError:
+                pass
+            estado["espera"] = None
         if estado["ventana"]:
             estado["ventana"].destroy()
             estado["ventana"] = None
 
-    widget.bind("<Enter>", mostrar, add="+")
+    widget.bind("<Enter>", entrar, add="+")
     widget.bind("<Leave>", ocultar, add="+")
     widget.bind("<ButtonPress>", ocultar, add="+")
 
@@ -845,7 +1095,8 @@ def caja_texto(padre, alto=4, ancho=90, formato=True, ampliable=True):
     texto = tk.Text(cuerpo, height=alto, width=ancho, wrap="word",
                     font=FUENTE_CAJA, relief="solid", borderwidth=1,
                     background="white", foreground="#111827",
-                    insertbackground="#111827", padx=6, pady=4)
+                    insertbackground="#111827", padx=6, pady=4,
+                    undo=True, autoseparators=True, maxundo=300)
     barra = ttk.Scrollbar(cuerpo, orient="vertical", command=texto.yview)
     texto.configure(yscrollcommand=barra.set)
 
@@ -855,6 +1106,10 @@ def caja_texto(padre, alto=4, ancho=90, formato=True, ampliable=True):
         for nivel in (1, 2, 3):
             texto.tag_configure("fmt_sg%d" % nivel, lmargin1=SANGRIA_PX * nivel,
                                 lmargin2=SANGRIA_PX * nivel)
+        for nivel in (0, 1, 2, 3):          # listas: las líneas de debajo, a la altura del texto
+            texto.tag_configure("fmt_cg%d" % nivel, lmargin1=SANGRIA_PX * nivel,
+                                lmargin2=SANGRIA_PX * nivel + SANGRIA_FRANCESA_PX,
+                                tabs=(SANGRIA_PX * nivel + SANGRIA_FRANCESA_PX,))
         texto.tag_configure("fmt_etiqueta", foreground="#b3aaa0", elide=not ver_marcas())
         _CAJAS.append(texto)
         barra_formato(marco, texto, compacta=(alto <= 3), ampliable=ampliable
@@ -865,6 +1120,12 @@ def caja_texto(padre, alto=4, ancho=90, formato=True, ampliable=True):
         texto.bind("<Delete>", _suprimir)
         texto.bind("<KeyPress>", _teclear_sobre_seleccion, add="+")
         texto.bind("<<Cut>>", _cortar)
+        texto.bind("<Return>", _intro)
+        # Ctrl+Z / Ctrl+Y del propio cuadro: tras deshacer, se repinta el formato
+        for virtual in ("<<Undo>>", "<<Redo>>"):
+            texto.bind(virtual, lambda e: (e.widget.after_idle(repintar_formato, e.widget),
+                                           e.widget.after_idle(e.widget.event_generate,
+                                                               "<<TextoTocado>>")), add="+")
         for pulsacion in ("<Control-Shift-M>", "<Control-Shift-m>"):
             texto.bind(pulsacion, lambda e: (poner_ver_marcas(not ver_marcas()), "break")[1])
         if ampliable:
@@ -907,6 +1168,10 @@ def caja_texto(padre, alto=4, ancho=90, formato=True, ampliable=True):
 def poner_texto(widget, valor):
     widget.delete("1.0", "end")
     widget.insert("1.0", "" if valor is None else str(valor))
+    try:
+        widget.edit_reset()              # Ctrl+Z no debe volver al texto de otra pregunta
+    except (tk.TclError, AttributeError):
+        pass
     repintar_formato(widget)
     if getattr(widget, "_alto_min", None):
         _autoajustar_luego(widget)
@@ -916,13 +1181,136 @@ def sacar_texto(widget):
     return widget.get("1.0", "end-1c")
 
 
+def _es_parrafo(etiqueta):
+    m = RE_CLASE_HTML.search(etiqueta)
+    return bool(m) and etiqueta[1:5].lower() == "span" and bool(set(m.group(1).split()) & CLASES_PARRAFO)
+
+
+def equilibrar_etiquetas(texto):
+    """Repara el formato que cruza líneas o párrafos, p. ej.
+        <span class="sg-1">Tres. <b></span>\\n¿Cuáles?</b>
+     →  <span class="sg-1">Tres. </span>\\n<b>¿Cuáles?</b>
+    Cada línea queda con sus etiquetas cerradas: la negrita que sigue en la
+    línea de abajo se reabre allí (dentro de su sangría, si la tiene), y una
+    etiqueta que se cierra antes que otra abierta dentro cierra primero esa."""
+    texto = str(texto or "")
+    if "<" not in texto:
+        return texto
+    out, pila, pendientes = [], [], []      # pila: [(nombre, apertura, es_parrafo)]
+
+    def abrir_pendientes():
+        for nombre, ap in pendientes:
+            out.append(ap)
+            pila.append((nombre, ap, False))
+        pendientes.clear()
+
+    pos = 0
+    for m in re.finditer(r"\n|" + RE_ETIQUETA_HTML.pattern, texto):
+        trozo = texto[pos:m.start()]
+        if trozo:
+            abrir_pendientes()
+            out.append(trozo)
+        pos = m.end()
+        tok = m.group(0)
+        if tok == "\n":
+            # Fin de línea: se cierra todo y lo que no es párrafo se reabre en la siguiente.
+            seguir = [(n, ap) for n, ap, par in pila if not par]
+            for n, _ap, _par in reversed(pila):
+                out.append("</%s>" % n)
+            pila.clear()
+            pendientes.extend(seguir)
+            out.append("\n")
+            continue
+        nombre = m.group(1).lower()
+        if nombre not in ETIQUETAS_FORMATO or tok.endswith("/>"):
+            abrir_pendientes()
+            out.append(tok)
+            continue
+        if tok.startswith("</"):
+            # ¿Era una etiqueta que aún no se había reabierto? Entonces sobra.
+            for k in range(len(pendientes) - 1, -1, -1):
+                if pendientes[k][0] == nombre:
+                    del pendientes[k]
+                    break
+            else:
+                k = next((i for i in range(len(pila) - 1, -1, -1) if pila[i][0] == nombre), None)
+                if k is None:
+                    continue                      # cierre suelto: fuera
+                encima = pila[k + 1:]
+                for n, _ap, _par in reversed(encima):
+                    out.append("</%s>" % n)
+                out.append(tok)
+                cerrada = pila[k]
+                del pila[k:]
+                dentro = [(n, ap) for n, ap, par in encima if not par]
+                if cerrada[2]:
+                    pendientes[:0] = dentro       # se reabren después del párrafo
+                else:
+                    for n, ap in dentro:
+                        out.append(ap)
+                        pila.append((n, ap, False))
+            continue
+        par = _es_parrafo(tok)
+        if not par:
+            abrir_pendientes()
+        out.append(tok)
+        pila.append((nombre, tok, par))
+    if texto[pos:]:
+        abrir_pendientes()
+        out.append(texto[pos:])
+    for n, _ap, _par in reversed(pila):
+        out.append("</%s>" % n)
+    return quitar_pares_vacios("".join(out))
+
+
 def limpiar_texto(valor):
     """Limpia un texto SIN perder los saltos de línea (Enter): quita los
     espacios sobrantes de cada línea y las líneas en blanco del principio
     y del final, y no deja más de una línea en blanco seguida."""
-    crudo = str(valor or "").replace("\r\n", "\n").replace("\r", "\n")
-    lineas = [" ".join(l.split()) for l in crudo.split("\n")]
+    crudo = equilibrar_etiquetas(str(valor or "").replace("\r\n", "\n").replace("\r", "\n"))
+    lineas = [colgar_vineta(" ".join(l.split()) if "\t" not in l else l.strip())
+              for l in crudo.split("\n")]
     return re.sub(r"\n{3,}", "\n\n", "\n".join(lineas).strip("\n"))
+
+
+# Una línea de lista pegada de Word: viñeta o número, TABULADOR y el texto.
+# En la página el tabulador se ve como un espacio y las líneas de debajo
+# quedan pegadas al margen, debajo de la viñeta. Se convierte en una lista con
+# «sangría francesa»: la viñeta va aparte y todo el texto queda alineado.
+RE_VINETA = re.compile(r"^([•·▪◦‣○●■□►▸✓✔\-–—*]|\(?\d{1,3}[.)º°]?\)?|\(?[a-zA-Z][.)])\t+\s*(\S.*)$")
+
+
+RE_VI = re.compile(r'<span class="vi">(.*?)</span>')
+
+
+def siguiente_vineta(vineta):
+    """«3.» → «4.», «b)» → «c)», «•» → «•» (el tabulador final se conserva)."""
+    if vineta.endswith("\t"):
+        return siguiente_vineta(vineta.rstrip("\t")) + "\t"
+    m = re.match(r"^(\(?)(\d+)(.*)$", vineta)
+    if m:
+        return "%s%d%s" % (m.group(1), int(m.group(2)) + 1, m.group(3))
+    m = re.match(r"^(\(?)([a-yA-Y])(\W*)$", vineta)
+    if m:
+        return m.group(1) + chr(ord(m.group(2)) + 1) + m.group(3)
+    return vineta
+
+
+def colgar_vineta(linea):
+    """«•<TAB>texto» → <span class="cg"><span class="vi">•<TAB></span>texto</span>,
+    respetando la sangría o el justificado que ya tuviera la línea."""
+    if "\t" not in linea or 'class="vi"' in linea:
+        return linea                      # sin tabulador, o ya convertida
+    env = envoltorio_parrafo(linea)
+    clases, interior = (set(env[0]), env[1]) if env else (set(), linea.strip())
+    m = RE_VINETA.match(interior)
+    if not m:
+        return re.sub(r"[ \t]+", " ", linea).strip()
+    clases.add("cg")
+    # El tabulador se queda dentro de la viñeta: en el editor separa la viñeta
+    # del texto y en la página no se ve (la viñeta tiene su propio ancho).
+    interior = '<span class="vi">%s\t</span>%s' % (m.group(1), re.sub(r"[ \t]+", " ", m.group(2)))
+    return envolver_parrafo(clases, interior)
 
 
 def partir_parrafos(valor):
@@ -948,7 +1336,7 @@ def partir_parrafos(valor):
         if not RE_ETIQUETA_HTML.sub("", linea).strip():
             continue                          # línea vacía (o solo etiquetas)
         cierre = "".join("</%s>" % n for n, _ap in reversed(abiertas))
-        parrafos.append(prefijo + linea + cierre)
+        parrafos.append(colgar_vineta(prefijo + linea + cierre))
     return parrafos
 
 
@@ -1079,6 +1467,6 @@ def _leer_prefs():
 
 def _guardar_prefs(prefs):
     try:
-        PREFS.write_text(json.dumps(prefs, ensure_ascii=False, indent=1), encoding="utf-8")
+        escribir_seguro(PREFS, json.dumps(prefs, ensure_ascii=False, indent=1))
     except OSError:
         pass                              # carpeta de solo lectura: no pasa nada

@@ -26,11 +26,8 @@
 ════════════════════════════════════════════════════════════════════════
 """
 
-import json
-import os
 import re
 import sys
-import webbrowser
 from pathlib import Path
 
 # Los módulos del editor (menu_datos, datos_html, alta_menu…) están junto a este archivo.
@@ -49,8 +46,22 @@ if __name__ == "__main__":
         import sincronizar_local
         sys.exit(sincronizar_local.main(sys.argv[1:]))
 
-from editor_comun import *  # noqa: F401,F403
-from editor_comun import (_leer_prefs)  # noqa: F401
+import git_sync
+import herramientas_datos as herr
+import publicar
+import segundo_plano
+import sincronizar_local
+import tkinter as tk
+import ventana_extra
+import ventana_herramientas
+import ventana_menu
+import ventana_subir
+import ventana_sync
+from tkinter import messagebox, ttk
+from editor_comun import (  # noqa: F401
+    APP_TITULO, AUTOGUARDADO_MS, C_AYUDA, C_FONDO, C_PANEL, C_ROJO, C_TEC, C_TINTA, PREFS,
+    _leer_prefs, ajustar_ayudas, datos_vacios, huella_disco, normalizar, poner_ver_ayudas,
+    poner_ver_marcas, ver_ayudas, ver_marcas)
 from pestana_general import PestanaGeneral
 from pestana_bloques import PestanaBloques
 from pestana_enunciados import PestanaEnunciados
@@ -110,10 +121,16 @@ class EditorApp(PestanaGeneral,
         self._pestana_botones()
         self._pestana_comprobar()
         self._pestana_normas()
+        ajustar_ayudas(self)
 
         self._barra_estado()
         self.protocol("WM_DELETE_WINDOW", self._al_cerrar)
 
+        # Atajos de los cuadros de texto de Tk que chocan con los del editor:
+        # Ctrl+O metía un salto de línea, Ctrl+F avanzaba el cursor y Ctrl+N bajaba de línea.
+        for clase in ("Text", "Entry", "TEntry"):
+            for tecla in ("<Control-o>", "<Control-f>", "<Control-n>", "<Control-k>"):
+                self.bind_class(clase, tecla, "")
         self.bind_all("<Control-s>", lambda e: self.guardar())
         self.bind_all("<Control-o>", lambda e: self.abrir())
         self.bind_all("<Control-n>", lambda e: self.nuevo())
@@ -130,6 +147,7 @@ class EditorApp(PestanaGeneral,
         self.bind_all("<Alt-Down>", lambda e: self._mover_con_atajo(1))
         self.after(AUTOGUARDADO_MS, self._autoguardar)
 
+        self.bind("<FocusIn>", self._mirar_disco, add="+")
         self.after(200, self._carga_inicial)
         self.after(2500, self._avisar_si_hay_cambios_en_github)
 
@@ -170,27 +188,20 @@ class EditorApp(PestanaGeneral,
         barra = ttk.Frame(self)
         barra.pack(fill="x", padx=10, pady=(10, 0))
 
-        ttk.Button(barra, text="📂  Abrir plantilla…", command=self.abrir,
-                   style="Accion.TButton").pack(side="left")
-        ttk.Button(barra, text="🆕  Nuevo supuesto", command=self.nuevo).pack(side="left", padx=(6, 0))
-        ttk.Separator(barra, orient="vertical").pack(side="left", fill="y", padx=10)
+        # Solo lo de cada día; lo demás está en los menús (Archivo, Herramientas).
+        ttk.Button(barra, text="📂  Abrir…", command=self.abrir).pack(side="left")
         ttk.Button(barra, text="💾  Guardar", command=self.guardar,
-                   style="Accion.TButton").pack(side="left")
-        ttk.Button(barra, text="💾  Guardar como…", command=self.guardar_como).pack(side="left", padx=(6, 0))
+                   style="Accion.TButton").pack(side="left", padx=(6, 0))
         ttk.Separator(barra, orient="vertical").pack(side="left", fill="y", padx=10)
-        ttk.Button(barra, text="🌐  Ver en el navegador", command=self.ver_navegador).pack(side="left")
+        ttk.Button(barra, text="🌐  Ver", command=self.ver_navegador).pack(side="left")
         ttk.Button(barra, text="✔  Comprobar", command=self.comprobar).pack(side="left", padx=(6, 0))
         ttk.Separator(barra, orient="vertical").pack(side="left", fill="y", padx=10)
-        ttk.Button(barra, text="🗂  Menú de inicio…",
-                   command=lambda: ventana_menu.abrir(self)).pack(side="left", padx=(0, 6))
-        ttk.Button(barra, text="📦  Para subir…",
-                   command=lambda: ventana_subir.abrir(self)).pack(side="left")
-        ttk.Button(barra, text="☁  Sincronizar",
-                   command=lambda: ventana_sync.abrir(self)).pack(side="left", padx=(6, 0))
+        ttk.Button(barra, text="☁  Publicar…", style="Accion.TButton",
+                   command=lambda: ventana_extra.publicar_todo(self)).pack(side="left")
 
         self.lbl_archivo = ttk.Label(barra, text="(ningún archivo abierto)",
-                                     style="Tec.TLabel")
-        self.lbl_archivo.pack(side="right")
+                                     style="Tec.TLabel", anchor="e")
+        self.lbl_archivo.pack(side="right", fill="x", expand=True, padx=(10, 0))
 
     # ─────────────────────────────────────────────────────────────
     #  Menús, deshacer/rehacer y autoguardado
@@ -206,6 +217,7 @@ class EditorApp(PestanaGeneral,
         self._menu_recientes = tk.Menu(archivo, tearoff=False, postcommand=self._pintar_recientes)
         archivo.add_cascade(label="Abrir reciente", menu=self._menu_recientes)
         archivo.add_command(label="Duplicar este supuesto como uno nuevo…", command=self.duplicar_supuesto)
+        archivo.add_command(label="Generar simulacro…", command=lambda: ventana_extra.generar_simulacro(self))
         archivo.add_command(label="Volver a una versión anterior de este archivo…",
                             command=lambda: ventana_extra.restaurar_version(self))
         archivo.add_separator()
@@ -225,6 +237,8 @@ class EditorApp(PestanaGeneral,
                             command=lambda: ventana_extra.nueva_de_plantilla(self))
         edicion.add_command(label="Copiar preguntas de otro supuesto…",
                             command=lambda: ventana_extra.copiar_de_otro(self))
+        edicion.add_command(label="Exportar preguntas (CSV o texto)…",
+                            command=lambda: ventana_extra.exportar_preguntas(self))
         edicion.add_command(label="Vista previa de la pregunta", accelerator="F6",
                             command=lambda: ventana_extra.vista_previa(self))
         edicion.add_separator()
@@ -237,14 +251,26 @@ class EditorApp(PestanaGeneral,
         herram.add_command(label="Estadísticas del supuesto…", command=lambda: ventana_extra.estadisticas(self))
         herram.add_command(label="Preguntas repetidas…", command=lambda: ventana_extra.repetidas(self))
         herram.add_command(label="Impugnaciones recibidas…", command=lambda: ventana_extra.impugnaciones(self))
+        herram.add_command(label="Calculadora de plazos…", command=lambda: ventana_extra.calculadora_plazos(self))
         herram.add_separator()
-        herram.add_command(label="Publicar todo (comprobar, versión, sincronizar)…",
+        herram.add_command(label="Publicar (comprobar, versión y subir)…",
                            command=lambda: ventana_extra.publicar_todo(self))
         herram.add_command(label="Menú de inicio…", command=lambda: ventana_menu.abrir(self))
         herram.add_command(label="Para subir a GitHub…", command=lambda: ventana_subir.abrir(self))
-        herram.add_command(label="Sincronizar con GitHub (git)…", accelerator="Ctrl+Mayús+U",
+        herram.add_command(label="Subir a GitHub sin cambiar la versión (git)…", accelerator="Ctrl+Mayús+U",
                            command=lambda: ventana_sync.abrir(self))
         barra.add_cascade(label="Herramientas", menu=herram)
+        ver = tk.Menu(barra, tearoff=False, postcommand=lambda: (
+            self.var_ver_marcas.set(ver_marcas()), self.var_ver_ayudas.set(ver_ayudas())))
+        self.var_ver_ayudas = tk.BooleanVar(value=ver_ayudas())
+        self.var_ver_marcas = tk.BooleanVar(value=ver_marcas())
+        ver.add_checkbutton(label="Ayudas técnicas (campo del archivo, HTML y explicación)",
+                            variable=self.var_ver_ayudas,
+                            command=lambda: poner_ver_ayudas(self.var_ver_ayudas.get()))
+        ver.add_checkbutton(label="Marcas de formato en los textos (<b>, <i>…)",
+                            accelerator="Ctrl+Mayús+M", variable=self.var_ver_marcas,
+                            command=lambda: poner_ver_marcas(self.var_ver_marcas.get()))
+        barra.add_cascade(label="Ver", menu=ver)
         ayuda = tk.Menu(barra, tearoff=False)
         ayuda.add_command(label="Ayuda de esta pestaña", accelerator="F1", command=lambda: ventana_extra.ayuda(self))
         barra.add_cascade(label="Ayuda", menu=ayuda)
@@ -260,27 +286,51 @@ class EditorApp(PestanaGeneral,
             self._menu_recientes.add_command(label="(ninguno todavía)", state="disabled")
 
     def _avisar_si_hay_cambios_en_github(self):
-        """Al arrancar, mira en segundo plano si GitHub tiene cambios que aún no tienes."""
-        import threading
+        """Al arrancar, mira en segundo plano si GitHub tiene cambios que aún no tienes
+        y si estás en una rama que no es la principal."""
         raiz = sincronizar_local.RAIZ_DEFECTO
         if not (git_sync.hay_git() and git_sync.es_clon(raiz)):
             return
-        resultado = {}
 
-        def mirar():
-            resultado["n"] = git_sync.commits_atras(raiz)
+        def avisar(sit):
+            if not sit:
+                return
+            if sit["rama"] != sit["principal"]:
+                self.estado("Estás en la rama «%s», no en la principal «%s»: ☁ Publicar → «Volver a la principal»."
+                            % (sit["rama"], sit["principal"]))
+            elif sit["atras"]:
+                self.estado("GitHub tiene %d cambio(s) nuevo(s) que no tienes: ☁ Publicar → «Traer lo último»."
+                            % sit["atras"])
 
-        hilo = threading.Thread(target=mirar, daemon=True)
-        hilo.start()
+        segundo_plano.lanzar(self, lambda: git_sync.situacion(raiz), avisar, al_fallar=lambda _e: None,
+                             cada_ms=500)
 
-        def esperar(intentos=0):
-            if hilo.is_alive() and intentos < 40:
-                self.after(500, esperar, intentos + 1)
-            elif resultado.get("n"):
-                self.estado("GitHub tiene %d cambio(s) nuevo(s) que no tienes: ☁ Sincronizar → «Traer lo último»."
-                            % resultado["n"])
-
-        esperar()
+    def _mirar_disco(self, _evento=None):
+        """Al volver a la ventana: si el archivo abierto cambió fuera, se recarga
+        (sin cambios aquí) o se avisa una vez (con cambios sin guardar)."""
+        if getattr(self, "_mirando_disco", False) or not self.cambiado_fuera():
+            return
+        huella = huella_disco(self.ruta)
+        if huella == getattr(self, "_aviso_disco", None):
+            return
+        self._mirando_disco = True
+        try:
+            if not self.hay_cambios:
+                i = self.i_preg
+                self._cargar_ruta(self.ruta)
+                if i is not None and self.datos["preguntas"]:
+                    self.refrescar_lista_preg(min(i, len(self.datos["preguntas"]) - 1))
+                self.estado("«%s» había cambiado fuera del editor: recargado." % self.ruta.name)
+            else:
+                self._aviso_disco = huella
+                messagebox.showwarning(
+                    "El archivo ha cambiado fuera del editor",
+                    "«%s» se ha modificado en el disco (GitHub, la ventana del menú u otro "
+                    "programa) y aquí tienes cambios sin guardar.\n\nSi guardas, se quedará "
+                    "lo que ves en el editor; el programa te lo volverá a preguntar." % self.ruta.name,
+                    parent=self)
+        finally:
+            self._mirando_disco = False
 
     def _instantanea(self):
         """Pasa lo escrito en la ventana a los datos sin reordenar nada."""
@@ -329,9 +379,17 @@ class EditorApp(PestanaGeneral,
         self.estado("Rehecho.")
 
     def _poner_datos(self, datos):
+        """Pone otros datos (deshacer, rehacer, otra ventana) sin perder el sitio:
+        sigue seleccionado el mismo bloque, enunciado, hecho, hito y pregunta."""
         i = self.i_preg
+        sec, enun, bloque, hito = self.i_sec, self.i_enun, self.i_bloque, self.i_hito
         self.datos = datos
         self._refrescar_todo(reiniciar=False)
+        if sec is not None and self.datos["bloques"]:
+            self.refrescar_lista_sec(min(sec, len(self.datos["bloques"]) - 1))
+        if enun is not None and self.datos["enunciados"]:
+            self.i_bloque, self.i_hito = bloque, hito
+            self.refrescar_lista_enun(min(enun, len(self.datos["enunciados"]) - 1))
         if i is not None and self.datos["preguntas"]:
             self.refrescar_lista_preg(min(i, len(self.datos["preguntas"]) - 1))
         self.hay_cambios = True
@@ -348,6 +406,25 @@ class EditorApp(PestanaGeneral,
         self.volcar_pregunta()
         self.refrescar_lista_preg(n)
         self.cuaderno.select(3)
+
+    def ir_a_sitio(self, ruta):
+        """Salta al sitio de un texto (de «Buscar en todo»): pregunta, enunciado,
+        hecho, hito, bloque o datos generales."""
+        if not ruta:
+            return
+        self.volcar_todo()
+        if ruta[0] == "preguntas":
+            self.ir_a_pregunta(ruta[1])
+        elif ruta[0] == "enunciados":
+            self.i_bloque = ruta[3] if len(ruta) > 3 and ruta[2] == "factBlocks" else None
+            self.i_hito = ruta[3] if len(ruta) > 3 and ruta[2] == "timeline" else None
+            self.refrescar_lista_enun(ruta[1])
+            self.cuaderno.select(2)
+        elif ruta[0] == "bloques":
+            self.refrescar_lista_sec(ruta[1])
+            self.cuaderno.select(1)
+        else:
+            self.cuaderno.select(0)
 
     def _mover_con_atajo(self, paso):
         if self.cuaderno.index("current") == 3:

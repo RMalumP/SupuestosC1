@@ -5,7 +5,13 @@ PESTAÑA 2 · BLOQUES DEL EXAMEN
 Parte del editor de supuestos: los métodos de esta parte de la ventana viven aquí
 y EditorApp (editor_supuestos.py) los hereda. No se ejecuta solo.
 """
-from editor_comun import *  # noqa: F401,F403
+import json
+import re
+import tkinter as tk
+from tkinter import colorchooser, messagebox, ttk
+from editor_comun import (  # noqa: F401
+    CAMPOS_BLOQUE, COLOR_SUPUESTO, COLOR_TEST, C_FONDO, C_VERDE, MarcoScroll, bloque_vacio,
+    color_valido, nUm, numero, resumen, rotulo)
 
 
 class PestanaBloques:
