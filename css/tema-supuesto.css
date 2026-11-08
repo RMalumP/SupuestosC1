@@ -122,9 +122,9 @@ body::before { display: none; }
 .btn-nota.on i { filter: none; opacity: 1; }
 .btn-marcar.on { background: #fef3c7; color: #92400e; border-color: #f59e0b; }
 .btn-marcar.on i { filter: none; opacity: 1; }
-/* Corazón de favoritas: pequeño, en la esquina superior derecha de la pregunta */
+/* Corazón de favoritas: va dentro de .q-acciones, junto a la bandera y la nota */
 .btn-corazon {
-    position: absolute; top: 8px; right: 10px; z-index: 2; width: 28px; height: 28px; padding: 0;
+    position: static; flex-shrink: 0; width: 32px; height: 32px; padding: 0; align-self: center;
     display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
     background: transparent; border: 0; border-radius: 50%; color: var(--t-soft); font-size: 1.05rem; line-height: 1;
 }
@@ -132,7 +132,6 @@ body::before { display: none; }
 .btn-corazon:hover { color: #be123c; background: rgba(190,18,60,.08); }
 .btn-corazon.on { color: #be123c; }
 .sin-corazon .btn-corazon { display: none; }
-.question-card .q-header { padding-right: 22px; }
 :root[data-tema="oscuro"] .btn-corazon.on, :root[data-tema="oscuro"] .btn-corazon:hover { color: #fb7185; }
 .nav-box { position: relative; }
 .nav-box.marcada::after {
@@ -343,8 +342,8 @@ html, body { overscroll-behavior-x: none; }
     .btn-marcar, .btn-nota { width: 44px; height: 44px; padding: 0; justify-content: center; font-size: 1.1rem; }
     .btn-marcar span, .btn-nota span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     .btn-marcar i, .btn-nota i { opacity: .8; }
-    .btn-corazon { width: 44px; height: 44px; top: 4px; right: 4px; font-size: 1.2rem; }
-    .question-card .q-header { padding-right: 40px; }
+    .btn-corazon { width: 44px; height: 44px; font-size: 1.2rem; }
+    .q-acciones { flex-wrap: nowrap; }
 
     /* ── Barra inferior en una fila ── */
     .btn-zone { flex-wrap: wrap; gap: 8px; padding: 8px 8px calc(8px + env(safe-area-inset-bottom)); }
