@@ -114,7 +114,8 @@
 
   MENÚS Y ATAJOS (barra de menús de la ventana)
     Archivo        Nuevo (Ctrl+N) · Abrir (Ctrl+O) · Guardar (Ctrl+S) ·
-                   Guardar como (Ctrl+Mayús+S) · Pasar a plantilla nueva · Salir
+                   Guardar como (Ctrl+Mayús+S) · Generar simulacro ·
+                   Pasar a plantilla nueva · Salir
     Edición        Deshacer (Ctrl+Z) y Rehacer (Ctrl+Y) cambios de estructura
                    (añadir, borrar, mover, importar, reemplazar). Dentro de un
                    cuadro de texto, Ctrl+Z deshace solo lo escrito en él ·
@@ -190,6 +191,20 @@
     VOLVER A UNA VERSIÓN ANTERIOR (Archivo)
         Al elegir una versión se ve QUÉ cambiaría (preguntas nuevas, quitadas, movidas,
         con otra correcta o motivación…) antes de cargarla.
+    GENERAR SIMULACRO (Archivo → Generar simulacro…)
+        Marca de qué supuestos sacar preguntas y cuántas quieres de teoría y cuántos casos
+        prácticos. La teoría se coge suelta; cada caso entra ENTERO (su enunciado, sus hechos
+        y todas sus preguntas). Las preguntas repetidas en varios supuestos cuentan una vez.
+        Los bloques copian la puntuación de los originales (no su envío a Google) y el tiempo
+        sale en proporción. Se abre como supuesto nuevo sin guardar: «Guardar como…».
+        Con la misma «semilla» sale siempre el mismo simulacro.
+    IMPORTAR DESDE WORD (Edición → Importar preguntas… → Abrir archivo…, elige un .docx)
+        Lee el documento tal cual: conserva negrita, cursiva, subrayado y resaltado, y las
+        listas automáticas de Word salen como «1.» y «a)». Si las preguntas van seguidas sin
+        línea en blanco, las separa sola. Con la casilla «la opción entera en negrita o
+        resaltada es la correcta» (activada), esa opción se marca con * (si TODAS van en
+        negrita, no se marca ninguna). Revisa la caja antes de pulsar «Importar».
+        Los .doc antiguos no: ábrelos en Word y guárdalos como .docx.
     EXPORTAR PREGUNTAS (Edición → Exportar preguntas…)
         A CSV (Excel; lo conserva todo) o a texto (para leer o imprimir). Si tienes varias
         marcadas en la lista, pregunta si exportar solo esas. Los dos formatos se pueden
@@ -249,6 +264,7 @@
         Consejo: texto opcional
     También se puede abrir un .csv con las columnas
         pregunta ; a ; b ; c ; d ; correcta ; motivación ; consejo
+    o un Word (.docx): ver «IMPORTAR DESDE WORD» más arriba.
     Se añaden al bloque que elijas (y, si es de supuesto, al primer enunciado).
 
   AUTOGUARDADO

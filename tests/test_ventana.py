@@ -123,6 +123,30 @@ class Ventana(unittest.TestCase):
         app._borrar_previas()
         self.assertFalse(previa.exists())
 
+    def test_generar_simulacro_lo_abre_sin_archivo(self):
+        app = self.app
+        import simulacro
+        import impugnaciones_datos as imp
+        fuentes = [(r.stem, d) for r, d in imp.leer_supuestos(RAIZ)]
+        datos, _ = simulacro.generar(fuentes, 10, 1, semilla=1, titulo="Simulacro de prueba")
+        app.hay_cambios = False
+        self.assertTrue(app.abrir_como_nuevo(datos))
+        app.after(300, app.quit)
+        app.mainloop()                          # el título se repinta con un poco de retraso
+        self.assertIsNone(app.ruta)
+        self.assertTrue(app.hay_cambios)
+        self.assertEqual(len(app.datos["preguntas"]), len(datos["preguntas"]))
+        self.assertIn("sin guardar *", app.title())
+        import ventana_extra
+        antes = set(app.winfo_children())
+        ventana_extra.generar_simulacro(app)
+        app.update()
+        nuevas = [w for w in app.winfo_children() if w not in antes]
+        self.assertTrue(nuevas)
+        for w in nuevas:
+            w.destroy()
+        app.hay_cambios = False
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

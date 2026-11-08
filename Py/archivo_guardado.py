@@ -115,6 +115,27 @@ class ArchivoGuardado:
         self._refrescar_todo()
         self.estado("Supuesto nuevo en blanco. Empieza por la pestaña «1 · Datos generales».")
 
+    def abrir_como_nuevo(self, datos, mensaje=""):
+        """Carga unos datos hechos en el programa (un simulacro) sobre la plantilla
+        en blanco, sin archivo todavía: al guardar se pide el nombre."""
+        if not self._confirmar_descartar():
+            return False
+        base = Path(__file__).resolve().parent / PLANTILLA_BASE
+        try:
+            self.datos, self.modo, self.html_base = leer_html(base)
+        except (OSError, ValueError, json.JSONDecodeError) as err:
+            messagebox.showerror("Falta la plantilla", "No se puede leer «%s»:\n%s" % (PLANTILLA_BASE, err),
+                                 parent=self)
+            return False
+        for k in ("config", "bloques", "enunciados", "preguntas"):
+            self.datos[k] = datos[k]
+        self.ruta = None
+        self._refrescar_todo()
+        self.hay_cambios = True
+        self._pintar_titulo()
+        self.estado(mensaje or "Supuesto nuevo sin guardar.")
+        return True
+
     def abrir(self):
         if not self._confirmar_descartar():
             return

@@ -8,6 +8,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 
 import herramientas_datos as hd
+import importar_word
 
 def buscar_reemplazar(app):
     app.volcar_todo()
@@ -90,7 +91,8 @@ AYUDA = ("Pega las preguntas separadas por una línea en blanco:\n\n"
          "1) Texto de la pregunta\na) opción\nb) *opción correcta (con * delante)\nc) opción\nd) opción\n"
          "Motivación: texto opcional\nConsejo: texto opcional\n\n"
          "En lugar del *, también vale una línea «Correcta: b» (o «b, c» si es múltiple).\n"
-         "Un CSV (pregunta; a; b; c; d; correcta; motivación; consejo) se abre con «Abrir archivo…».")
+         "Un CSV (pregunta; a; b; c; d; correcta; motivación; consejo) o un Word (.docx) se abren con\n"
+         "«Abrir archivo…». Del Word se conservan negrita, cursiva, subrayado, resaltado y listas.")
 
 
 def importar(app):
@@ -98,7 +100,7 @@ def importar(app):
     d = tk.Toplevel(app)
     d.title("Importar preguntas")
     d.transient(app)
-    d.geometry("760x560")
+    d.geometry("820x640")
     marco = ttk.Frame(d, padding=10)
     marco.pack(fill="both", expand=True)
     ttk.Label(marco, text=AYUDA, justify="left", style="Ayuda.TLabel").pack(anchor="w")
@@ -110,13 +112,27 @@ def importar(app):
     combo.current(0)
     combo.pack(side="left", padx=6)
     caja = tk.Text(marco, wrap="word", font=("Consolas", 10), undo=True)
-    caja.pack(fill="both", expand=True)
-    estado = {"csv": False}
+    estado = {"csv": False, "docx": None}
+    v_negrita = tk.BooleanVar(value=True)
+
+    def cargar_docx():
+        try:
+            texto = importar_word.texto_para_importar(estado["docx"], v_negrita.get())
+        except (OSError, ValueError, KeyError) as err:
+            messagebox.showerror("Importar", "No se ha podido leer el Word:\n%s" % err, parent=d)
+            return
+        caja.delete("1.0", "end")
+        caja.insert("1.0", texto)
 
     def abrir_archivo():
-        ruta = filedialog.askopenfilename(parent=d, filetypes=[("Texto o CSV", "*.txt *.csv"),
+        ruta = filedialog.askopenfilename(parent=d, filetypes=[("Texto, CSV o Word", "*.txt *.csv *.docx"),
                                                               ("Todos", "*.*")])
         if not ruta:
+            return
+        estado["csv"] = ruta.lower().endswith(".csv")
+        estado["docx"] = ruta if ruta.lower().endswith(".docx") else None
+        if estado["docx"]:
+            cargar_docx()
             return
         try:
             with open(ruta, encoding="utf-8-sig") as f:
@@ -124,9 +140,14 @@ def importar(app):
         except (OSError, UnicodeDecodeError) as err:
             messagebox.showerror("Importar", str(err), parent=d)
             return
-        estado["csv"] = ruta.lower().endswith(".csv")
         caja.delete("1.0", "end")
         caja.insert("1.0", texto)
+
+    def cambio_negrita():
+        if estado["docx"] and messagebox.askyesno(
+                "Importar", "¿Volver a leer el Word con este ajuste? Se pierde lo que hayas cambiado en la caja.",
+                parent=d):
+            cargar_docx()
 
     def hacer():
         texto = caja.get("1.0", "end")
@@ -154,7 +175,10 @@ def importar(app):
         d.destroy()
 
     pie = ttk.Frame(marco)
-    pie.pack(fill="x", pady=(8, 0))
+    pie.pack(side="bottom", fill="x", pady=(8, 0))      # antes que la caja: que no la tape al encoger
+    caja.pack(fill="both", expand=True)
     ttk.Button(pie, text="Abrir archivo…", command=abrir_archivo).pack(side="left")
+    ttk.Checkbutton(pie, text="Word: la opción entera en negrita o resaltada es la correcta",
+                    variable=v_negrita, command=cambio_negrita).pack(side="left", padx=8)
     ttk.Button(pie, text="Cerrar", command=d.destroy).pack(side="right")
     ttk.Button(pie, text="Importar", command=hacer, style="Accion.TButton").pack(side="right", padx=6)

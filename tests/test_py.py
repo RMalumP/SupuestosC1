@@ -754,6 +754,112 @@ class FuncionesNuevas(unittest.TestCase):
             self.assertEqual([p["correctas"] for p in vuelta], [[1], [0, 2]])
             self.assertEqual(vuelta[0]["law"], "art. 21\nLPAC")
 
+    @staticmethod
+    def _docx(parrafos, ruta):
+        """.docx mínimo: [(texto, ilvl o None, negrita, resaltado)] con una lista
+        de dos niveles (1. 2. … / a) b) …) como las plantillas de examen."""
+        import zipfile
+        from xml.sax.saxutils import escape
+        cuerpo = ""
+        for texto, nivel, negrita, resaltado in parrafos:
+            ppr = ('<w:pPr><w:numPr><w:ilvl w:val="%d"/><w:numId w:val="1"/></w:numPr></w:pPr>' % nivel
+                   if nivel is not None else "")
+            rpr = ("<w:b/>" if negrita else "") + ('<w:highlight w:val="yellow"/>' if resaltado else "")
+            runs = "".join('<w:r>%s<w:t xml:space="preserve">%s</w:t></w:r>'
+                           % ("<w:rPr>%s</w:rPr>" % rpr if rpr else "", escape(trozo))
+                           for trozo in ([texto[:3], texto[3:]] if texto else []))   # Word parte los «runs»
+            cuerpo += "<w:p>%s%s</w:p>" % (ppr, runs)
+        ns = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
+        numeracion = ('<w:numbering %s><w:abstractNum w:abstractNumId="0">'
+                      '<w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="decimal"/><w:lvlText w:val="%%1."/></w:lvl>'
+                      '<w:lvl w:ilvl="1"><w:start w:val="1"/><w:numFmt w:val="lowerLetter"/><w:lvlText w:val="%%2."/></w:lvl>'
+                      '</w:abstractNum><w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num></w:numbering>' % ns)
+        with zipfile.ZipFile(ruta, "w") as z:
+            z.writestr("word/document.xml", "<w:document %s><w:body>%s</w:body></w:document>" % (ns, cuerpo))
+            z.writestr("word/numbering.xml", numeracion)
+
+    def test_f3_importar_word_con_listas_y_negrita_correcta(self):
+        import importar_word as iw
+        ruta = Path(tempfile.mkdtemp()) / "examen.docx"
+        self.addCleanup(shutil.rmtree, ruta.parent)
+        self._docx([("¿Plazo para recurrir?", 0, False, False), ("Diez días", 1, False, False),
+                    ("Un mes", 1, True, False), ("Dos meses", 1, False, False),
+                    ("¿Quién firma?", 0, False, False), ("El alcalde", 1, False, False),
+                    ("El secretario", 1, False, True), ("Nadie", 1, False, False),
+                    ("", None, False, False),
+                    ("3. ¿Todas en negrita?", None, True, False), ("a) uno", None, True, False),
+                    ("b) dos", None, True, False), ("c) tres", None, True, False)], ruta)
+        crudo = iw.texto_de_docx(ruta)
+        self.assertIn("1. ¿Plazo para recurrir?\na) Diez días\nb) <b>Un mes</b>", crudo)
+        self.assertIn("2. ¿Quién firma?\na) El alcalde\nb) <mark>El secretario</mark>", crudo)
+        texto = iw.texto_para_importar(ruta)
+        self.assertIn("b) *Un mes", texto)
+        self.assertIn("a) <b>uno</b>", texto, "si todas van en negrita no se marca ninguna")
+        preguntas, _avisos = hd.importar_texto(texto, "B1")
+        self.assertEqual([p["q"] for p in preguntas], ["¿Plazo para recurrir?", "¿Quién firma?", "<b>¿Todas en negrita?</b>"])
+        self.assertEqual([p["a"] for p in preguntas[:2]], [["Diez días", "Un mes", "Dos meses"],
+                                                            ["El alcalde", "El secretario", "Nadie"]])
+        self.assertEqual([p["correctas"] for p in preguntas[:2]], [[1], [1]])
+        self.assertEqual(preguntas[2]["a"], ["<b>uno</b>", "<b>dos</b>", "<b>tres</b>"])
+        sin = iw.texto_para_importar(ruta, negrita_correcta=False)
+        self.assertIn("b) <b>Un mes</b>", sin)
+        with self.assertRaises(ValueError):
+            vacio = ruta.parent / "otro.docx"
+            import zipfile
+            with zipfile.ZipFile(vacio, "w") as z:
+                z.writestr("x.txt", "nada")
+            iw.texto_de_docx(vacio)
+
+    def test_f2_simulacro_casos_enteros_teoria_suelta_y_sin_repetidas(self):
+        import revision
+        import simulacro as sim
+
+        def supuesto(nombre, n_casos, n_teoria, minutos=60):
+            d = datos_html.datos_vacios()
+            d["config"]["titulo"], d["config"]["minutos"] = nombre, minutos
+            d["bloques"] = [datos_html.bloque_vacio("supuesto", "B1"), datos_html.bloque_vacio("test", "B2")]
+            d["bloques"][1]["fallo"] = -0.33
+            d["bloques"][1]["envio"] = {"url": "https://otro-formulario"}
+            for k in range(1, n_casos + 1):
+                e = datos_html.enunciado_vacio("E%d" % k)
+                e["title"] = "%s caso %d" % (nombre, k)
+                e["factBlocks"] = [datos_html.bloque_hechos_vacio("H1")]
+                d["enunciados"].append(e)
+                for j in range(3):
+                    p = datos_html.pregunta_vacia("E%d" % k, "B1")
+                    p.update(q="%s caso %d pregunta %d" % (nombre, k, j), factIds=["H1"],
+                             a=["sí %d" % j, "no", "a veces"])
+                    d["preguntas"].append(p)
+            for j in range(n_teoria):
+                p = datos_html.pregunta_vacia(None, "B2")
+                p.update(q="Teoría %d" % j, a=["uno %d" % j, "dos", "tres"])    # igual en los dos: repetidas
+                d["preguntas"].append(p)
+            return d
+
+        fuentes = [("Tema A", supuesto("Tema A", 2, 10)), ("Tema B", supuesto("Tema B", 1, 10, 30))]
+        teoria, casos = sim.piezas(fuentes)
+        self.assertEqual((len(teoria), len(casos)), (10, 3))
+        d, avisos = sim.generar(fuentes, n_teoria=5, n_casos=2, semilla=3, titulo="Simulacro 1")
+        self.assertEqual(avisos, [])
+        self.assertEqual([b["id"] + b["tipo"] for b in d["bloques"]], ["B1supuesto", "B2test"])
+        self.assertEqual(d["bloques"][1]["fallo"], -0.33, "copia la puntuación del bloque de teoría")
+        self.assertNotEqual(d["bloques"][1]["envio"].get("url"), "https://otro-formulario")
+        self.assertEqual([e["id"] for e in d["enunciados"]], ["E1", "E2"])
+        del_caso = [p for p in d["preguntas"] if p["bloqueId"] == "B1"]
+        self.assertEqual(len(del_caso), 6, "cada caso entra con todas sus preguntas")
+        self.assertEqual({p["statementId"] for p in del_caso}, {"E1", "E2"})
+        for e in d["enunciados"]:
+            qs = [p["q"] for p in del_caso if p["statementId"] == e["id"]]
+            self.assertTrue(all(q.startswith(e["title"]) for q in qs))
+        self.assertEqual(len([p for p in d["preguntas"] if p["bloqueId"] == "B2"]), 5)
+        self.assertEqual(d["config"]["titulo"], "Simulacro 1")
+        self.assertEqual(revision.errores(revision.revisar(d)), [])
+        otra, _ = sim.generar(fuentes, 5, 2, semilla=3)
+        self.assertEqual([p["q"] for p in otra["preguntas"]], [p["q"] for p in d["preguntas"]], "misma semilla, mismo examen")
+        self.assertEqual(fuentes[0][1]["preguntas"][0]["statementId"], "E1", "no toca los originales")
+        _d, avisos = sim.generar(fuentes, 50, 9)
+        self.assertEqual(len(avisos), 2)
+
 
 class Fase1Fallos(unittest.TestCase):
     """Fallos que cambiaban o perdían datos sin avisar (revisión del editor, fase 1)."""

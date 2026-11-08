@@ -31,6 +31,7 @@ import git_sync as gs
 import impugnaciones_datos as imp
 import plazos
 import segundo_plano as sp
+import simulacro as sim
 import ventana_subir
 import ventana_sync
 
@@ -364,6 +365,84 @@ def calculadora_plazos(app):
 
 
 # ── F9 · exportar preguntas ──────────────────────────────────────────
+def generar_simulacro(app):
+    """F2: examen nuevo con preguntas al azar de los supuestos marcados."""
+    fuentes = [((d.get("config") or {}).get("titulo") or r.stem, r.name, d)
+               for r, d in imp.leer_supuestos(sl.RAIZ_DEFECTO)]
+    if not fuentes:
+        messagebox.showinfo("Generar simulacro", "No encuentro supuestos en %s."
+                            % (Path(sl.RAIZ_DEFECTO) / "supuestos"), parent=app)
+        return
+    v = _ventana(app, "Generar simulacro", 760, 600)
+    marco = ttk.Frame(v, padding=10)
+    marco.pack(fill="both", expand=True)
+    ttk.Label(marco, style="Ayuda.TLabel", justify="left",
+              text="Marca de qué supuestos sacar las preguntas (Ctrl+clic). La teoría se coge suelta; "
+                   "cada caso práctico entra entero,\ncon su enunciado y todas sus preguntas. "
+                   "Las preguntas repetidas en varios supuestos cuentan una vez.").pack(anchor="w")
+    lista = tk.Listbox(marco, selectmode="extended", activestyle="none", exportselection=False, height=12,
+                       font=("Consolas", 9))
+    lista.pack(fill="both", expand=True, pady=6)
+    for titulo, nombre, _d in fuentes:
+        lista.insert("end", "%-24s %s" % (nombre, titulo))
+    lista.selection_set(0, "end")
+    hay = ttk.Label(marco, text="")
+    hay.pack(anchor="w")
+
+    rejilla = ttk.Frame(marco)
+    rejilla.pack(fill="x", pady=6)
+    v_teoria, v_casos = tk.IntVar(value=20), tk.IntVar(value=2)
+    v_titulo = tk.StringVar(value="Simulacro %s" % date.today().strftime("%d/%m/%Y"))
+    v_semilla = tk.StringVar()
+    for fila, (texto, widget) in enumerate((
+            ("Preguntas de teoría", ttk.Spinbox(rejilla, from_=0, to=500, width=6, textvariable=v_teoria)),
+            ("Casos prácticos", ttk.Spinbox(rejilla, from_=0, to=50, width=6, textvariable=v_casos)),
+            ("Título", ttk.Entry(rejilla, textvariable=v_titulo, width=50)),
+            ("Semilla (opcional)", ttk.Entry(rejilla, textvariable=v_semilla, width=12)))):
+        ttk.Label(rejilla, text=texto).grid(row=fila, column=0, sticky="w", pady=2)
+        widget.grid(row=fila, column=1, sticky="w", padx=6, pady=2)
+    ttk.Label(rejilla, style="Ayuda.TLabel",
+              text="Con la misma semilla y los mismos supuestos sale el mismo simulacro.").grid(
+        row=4, column=1, sticky="w", padx=6)
+
+    def elegidas():
+        return [(f[0], f[2]) for i, f in enumerate(fuentes) if i in lista.curselection()]
+
+    def contar(*_):
+        teoria, casos = sim.piezas(elegidas())
+        hay.config(text="Disponibles: %d preguntas de teoría y %d casos prácticos (%d preguntas)."
+                   % (len(teoria), len(casos), sum(len(c[2]) for c in casos)))
+
+    def generar():
+        if not lista.curselection():
+            messagebox.showinfo("Generar simulacro", "Marca al menos un supuesto.", parent=v)
+            return
+        try:
+            n_teoria, n_casos = int(v_teoria.get()), int(v_casos.get())
+        except (tk.TclError, ValueError):
+            messagebox.showerror("Generar simulacro", "Pon números en teoría y casos.", parent=v)
+            return
+        semilla = v_semilla.get().strip() or None
+        datos, avisos = sim.generar(elegidas(), n_teoria, n_casos, semilla, v_titulo.get().strip())
+        if not datos["preguntas"]:
+            messagebox.showwarning("Generar simulacro", "No ha salido ninguna pregunta.", parent=v)
+            return
+        if avisos:
+            messagebox.showinfo("Generar simulacro", "\n".join(avisos), parent=v)
+        if app.abrir_como_nuevo(datos, "Simulacro con %d preguntas (%d min). Guárdalo con «Guardar como…»."
+                                % (len(datos["preguntas"]), datos["config"]["minutos"])):
+            v.destroy()
+
+    lista.bind("<<ListboxSelect>>", contar)
+    contar()
+    pie = ttk.Frame(marco)
+    pie.pack(fill="x", pady=(6, 0))
+    ttk.Button(pie, text="Todos", command=lambda: (lista.selection_set(0, "end"), contar())).pack(side="left")
+    ttk.Button(pie, text="Ninguno", command=lambda: (lista.selection_clear(0, "end"), contar())).pack(side="left", padx=6)
+    ttk.Button(pie, text="Cerrar", command=v.destroy).pack(side="right")
+    ttk.Button(pie, text="Generar", command=generar, style="Accion.TButton").pack(side="right", padx=6)
+
+
 def exportar_preguntas(app):
     app.volcar_todo()
     marcadas = app.preguntas_marcadas() if hasattr(app, "preguntas_marcadas") else []

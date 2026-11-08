@@ -217,6 +217,7 @@ class EditorApp(PestanaGeneral,
         self._menu_recientes = tk.Menu(archivo, tearoff=False, postcommand=self._pintar_recientes)
         archivo.add_cascade(label="Abrir reciente", menu=self._menu_recientes)
         archivo.add_command(label="Duplicar este supuesto como uno nuevo…", command=self.duplicar_supuesto)
+        archivo.add_command(label="Generar simulacro…", command=lambda: ventana_extra.generar_simulacro(self))
         archivo.add_command(label="Volver a una versión anterior de este archivo…",
                             command=lambda: ventana_extra.restaurar_version(self))
         archivo.add_separator()
