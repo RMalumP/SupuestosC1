@@ -114,7 +114,11 @@ body::before { display: none; }
     font-family: 'JetBrains Mono', monospace; font-size: 0.58rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700;
     color: var(--t-soft); background: transparent; border: 1px solid var(--t-line); border-radius: 99px; padding: 6px 12px;
 }
-.q-acciones { margin-left: auto; align-self: flex-start; flex-shrink: 0; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.q-acciones { position: absolute; top: 8px; right: 10px; z-index: 2; display: flex; gap: 4px; flex-wrap: nowrap; }
+/* Bandera y nota: solo icono, pequeños y del tamaño del corazón */
+.btn-marcar, .btn-nota { position: relative; width: 30px; height: 30px; padding: 0; justify-content: center; border: 0; border-radius: 50%; font-size: 1.05rem; line-height: 1; }
+.btn-marcar span, .btn-nota span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.question-card .q-header { padding-right: 104px; }
 .btn-marcar i, .btn-nota i { font-style: normal; filter: grayscale(1); opacity: .6; }
 .btn-marcar:hover { border-color: #f59e0b; color: #b45309; }
 .btn-nota:hover { border-color: var(--blue-deep); color: var(--blue-deep); }
@@ -124,7 +128,7 @@ body::before { display: none; }
 .btn-marcar.on i { filter: none; opacity: 1; }
 /* Corazón de favoritas: va dentro de .q-acciones, junto a la bandera y la nota */
 .btn-corazon {
-    position: static; flex-shrink: 0; width: 32px; height: 32px; padding: 0; align-self: center;
+    position: static; flex-shrink: 0; width: 30px; height: 30px; padding: 0;
     display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
     background: transparent; border: 0; border-radius: 50%; color: var(--t-soft); font-size: 1.05rem; line-height: 1;
 }
@@ -210,7 +214,7 @@ body, .q-text, .option, .statement, .statement p, .block-header h3, .inst-header
 }
 .nota-caja[hidden] { display: none; }
 .nota-caja:focus { outline: 2px solid var(--blue-deep); outline-offset: 1px; }
-@media (max-width: 600px) { .q-acciones { align-self: flex-end; } }
+
 :root[data-tema="oscuro"] .btn-nota.on { background: rgba(var(--gold-rgb), .2); color: #bfe3f2; }
 :root[data-tema="oscuro"] .nota-caja { background: rgba(255,255,255,.06); }
 
@@ -249,7 +253,6 @@ html, body { overscroll-behavior-x: none; }
     .q-header .q-body { display: contents; }
     .q-header .q-num { grid-area: n; }
     .q-header .q-tag { grid-area: t; margin-bottom: 0; }
-    .q-header .q-acciones { grid-area: a; margin-left: 0; }
     .q-header .q-text { grid-area: x; }
 }
 
@@ -337,13 +340,10 @@ html, body { overscroll-behavior-x: none; }
         -webkit-hyphens: auto; hyphens: auto;
     }
 
-    /* ── Marcar, nota y corazón: solo icono, 44 px ── */
-    .q-acciones { gap: 8px; }
-    .btn-marcar, .btn-nota { width: 44px; height: 44px; padding: 0; justify-content: center; font-size: 1.1rem; }
-    .btn-marcar span, .btn-nota span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-    .btn-marcar i, .btn-nota i { opacity: .8; }
-    .btn-corazon { width: 44px; height: 44px; font-size: 1.2rem; }
-    .q-acciones { flex-wrap: nowrap; }
+    /* ── Marcar, nota y corazón: arriba a la derecha, pequeños (zona táctil ampliada) ── */
+    .q-acciones { top: 6px; right: 6px; gap: 2px; }
+    .btn-marcar, .btn-nota, .btn-corazon { width: 34px; height: 34px; font-size: 1.1rem; }
+    .question-card .q-header { padding-right: 112px; }
 
     /* ── Barra inferior en una fila ── */
     .btn-zone { flex-wrap: wrap; gap: 8px; padding: 8px 8px calc(8px + env(safe-area-inset-bottom)); }
