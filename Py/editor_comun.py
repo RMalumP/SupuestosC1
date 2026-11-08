@@ -87,21 +87,111 @@ class MarcoScroll(ttk.Frame):
             self.lienzo.yview_scroll(int(-1 * (evento.delta / 40)), "units")
 
 
+_AYUDAS = []                     # marcos de ayuda técnica: se ocultan o enseñan juntos
+_estado_ayudas = {"ver": None}
+
+
+def ver_ayudas():
+    """True si se enseñan las ayudas técnicas (campo del archivo, HTML y
+    explicación larga). Por defecto no: la ventana queda más compacta y la
+    explicación sale en un globo al pasar el ratón por el nombre del campo."""
+    if _estado_ayudas["ver"] is None:
+        _estado_ayudas["ver"] = bool(_leer_prefs().get("ver_ayudas", False))
+    return _estado_ayudas["ver"]
+
+
+def _mostrar_ayuda(bloque, ver):
+    """El bloque de ayuda es siempre el ÚLTIMO hijo de su marco: al volver a
+    colocarlo con pack queda en su sitio."""
+    if ver:
+        if not bloque.winfo_manager():
+            bloque.pack(**(getattr(bloque, "_como", None) or {"anchor": "w", "fill": "x"}))
+    elif bloque.winfo_manager() == "pack":
+        bloque._como = {k: v for k, v in bloque.pack_info().items() if k != "in"}
+        bloque.pack_forget()
+        if not bloque.master.pack_slaves():
+            bloque.master.configure(height=1)    # un marco vacío no encoge solo
+
+
+def registrar_ayuda(bloque):
+    """Un marco ya colocado con pack que es solo ayuda técnica (y el último
+    hijo de su marco): se oculta o enseña con el menú Ver › Ayudas técnicas."""
+    _AYUDAS.append(bloque)
+    if not ver_ayudas():
+        _mostrar_ayuda(bloque, False)
+    return bloque
+
+
+def poner_ver_ayudas(ver):
+    _estado_ayudas["ver"] = bool(ver)
+    prefs = _leer_prefs()
+    prefs["ver_ayudas"] = bool(ver)
+    _guardar_prefs(prefs)
+    for bloque in list(_AYUDAS):
+        try:
+            _mostrar_ayuda(bloque, ver)
+        except tk.TclError:
+            _AYUDAS.remove(bloque)
+
+
+def ajustar_al_ancho(etiqueta, minimo=200, margen=12):
+    """El texto largo de una etiqueta se parte según el ancho real de su
+    marco, en vez de a un número fijo de píxeles."""
+    padre = etiqueta.master
+    etiqueta._ajustada = True
+
+    def ajustar(ev):
+        ancho = max(minimo, ev.width - margen)
+        if abs(int(str(etiqueta.cget("wraplength") or 0)) - ancho) > 8:
+            etiqueta.configure(wraplength=ancho)
+    padre.bind("<Configure>", ajustar, add="+")
+
+
+def ajustar_ayudas(raiz):
+    """Todas las explicaciones largas (estilo Ayuda) se parten según el ancho
+    real de la ventana: en pantallas pequeñas no se cortan y en grandes no
+    quedan en una columna estrecha."""
+    pendientes = [raiz]
+    while pendientes:
+        w = pendientes.pop()
+        pendientes.extend(w.winfo_children())
+        try:
+            if (w.winfo_class() == "TLabel" and str(w.cget("style")) == "Ayuda.TLabel"
+                    and int(str(w.cget("wraplength") or 0)) > 400
+                    and not getattr(w, "_ajustada", False)):
+                ajustar_al_ancho(w)
+        except (tk.TclError, ValueError):
+            pass
+
+
 def rotulo(padre, visible, tecnico, html, ayuda="", con_titulo=True):
     """Rótulo doble de un campo:
          línea 1 → nombre tal y como se ve en la página publicada
          línea 2 → nombre del campo en el archivo + elemento HTML donde acaba
          línea 3 → (opcional) dónde se ve exactamente
     con_titulo=False omite la línea 1 (cuando el recuadro ya la lleva escrita).
+    Las líneas 2 y 3 son «ayudas técnicas»: se ocultan o enseñan todas a la vez
+    (menú Ver); ocultas, la explicación sale en un globo sobre el nombre.
     """
     marco = ttk.Frame(padre, style="Panel.TFrame")
     if con_titulo:
-        ttk.Label(marco, text=visible, style="Campo.TLabel").pack(anchor="w")
-    ttk.Label(marco, text="%s   →   HTML: %s" % (tecnico, html),
+        titulo = ttk.Label(marco, text=visible, style="Campo.TLabel")
+        titulo.pack(anchor="w")
+        globo = ayuda or ""
+        if tecnico:
+            globo = (globo + "\n\n" if globo else "") + "%s  →  %s" % (tecnico, html)
+        _consejo(titulo, globo, solo_si=lambda: not ver_ayudas())
+    bloque = ttk.Frame(marco, style="Panel.TFrame")
+    ttk.Label(bloque, text="%s   →   HTML: %s" % (tecnico, html),
               style="Tec.TLabel").pack(anchor="w")
     if ayuda:
-        ttk.Label(marco, text=ayuda, style="Ayuda.TLabel",
-                  wraplength=820, justify="left").pack(anchor="w", pady=(1, 0))
+        et = ttk.Label(bloque, text=ayuda, style="Ayuda.TLabel",
+                       wraplength=820, justify="left")
+        et.pack(anchor="w", pady=(1, 0))
+        ajustar_al_ancho(et)
+    bloque.pack(anchor="w", fill="x")
+    if con_titulo:
+        registrar_ayuda(bloque)
     return marco
 
 
@@ -946,28 +1036,49 @@ def barra_formato(padre, widget, compacta=False, ampliable=True):
     return barra
 
 
-def _consejo(widget, texto):
-    """Globo de ayuda amarillo al pasar el ratón por encima."""
-    estado = {"ventana": None}
+RETARDO_GLOBO_MS = 500
 
-    def mostrar(_e=None):
-        if estado["ventana"] or not texto:
+
+def _consejo(widget, texto, solo_si=None):
+    """Globo de ayuda amarillo al dejar el ratón medio segundo encima
+    (al pasar de largo no sale). solo_si: función que dice si toca enseñarlo."""
+    estado = {"ventana": None, "espera": None}
+
+    def mostrar():
+        estado["espera"] = None
+        if estado["ventana"] or not texto or (solo_si and not solo_si()):
             return
-        v = tk.Toplevel(widget)
+        try:
+            v = tk.Toplevel(widget)
+        except tk.TclError:
+            return
         v.wm_overrideredirect(True)
-        v.wm_geometry("+%d+%d" % (widget.winfo_rootx() + 6,
-                                  widget.winfo_rooty() + widget.winfo_height() + 4))
+        x = widget.winfo_rootx() + 6
+        ancho_pantalla = widget.winfo_screenwidth()
         tk.Label(v, text=texto, background="#fff8dc", foreground="#3b2f26",
                  relief="solid", borderwidth=1, font=("Segoe UI", 8),
-                 padx=6, pady=2).pack()
+                 padx=6, pady=2, justify="left", wraplength=460).pack()
+        v.update_idletasks()
+        x = max(0, min(x, ancho_pantalla - v.winfo_reqwidth() - 4))
+        v.wm_geometry("+%d+%d" % (x, widget.winfo_rooty() + widget.winfo_height() + 4))
         estado["ventana"] = v
 
+    def entrar(_e=None):
+        if estado["espera"] is None and not estado["ventana"]:
+            estado["espera"] = widget.after(RETARDO_GLOBO_MS, mostrar)
+
     def ocultar(_e=None):
+        if estado["espera"] is not None:
+            try:
+                widget.after_cancel(estado["espera"])
+            except tk.TclError:
+                pass
+            estado["espera"] = None
         if estado["ventana"]:
             estado["ventana"].destroy()
             estado["ventana"] = None
 
-    widget.bind("<Enter>", mostrar, add="+")
+    widget.bind("<Enter>", entrar, add="+")
     widget.bind("<Leave>", ocultar, add="+")
     widget.bind("<ButtonPress>", ocultar, add="+")
 

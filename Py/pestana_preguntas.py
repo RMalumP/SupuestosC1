@@ -6,6 +6,7 @@ Parte del editor de supuestos: los métodos de esta parte de la ventana viven aq
 y EditorApp (editor_supuestos.py) los hereda. No se ejecuta solo.
 """
 from editor_comun import *  # noqa: F401,F403
+from editor_comun import _consejo  # noqa: F401
 
 
 class PestanaPreguntas:
@@ -25,12 +26,16 @@ class PestanaPreguntas:
         divisor.add(izq, weight=0)
 
         ttk.Label(izq, text="Preguntas del examen", style="Titulo.TLabel").pack(anchor="w")
-        ttk.Label(izq, style="Tec.TLabel",
+        ay = ttk.Frame(ttk.Frame(izq))
+        ay.master.pack(anchor="w", fill="x")
+        ay.pack(anchor="w", fill="x")
+        ttk.Label(ay, style="Tec.TLabel",
                   text='preguntas[]  →  <div class="question-card">').pack(anchor="w")
-        ttk.Label(izq, style="Ayuda.TLabel", wraplength=310, justify="left",
+        ttk.Label(ay, style="Ayuda.TLabel", wraplength=310, justify="left",
                   text="Este es el orden por defecto del examen. Las preguntas de un mismo "
                        "enunciado deben ir seguidas."
                   ).pack(anchor="w", pady=(0, 6))
+        registrar_ayuda(ay)
 
         self.lst_preg = tk.Listbox(izq, font=("Consolas", 9), height=20,
                                    activestyle="none", exportselection=False)
@@ -54,35 +59,51 @@ class PestanaPreguntas:
         divisor.add(cont, weight=1)
         m = cont.interior
 
-        # --- datos de la pregunta ---
-        caja = ttk.LabelFrame(m, text=" Enunciado de la pregunta ")
+        # --- dónde va la pregunta: bloque, enunciado y etiqueta en una sola fila ---
+        caja = ttk.LabelFrame(m, text=" Pregunta ")
         caja.pack(fill="x", padx=10, pady=(8, 6))
+        fila = ttk.Frame(caja, style="Panel.TFrame")
+        fila.pack(fill="x", padx=10, pady=(8, 2))
+        for col, peso in ((0, 3), (1, 4), (2, 3)):
+            fila.columnconfigure(col, weight=peso, uniform="ubic")
 
-        rotulo(caja, "Bloque del examen en el que va esta pregunta", "preguntas[].bloqueId",
-               '.nav-box.blq-XX  ·  <div class="block-header">',
-               "Decide en qué sección sale la pregunta (supuesto o teoría), de qué color "
-               "es su casilla y con qué baremo se corrige. Los bloques se crean y se "
-               "ordenan en la pestaña «2 · Bloques»."
-               ).pack(anchor="w", padx=10, pady=(8, 2))
+        def titulo_corto(col, texto, globo):
+            et = ttk.Label(fila, text=texto, style="Campo.TLabel")
+            et.grid(row=0, column=col, sticky="w", padx=(0 if col == 0 else 8, 0))
+            _consejo(et, globo)
+
+        titulo_corto(0, "Bloque",
+                     "Bloque del examen en el que va esta pregunta  ·  preguntas[].bloqueId\n"
+                     "Decide en qué sección sale (supuesto o teoría), de qué color es su casilla "
+                     "y con qué baremo se corrige. Los bloques se crean en la pestaña «2 · Bloques».")
+        titulo_corto(1, "Enunciado (hechos)",
+                     "Enunciado al que pertenece  ·  preguntas[].statementId\n"
+                     "Al llegar a esta pregunta, la página muestra arriba los hechos de ese "
+                     "enunciado. «(pregunta suelta)» si no depende de ningún caso práctico. "
+                     "En los bloques de teoría está desactivado.")
+        titulo_corto(2, "Etiqueta de materia",
+                     "Etiqueta de materia  ·  preguntas[].tag  →  <span class=\"q-tag\">\n"
+                     "Línea pequeña en mayúsculas encima de la pregunta (p. ej. «LPACAP · Art. 21»). "
+                     "Déjala VACÍA si el documento de origen no la pide.")
         self.var_preg_bloque = tk.StringVar()
-        self.combo_bloque = ttk.Combobox(caja, textvariable=self.var_preg_bloque,
-                                         state="readonly", font=("Consolas", 10))
-        self.combo_bloque.pack(fill="x", padx=10, pady=(0, 4))
+        self.combo_bloque = ttk.Combobox(fila, textvariable=self.var_preg_bloque,
+                                         state="readonly", font=("Consolas", 9))
+        self.combo_bloque.grid(row=1, column=0, sticky="ew")
         self.combo_bloque.bind("<<ComboboxSelected>>", self._cambio_bloque_pregunta)
-
-        rotulo(caja, "Enunciado (bloque de hechos) al que pertenece", "preguntas[].statementId",
-               '<section id="stmt-XX"> (vínculo interno)',
-               "Al llegar a esta pregunta, la página muestra arriba los hechos de ese enunciado. "
-               "Elige «(pregunta suelta)» si no depende de ningún caso práctico. En los "
-               "bloques de teoría este campo se queda desactivado: no llevan enunciado."
-               ).pack(anchor="w", padx=10, pady=(8, 2))
         self.var_preg_stmt = tk.StringVar()
-        self.combo_stmt = ttk.Combobox(caja, textvariable=self.var_preg_stmt, state="readonly",
-                                       font=("Consolas", 10))
-        self.combo_stmt.pack(fill="x", padx=10, pady=(0, 4))
+        self.combo_stmt = ttk.Combobox(fila, textvariable=self.var_preg_stmt, state="readonly",
+                                       font=("Consolas", 9))
+        self.combo_stmt.grid(row=1, column=1, sticky="ew", padx=(8, 0))
         self.combo_stmt.bind("<<ComboboxSelected>>", self._cambio_stmt)
+        self.var_preg_tag = tk.StringVar()
+        ent = ttk.Entry(fila, textvariable=self.var_preg_tag, font=("Consolas", 10))
+        ent.grid(row=1, column=2, sticky="ew", padx=(8, 0))
+        self._vigilar(ent)
 
-        rotulo(caja, "Partes del enunciado de las que depende (modo foco)",
+        # Modo foco: solo se enseña si el enunciado de la pregunta tiene bloques de hechos.
+        self.marco_foco = ttk.Frame(caja, style="Panel.TFrame")
+        self.marco_foco.pack(fill="x")
+        rotulo(self.marco_foco, "Partes del enunciado de las que depende (modo foco)",
                "preguntas[].factIds",
                'factBlocks[].id  →  <div class="fact-block"> que se muestran en modo foco',
                "Marca aquí el hecho (o los hechos) desencadenantes concretos de los que "
@@ -92,9 +113,9 @@ class PestanaPreguntas:
                "Si no marcas ninguno, la pregunta enseña siempre el enunciado entero. "
                "Con Ctrl+clic se marcan y desmarcan varios."
                ).pack(anchor="w", padx=10, pady=(8, 2))
-        marco_fl = ttk.Frame(caja, style="Panel.TFrame")
+        marco_fl = ttk.Frame(self.marco_foco, style="Panel.TFrame")
         marco_fl.pack(fill="x", padx=10, pady=(0, 2))
-        self.lst_factlink = tk.Listbox(marco_fl, font=("Consolas", 9), height=5,
+        self.lst_factlink = tk.Listbox(marco_fl, font=("Consolas", 9), height=4,
                                        selectmode="extended", activestyle="none",
                                        exportselection=False)
         self.lst_factlink.pack(side="left", fill="both", expand=True)
@@ -104,21 +125,11 @@ class PestanaPreguntas:
         ttk.Button(colf, text="Ninguno", width=11,
                    command=self.limpiar_factlink).pack(pady=1)
         self.lbl_factlink = ttk.Label(caja, text="", style="Tec.TLabel")
-        self.lbl_factlink.pack(anchor="w", padx=10, pady=(0, 4))
-
-        rotulo(caja, "Etiqueta de materia (q-tag)", "preguntas[].tag",
-               '<span class="q-tag">',
-               "Línea pequeña en mayúsculas encima de la pregunta (por ejemplo: "
-               "«LPACAP · Art. 21»). Déjala VACÍA si el documento de origen no la pide."
-               ).pack(anchor="w", padx=10, pady=(8, 2))
-        self.var_preg_tag = tk.StringVar()
-        ent = ttk.Entry(caja, textvariable=self.var_preg_tag, font=("Consolas", 10))
-        ent.pack(fill="x", padx=10, pady=(0, 4))
-        self._vigilar(ent)
+        self.lbl_factlink.pack(anchor="w", padx=10, pady=(2, 2))
 
         rotulo(caja, "Texto de la pregunta", "preguntas[].q", '<div class="q-text">',
                "Lo que se lee en negrita dentro de la tarjeta de la pregunta."
-               ).pack(anchor="w", padx=10, pady=(8, 2))
+               ).pack(anchor="w", padx=10, pady=(6, 2))
         marco, self.txt_preg_q = caja_texto(caja, alto=4)
         marco.pack(fill="x", padx=10, pady=(0, 10))
         self._vigilar(self.txt_preg_q)
@@ -308,6 +319,14 @@ class PestanaPreguntas:
                     self.lst_factlink.selection_set(i)
         self._silencio_fact = False
 
+        try:
+            if hechos:
+                if not self.marco_foco.winfo_manager():
+                    self.marco_foco.pack(fill="x", before=self.lbl_factlink)
+            elif self.marco_foco.winfo_manager():
+                self.marco_foco.pack_forget()
+        except (tk.TclError, AttributeError):
+            pass
         if p is None:
             texto = ""
         elif not p.get("statementId"):

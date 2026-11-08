@@ -110,10 +110,16 @@ class EditorApp(PestanaGeneral,
         self._pestana_botones()
         self._pestana_comprobar()
         self._pestana_normas()
+        ajustar_ayudas(self)
 
         self._barra_estado()
         self.protocol("WM_DELETE_WINDOW", self._al_cerrar)
 
+        # Atajos de los cuadros de texto de Tk que chocan con los del editor:
+        # Ctrl+O metía un salto de línea, Ctrl+F avanzaba el cursor y Ctrl+N bajaba de línea.
+        for clase in ("Text", "Entry", "TEntry"):
+            for tecla in ("<Control-o>", "<Control-f>", "<Control-n>", "<Control-k>"):
+                self.bind_class(clase, tecla, "")
         self.bind_all("<Control-s>", lambda e: self.guardar())
         self.bind_all("<Control-o>", lambda e: self.abrir())
         self.bind_all("<Control-n>", lambda e: self.nuevo())
@@ -246,6 +252,17 @@ class EditorApp(PestanaGeneral,
         herram.add_command(label="Sincronizar con GitHub (git)…", accelerator="Ctrl+Mayús+U",
                            command=lambda: ventana_sync.abrir(self))
         barra.add_cascade(label="Herramientas", menu=herram)
+        ver = tk.Menu(barra, tearoff=False, postcommand=lambda: (
+            self.var_ver_marcas.set(ver_marcas()), self.var_ver_ayudas.set(ver_ayudas())))
+        self.var_ver_ayudas = tk.BooleanVar(value=ver_ayudas())
+        self.var_ver_marcas = tk.BooleanVar(value=ver_marcas())
+        ver.add_checkbutton(label="Ayudas técnicas (campo del archivo, HTML y explicación)",
+                            variable=self.var_ver_ayudas,
+                            command=lambda: poner_ver_ayudas(self.var_ver_ayudas.get()))
+        ver.add_checkbutton(label="Marcas de formato en los textos (<b>, <i>…)",
+                            accelerator="Ctrl+Mayús+M", variable=self.var_ver_marcas,
+                            command=lambda: poner_ver_marcas(self.var_ver_marcas.get()))
+        barra.add_cascade(label="Ver", menu=ver)
         ayuda = tk.Menu(barra, tearoff=False)
         ayuda.add_command(label="Ayuda de esta pestaña", accelerator="F1", command=lambda: ventana_extra.ayuda(self))
         barra.add_cascade(label="Ayuda", menu=ayuda)
@@ -357,9 +374,17 @@ class EditorApp(PestanaGeneral,
         self.estado("Rehecho.")
 
     def _poner_datos(self, datos):
+        """Pone otros datos (deshacer, rehacer, otra ventana) sin perder el sitio:
+        sigue seleccionado el mismo bloque, enunciado, hecho, hito y pregunta."""
         i = self.i_preg
+        sec, enun, bloque, hito = self.i_sec, self.i_enun, self.i_bloque, self.i_hito
         self.datos = datos
         self._refrescar_todo(reiniciar=False)
+        if sec is not None and self.datos["bloques"]:
+            self.refrescar_lista_sec(min(sec, len(self.datos["bloques"]) - 1))
+        if enun is not None and self.datos["enunciados"]:
+            self.i_bloque, self.i_hito = bloque, hito
+            self.refrescar_lista_enun(min(enun, len(self.datos["enunciados"]) - 1))
         if i is not None and self.datos["preguntas"]:
             self.refrescar_lista_preg(min(i, len(self.datos["preguntas"]) - 1))
         self.hay_cambios = True
