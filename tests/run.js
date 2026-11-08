@@ -113,10 +113,13 @@ async function envios() {
                 const corr = document.getElementById('qcard-' + i).dataset.correct.split(',').map(Number);
                 if (i < 6) corr.forEach(k => selectAnswer(i, k)); else { let k = 0; while (corr.includes(k)) k++; selectAnswer(i, k); }
             }
-            window.confirm = () => true; evaluateExam();
+            evaluateExam(true);
         });
         await pg.waitForTimeout(1200);
-        await pg.evaluate(() => document.getElementById('send-btn').click()); await pg.waitForTimeout(900);
+        // El nombre se pide en la ventana propia del motor (antes, prompt del navegador)
+        await pg.evaluate(() => document.getElementById('send-btn').click());
+        await pg.waitForSelector('.supc1-dialogo-campo'); await pg.fill('.supc1-dialogo-campo', 'Alumno Prueba');
+        await pg.click('.supc1-dialogo .btn-primary'); await pg.waitForTimeout(900);
         nuevo[s] = ctx.google.map(g => ({ url: g.url, body: normalizar(g.body).split('&') }));
         const gold = leerGolden('envios.json');
         if (!ACTUALIZAR) {
@@ -190,7 +193,7 @@ async function funciones() {
 
     await caso('guarda el progreso al corregir y deja el historial', async () => {
         const ctx = await contexto(); const pg = await abrir(ctx, T);
-        await pg.evaluate(() => { selectAnswer(0, 0); window.confirm = () => true; evaluateExam(); }); await pg.waitForTimeout(1800);
+        await pg.evaluate(() => { selectAnswer(0, 0); evaluateExam(true); }); await pg.waitForTimeout(1800);
         const p = await ls(pg, 'prog:' + id); await ctx.close();
         return (p && p.intentos === 1 && p.hist && p.hist.length === 1 && p.hist[0].seg >= 0) || 'prog = ' + JSON.stringify(p);
     });
@@ -207,10 +210,10 @@ async function funciones() {
     });
     await caso('«repetir solo las falladas» no envía nada a Google', async () => {
         const ctx = await contexto(); const pg = await abrir(ctx, T);
-        await pg.evaluate(() => { selectAnswer(0, 0); window.confirm = () => true; evaluateExam(); }); await pg.waitForTimeout(1500);
+        await pg.evaluate(() => { selectAnswer(0, 0); evaluateExam(true); }); await pg.waitForTimeout(1500);
         const antes = ctx.google.length;
         await pg.evaluate(() => document.getElementById('falladas-btn').click()); await pg.waitForTimeout(400);
-        await pg.evaluate(() => { selectAnswer(0, 0); evaluateExam(); }); await pg.waitForTimeout(1500);
+        await pg.evaluate(() => { selectAnswer(0, 0); evaluateExam(true); }); await pg.waitForTimeout(1500);
         const oculto = await pg.evaluate(() => getComputedStyle(document.getElementById('send-btn')).display === 'none');
         await pg.evaluate(() => enviarResultados()); await pg.waitForTimeout(500);
         const n = ctx.google.length - antes; await ctx.close();
@@ -223,8 +226,8 @@ async function funciones() {
     });
     await caso('el banco de falladas: entra al fallar y sale tras acertar dos veces', async () => {
         const ctx = await contexto(); const pg = await abrir(ctx, T);
-        const fallar = () => pg.evaluate(() => { const c = document.getElementById('qcard-0').dataset.correct.split(',').map(Number); let k = 0; while (c.includes(k)) k++; selectAnswer(0, k); window.confirm = () => true; evaluateExam(); });
-        const acertar = () => pg.evaluate(() => { const c = document.getElementById('qcard-0').dataset.correct.split(',').map(Number); c.forEach(k => selectAnswer(0, k)); window.confirm = () => true; evaluateExam(); });
+        const fallar = () => pg.evaluate(() => { const c = document.getElementById('qcard-0').dataset.correct.split(',').map(Number); let k = 0; while (c.includes(k)) k++; selectAnswer(0, k); evaluateExam(true); });
+        const acertar = () => pg.evaluate(() => { const c = document.getElementById('qcard-0').dataset.correct.split(',').map(Number); c.forEach(k => selectAnswer(0, k)); evaluateExam(true); });
         const n = async () => (await ls(pg, 'banco') || { falladas: {} }).falladas ? Object.keys((await ls(pg, 'banco')).falladas).length : 0;
         await fallar(); await pg.waitForTimeout(1800); const a = await n();
         await pg.goto(BASE + T); await pg.waitForTimeout(700); await pg.evaluate(() => { const m = document.querySelector('.supc1-modal [data-r="no"]'); if (m) m.click(); });
@@ -334,7 +337,7 @@ async function funciones() {
     });
     await caso('?practicar=falladas y ?practicar=marcadas abren un intento parcial', async () => {
         const ctx = await contexto(); const pg = await abrir(ctx, T);
-        await pg.evaluate(() => { const c = document.getElementById('qcard-0').dataset.correct.split(',').map(Number); let k = 0; while (c.includes(k)) k++; selectAnswer(0, k); window.confirm = () => true; evaluateExam(); }); await pg.waitForTimeout(1800);
+        await pg.evaluate(() => { const c = document.getElementById('qcard-0').dataset.correct.split(',').map(Number); let k = 0; while (c.includes(k)) k++; selectAnswer(0, k); evaluateExam(true); }); await pg.waitForTimeout(1800);
         await pg.goto(BASE + T + '?practicar=falladas'); await pg.waitForTimeout(900);
         const f = await pg.evaluate(() => ({ n: questions.length, p: document.body.classList.contains('intento-parcial'), u: location.search }));
         await pg.evaluate(() => { SupC1.sup.marcar(0); }); await pg.goto(BASE + T + '?practicar=marcadas'); await pg.waitForTimeout(900);

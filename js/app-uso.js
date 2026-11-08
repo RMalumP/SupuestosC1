@@ -22,15 +22,23 @@
     enlace.href = '#quiz-container'; enlace.className = 'saltar-contenido'; enlace.textContent = 'Saltar a las preguntas';
     document.body.insertBefore(enlace, document.body.firstChild);
 
-    /* ── Accesibilidad de opciones y casillas (idempotente: se repite al crearse tarjetas) ── */
-    function preparar() {
-        document.querySelectorAll('.options-grid').forEach(function (g, gi) {
+    /* ── Accesibilidad de opciones y casillas (idempotente: se repite al crearse tarjetas).
+       El motor 10 ya las crea con su papel y etiqueta; esto cubre motores anteriores.
+       Solo recorre lo que se le pasa (lo recién añadido), no la página entera. ── */
+    function preparar(raiz) {
+        raiz = raiz || document;
+        var todos = function (sel) {
+            var l = Array.prototype.slice.call(raiz.querySelectorAll ? raiz.querySelectorAll(sel) : []);
+            if (raiz.matches && raiz.matches(sel)) l.unshift(raiz);
+            return l;
+        };
+        todos('.options-grid').forEach(function (g, gi) {
             var card = g.closest('.question-card');
             var multi = card && card.dataset.multiple === '1';
             g.setAttribute('role', multi ? 'group' : 'radiogroup');
             g.setAttribute('aria-label', 'Opciones de la pregunta ' + (card ? parseInt(card.id.replace('qcard-', ''), 10) + 1 : gi + 1));
         });
-        document.querySelectorAll('.option').forEach(function (o) {
+        todos('.option').forEach(function (o) {
             var card = o.closest('.question-card');
             var multi = card && card.dataset.multiple === '1';
             if (!o.hasAttribute('role')) {
@@ -38,12 +46,12 @@
             }
             o.setAttribute('aria-checked', o.classList.contains('selected') ? 'true' : 'false');
         });
-        document.querySelectorAll('.nav-box').forEach(function (n) {
+        todos('.nav-box').forEach(function (n) {
             if (n.hasAttribute('role')) return;
             n.setAttribute('role', 'button'); n.setAttribute('tabindex', '0');
             n.setAttribute('aria-label', 'Ir a la pregunta ' + n.textContent.trim());
         });
-        document.querySelectorAll('.feedback').forEach(enlazarNormas);
+        todos('.feedback').forEach(enlazarNormas);
     }
 
     /* ── Enlaces a la norma ── */
@@ -83,23 +91,33 @@
         });
     }
 
+    // Solo se prepara lo que se añade, y «Correcta / Incorrecta» se anuncia una
+    // vez por pregunta corregida al momento (corregir pregunta a pregunta): al
+    // corregir el examen entero se anuncia solo el resultado (más abajo), no
+    // una ráfaga por cada opción.
+    function prepararAnadidos(muts) {
+        muts.forEach(function (m) {
+            Array.prototype.forEach.call(m.addedNodes || [], function (n) { if (n.nodeType === 1) preparar(n); });
+        });
+    }
     var cont = $('quiz-container');
     if (cont) {
         new MutationObserver(function (muts) {
-            var nuevas = false;
+            var veredicto = null;
             muts.forEach(function (m) {
-                if (m.type === 'childList') nuevas = true;
-                else if (m.type === 'attributes' && m.target.classList && m.target.classList.contains('option')) {
-                    m.target.setAttribute('aria-checked', m.target.classList.contains('selected') ? 'true' : 'false');
-                    if (m.target.classList.contains('correct')) anunciar('Correcta');
-                    else if (m.target.classList.contains('wrong')) anunciar('Incorrecta');
-                }
+                if (m.type !== 'attributes' || !m.target.classList || !m.target.classList.contains('option')) return;
+                m.target.setAttribute('aria-checked', m.target.classList.contains('selected') ? 'true' : 'false');
+                if (typeof evaluated !== 'undefined' && evaluated) return;
+                if (!m.target.classList.contains('selected')) return;
+                if (m.target.classList.contains('correct')) veredicto = 'Correcta';
+                else if (m.target.classList.contains('wrong')) veredicto = 'Incorrecta';
             });
-            if (nuevas) preparar();
+            prepararAnadidos(muts);
+            if (veredicto) anunciar(veredicto);
         }).observe(cont, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
     }
     var navb = $('nav-boxes');
-    if (navb) new MutationObserver(preparar).observe(navb, { childList: true, subtree: true });
+    if (navb) new MutationObserver(prepararAnadidos).observe(navb, { childList: true, subtree: true });
     preparar();
 
     /* Teclado sobre los elementos con role (Enter / espacio = clic) */
@@ -185,11 +203,8 @@
         if ($('atajos-btn')) $('atajos-btn').addEventListener('click', ayuda);
     }
 
-    /* Anunciar el resultado al corregir */
-    setInterval(function () {
-        if (typeof evaluated !== 'undefined' && evaluated && !vivo.dataset.corregido) {
-            vivo.dataset.corregido = '1';
-            try { var r = calcResultados(); anunciar('Examen corregido: ' + r.aciertos + ' aciertos, ' + r.fallos + ' fallos y ' + r.blancos + ' en blanco.'); } catch (e) {}
-        } else if (typeof evaluated !== 'undefined' && !evaluated) { delete vivo.dataset.corregido; }
-    }, 1500);
+    /* Anunciar el resultado al corregir (aviso del motor, sin vigilar con temporizador) */
+    document.addEventListener('supc1:corregido', function () {
+        try { var r = calcResultados(); anunciar('Examen corregido: ' + r.aciertos + ' aciertos, ' + r.fallos + ' fallos y ' + r.blancos + ' en blanco.'); } catch (e) {}
+    });
 })();

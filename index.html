@@ -242,7 +242,7 @@
 <div class="hero">
     <div class="hero-inner">
         <div class="logo-wrap">
-            <img src="https://academia.ecap.es/pluginfile.php?file=%2F1%2Fcore_admin%2Flogo%2F0x200%2F1782109950%2FACADEMIA%20VIRTUAL%20%281%29.png" alt="ECAP - Escuela Ciudadana de Administración Pública">
+            <img src="https://academia.ecap.es/pluginfile.php?file=%2F1%2Fcore_admin%2Flogo%2F0x200%2F1782109950%2FACADEMIA%20VIRTUAL%20%281%29.png" alt="ECAP - Escuela Ciudadana de Administración Pública" onerror="this.style.display='none'">
             <span class="logo-subtitle">Comunidad ECAP ASS C1 | NO RELACIONADO CON LA PLATAFORMA OFICIAL</span>
         </div>
         <h1>Menú principal<strong>de supuestos</strong></h1>
@@ -364,7 +364,9 @@
 <script>(function () {
     var d = document.getElementById("guia-menu"), S = window.SupC1;
     if (!d || !S) return;
-    if (S.get("guia-menu-plegada", false)) d.open = false;
+    // En pantallas pequeñas empieza plegada (si no, tapa los supuestos); después manda lo que elija cada persona
+    var pequena = window.matchMedia && window.matchMedia("(max-width: 600px)").matches;
+    if (S.get("guia-menu-plegada", pequena)) d.open = false;
     d.addEventListener("toggle", function () { S.set("guia-menu-plegada", !d.open); });
 })();</script>
 <script src="config/telemetria-config.js"></script>

@@ -19,6 +19,8 @@ import menu_datos          # noqa: E402
 import datos_html          # noqa: E402
 import sincronizar_local as sl  # noqa: E402
 
+MOTOR_ACTUAL = datos_html.version_motor((PY / datos_html.PLANTILLA_BASE).read_text(encoding="utf-8"))
+
 
 def copia_del_proyecto():
     """Copia mínima del proyecto en una carpeta temporal."""
@@ -194,7 +196,7 @@ class SincronizarLocal(unittest.TestCase):
             self.assertEqual(sl.diferencias(d), ([], [], []))
             # un supuesto con motor antiguo (como recién bajado de GitHub)
             f = d / "supuestos" / "supuesto_2.html"
-            f.write_text(f.read_text(encoding="utf-8").replace('name="motor-plantilla" content="9"', 'name="motor-plantilla" content="6"'), encoding="utf-8")
+            f.write_text(f.read_text(encoding="utf-8").replace('name="motor-plantilla" content="%d"' % MOTOR_ACTUAL, 'name="motor-plantilla" content="6"'), encoding="utf-8")
             sl.marcar_subido(d)
             antes = datos_html.leer_html(f)[0]
             hechos, saltados = sl.poner_al_dia(d)
@@ -235,11 +237,11 @@ class SincronizarLocal(unittest.TestCase):
         d = copia_del_proyecto()
         try:
             f = d / "supuestos" / "supuesto_3.html"
-            f.write_text(f.read_text(encoding="utf-8").replace('name="motor-plantilla" content="9"', 'name="motor-plantilla" content="5"'), encoding="utf-8")
+            f.write_text(f.read_text(encoding="utf-8").replace('name="motor-plantilla" content="%d"' % MOTOR_ACTUAL, 'name="motor-plantilla" content="5"'), encoding="utf-8")
             cod, sal = ejecutar(d, "Py/editor_supuestos.py", "--actualizar")
             self.assertEqual(cod, 0, sal)
             self.assertIn("Primera vez", sal)
-            self.assertIn("supuesto_3.html: motor 5 → 9", sal)
+            self.assertIn("supuesto_3.html: motor 5 → %d" % MOTOR_ACTUAL, sal)
             self.assertIn("1 archivo para subir", sal)
             self.assertTrue((d / "PARA_SUBIR" / "supuestos" / "supuesto_3.html").is_file())
             cod, sal = ejecutar(d, "Py/editor_supuestos.py", "--subido")

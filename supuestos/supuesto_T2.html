@@ -18,38 +18,19 @@
         con la suya y, si el archivo se quedó atrás, ofrece ponerlo al día
         al guardar. Subir este número al cambiar el motor.
     -->
-    <meta name="motor-plantilla" content="9">
+    <meta name="motor-plantilla" content="10">
     <title>[TÍTULO DE LA EVALUACIÓN]</title>
     <link rel="stylesheet" href="../fuentes/fuentes.css">
 
     <link rel="stylesheet" href="../css/base-supuesto.css">
     <style>
-        /* ════════════════════════════════════════
-           VARIABLES Y RESET
-        ════════════════════════════════════════ */
+        /* Solo lo propio de esta versión del motor: lo común a todos los supuestos
+           está en ../css/base-supuesto.css y el diseño en ../css/tema-supuesto.css. */
 
-        
-
-        /* ════════════════════════════════════════
-           NAVEGACIÓN
-        ════════════════════════════════════════ */
-        
-        /* Rótulo de cada bloque dentro de la cabecera de navegación.
-           Sustituye al antiguo rótulo fijo "PREGUNTAS": ahora cada bloque
-           (supuesto o teoría) pone su propio nombre en su propio color. */
-
-        /* Cada bloque del examen ocupa su propia fila: nombre a la izquierda
-           y sus casillas numeradas a la derecha. */
-
-        
-        /* Cabecera plegada: solo queda a la vista la fila del bloque actual */
-
-        /* Plegada de verdad: la fila del bloque actual ocupa UNA sola línea,
-           por largo que sea el bloque. Las casillas que no caben no bajan a
-           una segunda línea: se quedan fuera y se llega a ellas deslizando
-           la fila a izquierda y derecha (con el dedo, la rueda o la barra).
-           Al cambiar de pregunta o de bloque, la casilla activa se centra
-           sola (ver centrarCasillaActiva). */
+        /* Cabecera plegada: la fila del bloque actual ocupa UNA sola línea, por
+           largo que sea el bloque; las casillas que no caben se alcanzan deslizando
+           la fila. Al cambiar de pregunta, la activa se centra sola
+           (ver centrarCasillaActiva). */
         body.nav-plegada .nav-row.fila-actual .nav-row-boxes {
             flex-wrap: nowrap;
             overflow-x: auto; overflow-y: hidden;
@@ -68,200 +49,6 @@
         /* Sin esto las casillas se encogerían hasta deformarse al no caber */
         body.nav-plegada .nav-row.fila-actual .nav-box { flex: 0 0 auto; }
 
-        
-
-        
-
-        /* ════════════════════════════════════════
-           PANEL DE CONFIGURACIÓN (temporizador + modo corrección)
-        ════════════════════════════════════════ */
-
-        
-
-        /* Botón volver al menú principal (cabecera) */
-
-        
-
-        
-
-        
-
-        
-
-        
-        
-        /* Opción dependiente de la de arriba: va sangrada y con un filete
-           que la ata a ella. Se apaga sola cuando no puede aplicarse. */
-
-        
-        /* Una casilla por bloque dentro de la opción «de una en una» */
-
-        
-        /* Punto del color del bloque, para reconocerlo de un vistazo */
-
-        /* ════════════════════════════════════════
-           TEMPORIZADOR
-        ════════════════════════════════════════ */
-
-        
-
-        
-
-        
-
-        /* ════════════════════════════════════════
-           CONTENEDOR Y ESTRUCTURA
-        ════════════════════════════════════════ */
-
-        
-
-        
-
-        
-
-        /* ════════════════════════════════════════
-           ENUNCIADO
-        ════════════════════════════════════════ */
-
-        
-
-        
-
-        
-
-        
-
-        
-
-        
-
-        /* Panel de enunciado incrustado en el hilo del examen.
-           Cada grupo de preguntas lleva el suyo justo delante, de modo que
-           en el modo "en cadena" se lee enunciado 1 → sus preguntas →
-           enunciado 2 → sus preguntas, y de una en una solo se ve el del
-           enunciado al que pertenece la pregunta actual. */
-
-        /* Aviso del modo foco: el enunciado sale recortado a los hechos
-           vinculados a la pregunta, con un botón para verlo entero. */
-
-        
-        
-        /* Clase para ocultar elementos */
-
-        /* ════════════════════════════════════════
-           TARJETAS PREGUNTA
-        ════════════════════════════════════════ */
-
-        
-        /* Modo "en cadena": se ven varias tarjetas del mismo bloque a la vez.
-           La tarjeta en la que está el usuario se resalta con un halo. */
-
-        /* Cabecera de sección de cada bloque (encima de sus preguntas) */
-
-        
-
-        /* Desglose por bloques dentro del marcador */
-
-        
-
-        /* Separador de bloque dentro de la corrección completa */
-
-        
-
-        
-
-        
-
-        
-
-        
-        /* Respuesta múltiple: la insignia pasa de redonda a cuadrada, como
-           una casilla de verificación, para que se vea de un vistazo que
-           se puede marcar más de una. */
-
-        
-
-        
-
-        /* FEEDBACK */
-
-        
-
-        
-
-        /* BARRA DE PROGRESO */
-
-        /* BOTONES */
-
-        
-
-        
-
-        
-
-        
-
-        /* ════════════════════════════════════════
-           OVERLAY TIEMPO AGOTADO
-        ════════════════════════════════════════ */
-
-        
-
-        
-
-        /* ════════════════════════════════════════
-           MODAL — ELECCIÓN DE ALEATORIEDAD AL REPETIR
-        ════════════════════════════════════════ */
-
-        
-
-        
-        
-        /* Variantes propias del modal (las clases .btn-info / .btn-danger están
-           ocultas por defecto fuera de aquí, ya que se controlan por JS en la
-           botonera principal, así que no se reutilizan dentro del modal). */
-
-        
-
-        /* ════════════════════════════════════════
-           GREMLIN SVG ANIMADO
-        ════════════════════════════════════════ */
-
-        
-
-        /* Oscilación cuerpo */
-
-        /* Tirón del cable */
-
-        /* Pantalla parpadeo */
-
-        /* Ojos parpadeantes */
-
-        /* Texto overlay */
-
-        /* ════════════════════════════════════════
-           PANEL DE RESULTADOS (corrección completa)
-        ════════════════════════════════════════ */
-
-        
-
-        
-
-        
-
-        
-
-        
-
-        /* Score banner dentro del overlay */
-
-        
-
-        
-
-        /* ════════════════════════════════════════
-           PRINT / PDF
-        ════════════════════════════════════════ */
         /* ── FORMATO DEL TEXTO ────────────────────────────────────────
            Negrita, cursiva, subrayado, tachado, resaltado y tamaños de
            letra que se pueden usar dentro de cualquier texto del supuesto
@@ -384,6 +171,9 @@
 <nav id="nav-header">
     <div id="nav-boxes"></div>
 
+    <!-- Contador «pregunta actual / total» y respondidas (se rellena solo) -->
+    <div id="nav-contador" aria-live="off"><span id="nav-actual">1/1</span><small id="nav-respondidas"></small></div>
+
     <button id="fold-btn" class="home-btn" onclick="togglePlegado()"
             title="Plegar: ver solo el bloque actual" aria-label="Plegar bloques"
             style="display:none;">⌃</button>
@@ -392,7 +182,7 @@
             title="Volver al menú principal" aria-label="Volver al menú principal">🏠</button>
 
     <div class="settings-wrap">
-        <button id="settings-toggle" onclick="toggleSettings()" title="Configuración del temporizador" aria-label="Configuración">⚙</button>
+        <button id="settings-toggle" onclick="toggleSettings()" title="Configuración del temporizador" aria-label="Configuración" aria-expanded="false" aria-controls="settings-panel">⚙</button>
         <div id="settings-panel">
             <div class="settings-title" id="settings-title">Configuración</div>
             <div class="settings-row" id="row-tiempo">
@@ -436,7 +226,7 @@
 </nav>
 
 <!-- TEMPORIZADOR -->
-<div id="timer" onclick="toggleTimerPause()" title="Clic para pausar / reanudar">
+<div id="timer" onclick="toggleTimerPause()" title="Clic para pausar / reanudar" role="button" tabindex="0" aria-label="Tiempo restante. Pulsa para pausar o reanudar">
     <span class="timer-label">TIEMPO RESTANTE</span>
     <span id="timer-display">30:00</span>
 </div>
@@ -510,7 +300,7 @@
     <div id="quiz-container"></div>
 
     <!-- BOTONERA -->
-    <div class="btn-zone">
+    <div class="btn-zone" id="btn-zone">
         <button id="prev-btn" class="btn btn-primary" onclick="move(-1)">← Anterior</button>
         <button id="next-btn" class="btn btn-primary" onclick="move(1)">Siguiente →</button>
         <button id="check-btn"   class="btn btn-danger"   onclick="evaluateExam()">✓ Corregir Expediente</button>
@@ -518,13 +308,15 @@
         <button id="restart-btn" class="btn btn-info"     onclick="openRandomModal()">🔀 Nuevo Intento (Aleatorio)</button>
         <button id="send-btn"    class="btn btn-send"     onclick="enviarResultados()">📤 Enviar Resultados</button>
         <button id="home-btn-bottom" class="btn btn-info" style="display:none;" onclick="goHome()">🏠 Volver al Menú Principal</button>
+        <!-- Solo en el móvil y tras corregir: abre las demás acciones en una hoja desde abajo -->
+        <button id="more-btn" class="btn btn-info" type="button" onclick="toggleMasAcciones()" aria-expanded="false" aria-controls="btn-zone">⋯ Más</button>
     </div>
 </div>
 
 <!-- ══════════════════════════════════════════
      OVERLAY — TIEMPO AGOTADO + CORRECCIÓN
 ══════════════════════════════════════════ -->
-<div id="overlay">
+<div id="overlay" role="dialog" aria-modal="true" aria-labelledby="overlay-title">
     <button id="overlay-close" onclick="closeOverlay()" title="Cerrar" aria-label="Cerrar">✕</button>
     <div class="overlay-content">
 
@@ -609,17 +401,17 @@
         <h1 id="overlay-title">¡TIEMPO AGOTADO!</h1>
         <p class="sub" id="overlay-msg">El tiempo del examen ha concluido. El gremlin ha tirado del cable.<br>A continuación se muestra la corrección completa con motivación legal.</p>
 
-        <!-- Botones en overlay -->
-        <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-bottom:20px;">
+        <!-- Resultado: lo primero que se lee tras el aviso -->
+        <div class="score-banner" id="score-banner" style="display:none;"></div>
+
+        <!-- Botones en overlay: primero «Ver corrección», el resto debajo -->
+        <div class="ov-botones">
             <button class="btn btn-danger" id="ov-corr-btn" style="display:inline-flex;" onclick="showCorrectionPanel()">✓ Ver Corrección Completa</button>
             <button class="btn btn-success" id="ov-print-btn" style="display:inline-flex;" onclick="printResults()">🖨 Imprimir / PDF</button>
             <button class="btn btn-info" id="ov-restart-btn" style="display:inline-flex;" onclick="openRandomModal()">🔀 Repetir (Aleatorio)</button>
             <button class="btn btn-send" id="ov-send-btn" style="display:inline-flex;" onclick="enviarResultados()">📤 Enviar Resultados</button>
             <button class="btn btn-info" id="ov-home-btn" style="display:inline-flex;" onclick="goHome()">🏠 Menú Principal</button>
         </div>
-
-        <!-- Score banner -->
-        <div class="score-banner" id="score-banner" style="display:none;"></div>
 
         <!-- Panel corrección completa -->
         <div id="correction-panel"></div>
@@ -631,7 +423,7 @@
      MODAL — ELECCIÓN DE ALEATORIEDAD AL REPETIR
 ══════════════════════════════════════════ -->
 <div id="random-modal" onclick="if (event.target === this) closeRandomModal();">
-    <div class="modal-box">
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="rnd-titulo">
         <h3 id="rnd-titulo">🔀 Nuevo intento aleatorio</h3>
         <p id="rnd-sub">¿Cómo quieres repetir el expediente?</p>
         <button class="btn btn-modal-a" id="rnd-answers" onclick="confirmRestart('answers')">🔁 Mismas preguntas y mismo orden<br><small style="font-weight:400;opacity:0.8;">solo cambia el orden de las respuestas</small></button>
@@ -1623,6 +1415,135 @@ let navPlegada           = false;    // cabecera plegada (solo el bloque actual)
 let dedoEnMovimiento     = false;    // el dedo se ha desplazado: no es un toque
 let ultimoScroll         = 0;        // instante del último desplazamiento del DEDO
 let desplazamientoPropio = 0;        // instante del último movimiento que mandó el código
+let panelAnterior        = null;     // enunciado de la pregunta anterior (para saber a dónde desplazar)
+
+/* ═══════════════════════════════════════════
+   AVISOS PARA LOS MÓDULOS (app-supuesto.js, app-uso.js…)
+   ───────────────────────────────────────────
+   El motor avisa de lo que pasa con eventos de document, y los módulos se
+   cuelgan de ellos en lugar de vigilar con temporizadores o sustituir
+   funciones del motor:
+     supc1:antes-inicio  (detail.modo)  al empezar un intento, antes de montarlo
+     supc1:inicio        (detail.modo)  con el intento ya montado
+     supc1:respuesta     (detail.i)     al marcar o desmarcar una opción
+     supc1:pregunta      (detail.i)     al cambiar de pregunta
+     supc1:corregido                    al corregir o agotarse el tiempo
+     supc1:salir                        justo antes de volver al menú
+   SUPC1_MOTOR dice qué versión del motor hay (los módulos lo comprueban).
+═══════════════════════════════════════════ */
+window.SUPC1_MOTOR = 10;
+function emitir(nombre, detalle) {
+    try { document.dispatchEvent(new CustomEvent('supc1:' + nombre, { detail: detalle || {} })); }
+    catch (e) { /* un módulo con fallos no debe parar el examen */ }
+}
+
+// Intento de práctica personal (solo falladas, marcadas…): lo decide app-supuesto.js.
+// No se manda a los formularios.
+function esPractica() {
+    const S = window.SupC1;
+    return !!(S && S.sup && typeof S.sup.esParcial === 'function' && S.sup.esParcial());
+}
+
+/* ═══════════════════════════════════════════
+   VENTANAS PROPIAS (en vez de alert / confirm / prompt)
+   ───────────────────────────────────────────
+   dialogo({ titulo, texto, campo, botones }) → Promesa con el valor del
+   botón pulsado (o el texto escrito, si hay campo). Esc o pulsar fuera =
+   el botón con «cancelar: true» (o null). El foco se queda dentro.
+═══════════════════════════════════════════ */
+function dialogo(op) {
+    return new Promise(resolve => {
+        const previo  = document.activeElement;
+        const fondo   = document.createElement('div');
+        fondo.className = 'supc1-modal supc1-dialogo';
+        const caja    = document.createElement('div');
+        caja.className = 'supc1-modal-caja';
+        caja.setAttribute('role', op.campo ? 'dialog' : 'alertdialog');
+        caja.setAttribute('aria-modal', 'true');
+        if (op.titulo) {
+            const h = document.createElement('h3');
+            h.id = 'dlg-titulo-' + Date.now();
+            h.textContent = op.titulo;
+            caja.appendChild(h);
+            caja.setAttribute('aria-labelledby', h.id);
+        }
+        (Array.isArray(op.texto) ? op.texto : [op.texto]).filter(Boolean).forEach(t => {
+            const p = document.createElement('p');
+            p.textContent = t;
+            caja.appendChild(p);
+        });
+        let campo = null;
+        if (op.campo) {
+            campo = document.createElement('input');
+            campo.type = 'text';
+            campo.className = 'supc1-dialogo-campo';
+            campo.placeholder = op.campo.placeholder || '';
+            campo.value = op.campo.valor || '';
+            campo.setAttribute('aria-label', op.campo.etiqueta || op.titulo || '');
+            caja.appendChild(campo);
+        }
+        const fila = document.createElement('div');
+        fila.className = 'supc1-modal-botones';
+        const botones = op.botones || [{ texto: 'Aceptar', valor: true, principal: true }];
+        const cancelar = botones.find(b => b.cancelar);
+        let terminado = false;
+        const cerrar = valor => {
+            if (terminado) return;
+            terminado = true;
+            fondo.remove();
+            document.removeEventListener('keydown', teclas, true);
+            if (previo && typeof previo.focus === 'function') { try { previo.focus({ preventScroll: true }); } catch (e) {} }
+            resolve(valor);
+        };
+        const valorDe = b => (campo && !b.cancelar) ? campo.value : b.valor;
+        botones.forEach(b => {
+            const x = document.createElement('button');
+            x.type = 'button';
+            x.className = 'btn' + (b.principal ? ' btn-primary' : '');
+            x.textContent = b.texto;
+            x.addEventListener('click', () => cerrar(valorDe(b)));
+            fila.appendChild(x);
+        });
+        caja.appendChild(fila);
+        fondo.appendChild(caja);
+        fondo.addEventListener('click', e => { if (e.target === fondo) cerrar(cancelar ? valorDe(cancelar) : null); });
+        const teclas = e => {
+            if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cerrar(cancelar ? valorDe(cancelar) : null); }
+            else if (e.key === 'Enter' && campo && e.target === campo) {
+                e.preventDefault();
+                const p = botones.find(b => b.principal) || botones[0];
+                cerrar(valorDe(p));
+            } else if (e.key === 'Tab') atraparFoco(e, caja);
+        };
+        document.addEventListener('keydown', teclas, true);
+        document.body.appendChild(fondo);
+        const primero = campo || fila.querySelector('.btn-primary') || fila.querySelector('button');
+        if (primero) primero.focus({ preventScroll: true });
+    });
+}
+
+// Pregunta sí/no con la ventana propia → Promesa<boolean>
+function confirmar(titulo, texto, si, no) {
+    return dialogo({ titulo, texto, botones: [
+        { texto: no || 'Cancelar', valor: false, cancelar: true },
+        { texto: si || 'Aceptar',  valor: true,  principal: true }] });
+}
+
+// Aviso con un solo botón → Promesa
+function avisar(titulo, texto) {
+    return dialogo({ titulo, texto, botones: [{ texto: 'Entendido', valor: true, principal: true, cancelar: true }] });
+}
+
+// Mantiene el foco de Tab dentro de una ventana abierta
+function atraparFoco(e, caja) {
+    const f = [...caja.querySelectorAll('button, [href], input, textarea, select, [tabindex]:not([tabindex="-1"])')]
+                  .filter(x => !x.disabled && x.offsetParent !== null);
+    if (!f.length) return;
+    const primero = f[0], ultimo = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === primero) { e.preventDefault(); ultimo.focus(); }
+    else if (!e.shiftKey && document.activeElement === ultimo) { e.preventDefault(); primero.focus(); }
+    else if (!caja.contains(document.activeElement)) { e.preventDefault(); primero.focus(); }
+}
 
 /* ═══════════════════════════════════════════
    BLOQUES — utilidades
@@ -1728,6 +1649,46 @@ function medirCabecera() {
     document.documentElement.style.setProperty('--nav-h', cab.offsetHeight + 'px');
 }
 window.addEventListener('resize', medirCabecera);
+
+/* En el móvil el reloj va DENTRO de la barra superior (flotando tapaba el
+   texto de la pregunta); en pantallas anchas vuelve a su sitio de siempre,
+   flotando bajo la barra. */
+const MOVIL = window.matchMedia ? window.matchMedia('(max-width: 600px)') : { matches: false };
+function colocarReloj() {
+    const reloj = document.getElementById('timer');
+    const cab   = document.getElementById('nav-header');
+    if (!reloj || !cab) return;
+    if (MOVIL.matches) {
+        if (reloj.parentNode !== cab) cab.insertBefore(reloj, document.getElementById('fold-btn'));
+    } else if (reloj.parentNode === cab) {
+        cab.parentNode.insertBefore(reloj, cab.nextSibling);
+    }
+    medirCabecera();
+}
+if (MOVIL.addEventListener) MOVIL.addEventListener('change', colocarReloj);
+else if (MOVIL.addListener) MOVIL.addListener(colocarReloj);
+
+// Contador de la barra superior: pregunta actual / total y cuántas van respondidas
+function actualizarContador() {
+    const actual = document.getElementById('nav-actual');
+    const resp   = document.getElementById('nav-respondidas');
+    if (!actual || !questions.length) return;
+    actual.textContent = (current + 1) + '/' + questions.length;
+    const n = Object.keys(userAns).length;
+    if (resp) resp.textContent = evaluated ? 'corregido' : n + ' resp.';
+    const caja = document.getElementById('nav-contador');
+    if (caja) caja.title = 'Pregunta ' + (current + 1) + ' de ' + questions.length + ' · ' + n + ' respondidas';
+}
+
+// Barra de casillas de un bloque que no cabe: degradado en el borde que indica que hay más
+function marcarDesbordes() {
+    document.querySelectorAll('.nav-row-boxes').forEach(c => {
+        const sobra = c.scrollWidth > c.clientWidth + 1;
+        c.classList.toggle('desborda-dcha', sobra && c.scrollLeft + c.clientWidth < c.scrollWidth - 2);
+        c.classList.toggle('desborda-izda', sobra && c.scrollLeft > 2);
+    });
+}
+window.addEventListener('resize', marcarDesbordes);
 // Al cambiar el ancho cambian las casillas que caben en la línea:
 // se vuelve a centrar la actual.
 window.addEventListener('resize', () => centrarCasillaActiva(false));
@@ -1870,6 +1831,9 @@ function applyExamConfig() {
     const logo = document.getElementById('inst-logo');
     if (logo) {
         if (EXAM_CONFIG.logo) {
+            // Si no carga (sin conexión, o la imagen cambió de sitio) se oculta
+            // en vez de dejar el icono de imagen rota con el texto alternativo
+            logo.onerror = () => { logo.style.display = 'none'; };
             logo.src = EXAM_CONFIG.logo;
             logo.alt = EXAM_CONFIG.logoAlt || '';
             logo.style.display = '';
@@ -2213,20 +2177,72 @@ function buildQuestionOrder(mode, sourceBank) {
    PANEL DE CONFIGURACIÓN (⚙ temporizador + modo corrección)
 ═══════════════════════════════════════════ */
 function toggleSettings() {
-    document.getElementById('settings-panel').classList.toggle('open');
-    document.getElementById('settings-toggle').classList.toggle('open');
+    const abierto = document.getElementById('settings-panel').classList.toggle('open');
+    const boton   = document.getElementById('settings-toggle');
+    boton.classList.toggle('open', abierto);
+    boton.setAttribute('aria-expanded', abierto ? 'true' : 'false');
 }
 
 function closeSettings() {
     document.getElementById('settings-panel').classList.remove('open');
-    document.getElementById('settings-toggle').classList.remove('open');
+    const boton = document.getElementById('settings-toggle');
+    boton.classList.remove('open');
+    boton.setAttribute('aria-expanded', 'false');
 }
 
 // Cerrar el panel si se hace clic fuera de él
 document.addEventListener('click', (e) => {
     const wrap = document.querySelector('.settings-wrap');
     if (wrap && !wrap.contains(e.target)) closeSettings();
+    // La hoja «Más…» del móvil se cierra al tocar fuera (o al elegir una acción)
+    if (document.body.classList.contains('mas-abierto') && !e.target.closest('#more-btn')) cerrarMasAcciones();
 });
+
+/* Esc cierra lo que esté abierto (panel ⚙, hoja «Más…», ventana de repetir) y
+   el foco no se escapa de las ventanas abiertas. Si hay una ventana propia
+   (dialogo) abierta, la atiende ella. */
+document.addEventListener('keydown', (e) => {
+    if (document.querySelector('.supc1-dialogo')) return;
+    const modal   = document.getElementById('random-modal');
+    const overlay = document.getElementById('overlay');
+    if (e.key === 'Escape') {
+        if (modal && modal.classList.contains('show')) { closeRandomModal(); return; }
+        if (document.getElementById('settings-panel').classList.contains('open')) {
+            closeSettings(); document.getElementById('settings-toggle').focus(); return;
+        }
+        if (document.body.classList.contains('mas-abierto')) { cerrarMasAcciones(); document.getElementById('more-btn').focus(); return; }
+        if (overlay && overlay.classList.contains('show')) closeOverlay();
+    } else if (e.key === 'Tab') {
+        if (modal && modal.classList.contains('show')) atraparFoco(e, modal.querySelector('.modal-box'));
+        else if (overlay && overlay.classList.contains('show')) atraparFoco(e, overlay);
+    }
+});
+
+// Reloj como botón: Intro o espacio pausan y reanudan
+document.addEventListener('keydown', (e) => {
+    if (e.target && e.target.id === 'timer' && (e.key === 'Enter' || e.key === ' ')) {
+        e.preventDefault();
+        toggleTimerPause();
+    }
+});
+
+/* ═══════════════════════════════════════════
+   HOJA «MÁS…» (solo móvil, tras corregir)
+   ───────────────────────────────────────────
+   Tras corregir, en el móvil la barra de abajo deja solo Anterior, «Más…»
+   y Siguiente; las demás acciones (imprimir, repetir, enviar, menú…) salen
+   en una hoja desde abajo al pulsar «Más…». Son los mismos botones de
+   siempre: solo cambia cómo se colocan (ver tema-supuesto.css).
+═══════════════════════════════════════════ */
+function toggleMasAcciones() {
+    const abierto = document.body.classList.toggle('mas-abierto');
+    document.getElementById('more-btn').setAttribute('aria-expanded', abierto ? 'true' : 'false');
+}
+function cerrarMasAcciones() {
+    document.body.classList.remove('mas-abierto');
+    const b = document.getElementById('more-btn');
+    if (b) b.setAttribute('aria-expanded', 'false');
+}
 
 function formatTime(totalSeconds) {
     const m = Math.floor(totalSeconds / 60);
@@ -2253,7 +2269,8 @@ function applyTimer() {
     const input = document.getElementById('time-input');
     const secs  = parseTimeInput(input.value);
     if (secs === null || secs <= 0) {
-        alert('Introduce un tiempo válido, por ejemplo 30:00 (mm:ss) o 30 (minutos).');
+        avisar('Tiempo no válido', 'Introduce un tiempo válido, por ejemplo 30:00 (mm:ss) o 30 (minutos).')
+            .then(() => input.focus());
         return;
     }
     examDurationSeconds = secs;
@@ -2261,16 +2278,12 @@ function applyTimer() {
 
     // Refrescar visualización del temporizador inmediatamente
     document.getElementById('timer-display').textContent = formatTime(timeLeft);
-    const el = document.getElementById('timer');
-    el.className = '';
-    if (timeLeft <= 60)      { el.classList.add('warn1'); }
-    else if (timeLeft <= 300) { el.classList.add('warn5'); }
-    else if (timeLeft <= 600) { el.classList.add('warn10'); }
+    colorReloj();
 
     // Evitar que se disparen avisos sonoros ya superados con el nuevo tiempo
     alerted10 = timeLeft <= 600;
     alerted5  = timeLeft <= 300;
-    alerted5b = timeLeft <= 300;
+    alerted5b = timeLeft <= 240;
     alerted1  = timeLeft <= 60;
 
     input.value = '';
@@ -2403,7 +2416,13 @@ function speakText(text) {
 /* ═══════════════════════════════════════════
    INICIALIZACIÓN
 ═══════════════════════════════════════════ */
-function init(mode = 'default', sourceBank = null) {
+/* opcionesFijas (opcional): para cada pregunta, la lista de opciones (sus
+   posiciones en el editor) en el orden en que deben salir. La usa «continuar
+   un intento a medias» para devolver cada pregunta tal y como se dejó. */
+function init(mode = 'default', sourceBank = null, opcionesFijas = null) {
+    // Los módulos pueden ajustar el intento antes de montarlo (duración…)
+    emitir('antes-inicio', { modo: mode });
+
     // Resetear estado
     questions  = buildQuestionOrder(mode, sourceBank || questions);
     if (!Object.keys(unaEnUnaPorBloque).length) estrenarUnaEnUna();
@@ -2417,20 +2436,27 @@ function init(mode = 'default', sourceBank = null) {
     alerted5b  = false;
     alerted1   = false;
     timerPaused = false;
+    panelAnterior = null;
+    document.body.classList.remove('corregido');
+    cerrarMasAcciones();
 
     // Limpiar DOM (solo las preguntas; el ⚙ de configuración se conserva)
     document.getElementById('nav-boxes').innerHTML  = '';
     document.getElementById('quiz-container').innerHTML = '';
     document.getElementById('overlay').classList.remove('show');
     document.getElementById('timer-display').textContent = formatTime(examDurationSeconds);
-    document.getElementById('timer').className = 'timer-base';
     document.getElementById('timer').removeAttribute('class');
 
     // El botón de corregir está siempre visible: se puede terminar el test desde la pregunta 1
     setButtonsVisible(['check-btn'], true);
     setButtonsVisible(['print-btn', 'restart-btn', 'send-btn', 'home-btn-bottom'], false);
-    document.getElementById('send-btn').disabled = false;
-    document.getElementById('send-btn').textContent = '📤 Enviar Resultados';
+    // Botones de envío listos otra vez (con el texto del editor, si lo hay)
+    [['send-btn', '📤 Enviar Resultados'], ['ov-send-btn', '📤 Enviar Resultados']].forEach(([id, defecto]) => {
+        const b = document.getElementById(id);
+        if (!b) return;
+        b.disabled = false;
+        b.textContent = ajusteInterfaz('btnEnviar').texto || defecto;
+    });
     document.getElementById('correction-panel').innerHTML = '';
     document.getElementById('score-banner').style.display = 'none';
     closeSettings();
@@ -2482,6 +2508,7 @@ function init(mode = 'default', sourceBank = null) {
 
             filaCasillas = document.createElement('div');
             filaCasillas.className = 'nav-row-boxes';
+            filaCasillas.addEventListener('scroll', marcarDesbordes, { passive: true });
 
             fila.appendChild(rotulo);
             fila.appendChild(filaCasillas);
@@ -2521,13 +2548,19 @@ function init(mode = 'default', sourceBank = null) {
         box.id       = `nav-${i}`;
         box.innerText = i + 1;
         box.title     = bloque.titulo;
+        box.setAttribute('role', 'button');
+        box.setAttribute('tabindex', '0');
+        box.setAttribute('aria-label', 'Ir a la pregunta ' + (i + 1));
         box.onclick  = () => jump(i);
         filaCasillas.appendChild(box);
 
         // Opciones: se eligen (si la pregunta tiene más de las que deben
         // salir) y se barajan en cada carga de la página, sea cual sea el
         // modo de intento, que solo decide qué preguntas salen y en qué orden.
-        const opciones = opcionesDePregunta(q);
+        const fijas    = opcionesFijas && opcionesFijas[i];
+        const opciones = Array.isArray(fijas) && fijas.length
+                             ? fijas.map(idx => ({ txt: q.a[idx], idx }))
+                             : opcionesDePregunta(q);
 
         // Dónde han quedado las correctas después de barajar
         const correctasNuevas = [];
@@ -2536,8 +2569,11 @@ function init(mode = 'default', sourceBank = null) {
 
         let optHtml = '';
         opciones.forEach(({ txt }, ni) => {
+            // Papel de radio / casilla para lectores de pantalla y teclado
+            // (Intro o espacio la marcan: ver el teclado más abajo)
             optHtml += `
-                <div class="option${multiple ? ' multi' : ''}" id="opt-${i}-${ni}" onclick="selectAnswer(${i}, ${ni})">
+                <div class="option${multiple ? ' multi' : ''}" id="opt-${i}-${ni}" onclick="selectAnswer(${i}, ${ni})"
+                     role="${multiple ? 'checkbox' : 'radio'}" tabindex="0" aria-checked="false">
                     <span class="opt-letter">${LETTERS[ni]}</span>
                     <span>${txt.replace(/^[A-G]\)\s*/, '')}</span>
                 </div>`;
@@ -2563,7 +2599,7 @@ function init(mode = 'default', sourceBank = null) {
                 </div>
             </div>
             ${multiple ? '<div class="multi-aviso">Marca todas las respuestas que procedan</div>' : ''}
-            <div class="options-grid">${optHtml}</div>
+            <div class="options-grid" role="${multiple ? 'group' : 'radiogroup'}" aria-label="Opciones de la pregunta ${i + 1}">${optHtml}</div>
             <div class="feedback" id="feed-${i}">
                 <div class="feedback-header"><span>⚖️ MOTIVACIÓN LEGAL Y NORMATIVA APLICABLE</span></div>
                 <div class="feedback-body">
@@ -2577,8 +2613,12 @@ function init(mode = 'default', sourceBank = null) {
     // Casillas «de una en una» del panel ⚙: una por cada bloque del intento
     montarOpcionesUnaEnUna();
 
-    // Con la cabecera ya montada: botón de plegado y altura para el reloj
+    // Con un solo bloque, el rótulo del bloque en la barra sobra en el móvil
+    document.body.classList.toggle('un-bloque', document.querySelectorAll('.nav-row').length === 1);
+
+    // Con la cabecera ya montada: botón de plegado, reloj y altura para el reloj
     actualizarBotonPlegar();
+    colocarReloj();
     medirCabecera();
 
     // Colocarse en la primera pregunta: jump() se encarga del enunciado,
@@ -2596,6 +2636,10 @@ function init(mode = 'default', sourceBank = null) {
     // Fecha en print
     document.getElementById('print-fecha').textContent =
         'Fecha de realización: ' + new Date().toLocaleDateString('es-ES', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+
+    actualizarContador();
+    marcarDesbordes();
+    emitir('inicio', { modo: mode });
 }
 
 /* ═══════════════════════════════════════════
@@ -2659,6 +2703,7 @@ function selectAnswer(qIdx, optIdx) {
 
     pintarRespuesta(qIdx);
     updateProgress();
+    emitir('respuesta', { i: qIdx });
 
     // Con las preguntas en cadena se contesta bajando por la página, sin
     // tocar «Siguiente»: la casilla marcada en la cabecera se quedaba en la
@@ -2692,6 +2737,7 @@ function pintarRespuesta(qIdx) {
     document.querySelectorAll(`#qcard-${qIdx} .option`).forEach((o, ni) => {
         o.classList.remove('selected', 'correct', 'wrong');
         if (dadas.includes(ni)) o.classList.add('selected');
+        o.setAttribute('aria-checked', dadas.includes(ni) ? 'true' : 'false');
     });
     navBox.classList.remove('nav-wrong', 'nav-correct');
     navBox.classList.toggle('answered', dadas.length > 0);
@@ -2800,6 +2846,16 @@ function jump(i, sinDesplazar) {
     document.querySelectorAll('.nav-box').forEach(b => b.classList.remove('active'));
     const navBox = document.getElementById(`nav-${i}`);
     navBox.classList.add('active');
+    navBox.setAttribute('aria-current', 'step');
+    document.querySelectorAll('.nav-box[aria-current]').forEach(b => { if (b !== navBox) b.removeAttribute('aria-current'); });
+    actualizarContador();
+    emitir('pregunta', { i });
+
+    // ¿Ha cambiado el enunciado respecto a la pregunta anterior? (para saber
+    // si hay que llevar la vista a los hechos o directamente a la pregunta)
+    const enunciadoNuevo = !idPanel || idPanel !== panelAnterior ||
+                           (modoFoco && bloque.tipo !== 'test' && (pregunta.factIds || []).length > 0);
+    panelAnterior = idPanel;
 
     if (sinDesplazar) return;
 
@@ -2823,7 +2879,17 @@ function jump(i, sinDesplazar) {
         const y          = destino.getBoundingClientRect().top + window.scrollY - 90;
         window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
     } else {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        // De una en una: antes se subía al principio de la página y había que
+        // volver a pasar la cabecera del supuesto y la del bloque en cada
+        // pregunta. Ahora se lleva la vista a los hechos si el enunciado es
+        // otro (o en modo foco, que los recorta) y, si es el mismo, directamente
+        // a la pregunta, justo debajo de la barra superior.
+        const cab     = document.getElementById('nav-header');
+        const margen  = (cab ? cab.offsetHeight : 64) + 12;
+        const panel   = idPanel ? document.getElementById(idPanel) : null;
+        const destino = (enunciadoNuevo && panel) ? panel : document.getElementById(`qcard-${i}`);
+        const y       = destino ? destino.getBoundingClientRect().top + window.scrollY - margen : 0;
+        window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
     }
 }
 function move(d) { const n = current + d; if (n >= 0 && n < questions.length) jump(n); }
@@ -2836,30 +2902,26 @@ function startTimer() {
         if (timerPaused) return;
 
         timeLeft--;
-        const m = Math.floor(timeLeft / 60);
-        const s = timeLeft % 60;
-        document.getElementById('timer-display').textContent =
-            `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        document.getElementById('timer-display').textContent = formatTime(Math.max(0, timeLeft));
 
-        const el = document.getElementById('timer');
-        el.className = '';
+        // El color del reloj depende solo del tiempo que queda (antes se
+        // borraba en el tic siguiente y el aviso duraba un segundo)
+        colorReloj();
 
         if (timeLeft <= 60 && !alerted1) {
             alerted1 = true;
-            el.classList.add('warn1');
             playAlert1();
             speakText('Queda menos de un minuto. El tiempo se acaba.');
-        } else if (timeLeft <= 300 && !alerted5b && timeLeft > 240 && alerted5) {
+        } else if (timeLeft <= 240 && !alerted5b && alerted5) {
+            // Refuerzo del aviso de 5 minutos, ya separado del primero (antes
+            // sonaba un segundo después y se mezclaba con la voz)
             alerted5b = true;
-            el.classList.add('warn5');
             playAlert5b();
         } else if (timeLeft <= 300 && !alerted5) {
             alerted5 = true;
-            el.classList.add('warn5');
             playAlert5();
         } else if (timeLeft <= 600 && !alerted10) {
             alerted10 = true;
-            el.classList.add('warn10');
             playAlert10();
         }
 
@@ -2868,6 +2930,15 @@ function startTimer() {
             triggerTimeUp();
         }
     }, 1000);
+}
+
+// Color del reloj según lo que queda: ámbar (10 min), rojo (5 min), alarma (1 min)
+function colorReloj() {
+    const el = document.getElementById('timer');
+    if (!el) return;
+    el.classList.toggle('warn1',  timeLeft <= 60);
+    el.classList.toggle('warn5',  timeLeft > 60  && timeLeft <= 300);
+    el.classList.toggle('warn10', timeLeft > 300 && timeLeft <= 600);
 }
 
 function toggleTimerPause() {
@@ -2879,17 +2950,25 @@ function toggleTimerPause() {
 function triggerTimeUp() {
     // Calcular resultado aunque no haya corregido
     evaluated = true;
+    document.body.classList.add('corregido');
+    // Se cierra lo que estuviera abierto a medias
+    closeSettings();
+    closeRandomModal();
+    document.querySelectorAll('.supc1-dialogo').forEach(d => d.remove());
     const overlay = document.getElementById('overlay');
     overlay.classList.add('show');
-    // Mostrar score banner con lo respondido
-    buildScoreBanner();
-    // Mostrar panel corrección
+    overlay.scrollTop = 0;
+    // Marcador y panel de corrección (showCorrectionPanel pinta el marcador)
     showCorrectionPanel();
-    // Mostrar botón de envío de resultados
-    document.getElementById('send-btn').style.display = 'inline-flex';
+    // Botón de envío de resultados, si el supuesto lo permite
+    setButtonsVisible(['send-btn', 'ov-send-btn'], true);
+    actualizarContador();
+    const cerrar = document.getElementById('overlay-close');
+    if (cerrar) cerrar.focus({ preventScroll: true });
 
     // Envío automático del detalle pregunta a pregunta (segundo formulario)
     enviarDetalleCorreccion();
+    emitir('corregido', { porTiempo: true });
 }
 
 /* ═══════════════════════════════════════════
@@ -2898,6 +2977,7 @@ function triggerTimeUp() {
 function updateProgress() {
     const pct = (Object.keys(userAns).length / questions.length) * 100;
     document.getElementById('progress-fill').style.width = pct + '%';
+    actualizarContador();
 }
 
 /* ═══════════════════════════════════════════
@@ -2920,18 +3000,22 @@ function updateNavResultColors() {
    Puede lanzarse en cualquier momento, incluso desde la
    pregunta 1 y sin haber respondido todas las preguntas.
 ═══════════════════════════════════════════ */
-function evaluateExam() {
+/* Con preguntas sin responder se pide confirmación en una ventana propia.
+   sinPreguntar = true corrige directamente (lo usan las pruebas automáticas). */
+async function evaluateExam(sinPreguntar) {
     if (evaluated) return;
 
     const answeredCount = Object.keys(userAns).length;
-    if (answeredCount < questions.length) {
-        const proceed = confirm(
-            `Has respondido ${answeredCount} de ${questions.length} preguntas.\n¿Deseas corregir el examen igualmente? Las preguntas sin responder contarán como no acertadas.`
-        );
-        if (!proceed) return;
+    if (answeredCount < questions.length && sinPreguntar !== true) {
+        const proceed = await confirmar('¿Corregir el examen?',
+            [`Has respondido ${answeredCount} de ${questions.length} preguntas.`,
+             'Las preguntas sin responder contarán como no acertadas.'],
+            'Corregir', 'Seguir respondiendo');
+        if (!proceed || evaluated) return;
     }
 
     evaluated = true;
+    document.body.classList.add('corregido');
     clearInterval(timerInt);
 
     // Marcar opciones correctas / erróneas en las tarjetas visibles
@@ -2954,7 +3038,9 @@ function evaluateExam() {
     // Se vuelve a la primera pregunta y se sube al principio, para que lo
     // primero que se vea sea el marcador.
     jump(0, true);
+    actualizarContador();
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    emitir('corregido', { porTiempo: false });
 }
 
 /* ═══════════════════════════════════════════
@@ -3025,10 +3111,10 @@ function buildScoreBanner() {
     const banner  = document.getElementById('score-banner');
     banner.style.display = 'block';
     banner.innerHTML = `
-        <div style="font-size:2rem; margin-bottom:6px;">${emoji}</div>
+        <div class="ml-emoji" aria-hidden="true">${emoji}</div>
         <div class="score-big">${nUm(res.puntos)} / ${nUm(res.max)}</div>
         <div class="score-lbl">${lineaRecuento(res)}</div>
-        <div class="score-verdict ${res.apto ? 'apto':'no-apto'}" style="margin-top:10px;">${verdict}</div>
+        <div class="score-verdict ${res.apto ? 'apto':'no-apto'}">${verdict}</div>
         ${desgloseBloquesHTML(res)}`;
 }
 
@@ -3036,14 +3122,16 @@ function buildInlineScore() {
     const res   = calcResultados();
     const emoji = res.aciertos === res.total ? '🏆' : res.apto ? '✅' : '📚';
 
+    // El aspecto está en base-supuesto.css (.marcador-linea)
     const banner  = document.createElement('div');
     banner.id     = 'inline-score-banner';
-    banner.style.cssText = 'background:var(--navy-mid);border:1px solid var(--gold);border-radius:4px;padding:20px 28px;margin-bottom:28px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.3);position:relative;z-index:1;';
+    banner.className = 'marcador-linea';
+    banner.setAttribute('role', 'status');
     banner.innerHTML = `
-        <div style="font-size:2.2rem;margin-bottom:6px;">${emoji}</div>
-        <div style="font-family:'Playfair Display',serif;font-size:3rem;color:var(--gold);font-weight:900;line-height:1;">${nUm(res.puntos)} / ${nUm(res.max)}</div>
-        <div style="font-family:'JetBrains Mono',monospace;font-size:0.6rem;letter-spacing:0.2em;color:rgba(255,255,255,0.4);margin:4px 0 10px;">${lineaRecuento(res)}</div>
-        <div style="font-size:1rem;color:${res.apto?'#6fcf97':'#fc8181'};font-weight:600;">${res.apto?'APTO — Buen dominio normativo':'NO APTO — Revise la motivación de cada respuesta'}</div>
+        <div class="ml-emoji" aria-hidden="true">${emoji}</div>
+        <div class="ml-puntos">${nUm(res.puntos)} / ${nUm(res.max)}</div>
+        <div class="ml-recuento">${lineaRecuento(res)}</div>
+        <div class="ml-veredicto ${res.apto ? 'apto' : 'no-apto'}">${res.apto?'APTO — Buen dominio normativo':'NO APTO — Revise la motivación de cada respuesta'}</div>
         ${desgloseBloquesHTML(res)}`;
 
     // Los enunciados viven dentro del hilo de preguntas, así que el
@@ -3124,22 +3212,24 @@ function showCorrectionPanel() {
 /* ═══════════════════════════════════════════
    IMPRESIÓN / PDF
 ═══════════════════════════════════════════ */
-function printResults() {
-    // Asegurarse de que todo esté corregido y visible
-    if (!evaluated) evaluateExam();
+/* La página se prepara para el papel en «beforeprint» y vuelve a su estado
+   en «afterprint», tanto con el botón 🖨 como con Ctrl+P o el menú del
+   navegador. Antes se restauraba con un retraso fijo de 1 s, y en el móvil
+   (donde el diálogo de imprimir no espera) podía salir solo la pregunta actual. */
+let impresion = null;          // estado guardado mientras se imprime
+
+function prepararImpresion() {
+    if (impresion) return;
+    const overlay = document.getElementById('overlay');
+    impresion = { overlay: overlay.classList.contains('show') };
 
     // El documento ya está montado en el orden de lectura (cabecera de
     // sección → enunciado → sus preguntas → siguiente enunciado…), así que
     // para imprimir basta con enseñarlo entero: no hay que recolocar nada.
-    document.querySelectorAll('.question-card').forEach(c => {
-        c.style.display = 'block';
-    });
-    document.querySelectorAll('.feedback').forEach(f => {
-        f.style.display = 'block';
-    });
-    document.querySelectorAll('.block-header').forEach(h => {
-        h.classList.add('visible');
-    });
+    document.querySelectorAll('.question-card').forEach(c => { c.style.display = 'block'; });
+    // Las motivaciones solo salen en papel si ya se ha corregido
+    if (evaluated) document.querySelectorAll('.feedback').forEach(f => { f.dataset.antes = f.style.display; f.style.display = 'block'; });
+    document.querySelectorAll('.block-header').forEach(h => h.classList.add('visible'));
     // En papel los enunciados salen completos, aunque en pantalla
     // estuvieran recortados por el modo foco.
     document.querySelectorAll('.stmt-panel').forEach(p => {
@@ -3149,28 +3239,36 @@ function printResults() {
         }
         p.classList.add('visible');
     });
-
-    // Ocultar el overlay temporalmente (sin tocar el display inline,
+    // Ocultar el overlay mientras se imprime (sin tocar el display inline,
     // para no romper el cierre posterior con classList en closeOverlay)
-    const overlayWasShown = document.getElementById('overlay').classList.contains('show');
-    document.getElementById('overlay').classList.remove('show');
+    overlay.classList.remove('show');
+}
 
+function restaurarTrasImpresion() {
+    if (!impresion) return;
+    const estaba = impresion;
+    impresion = null;
+    document.querySelectorAll('.question-card').forEach(c => { c.style.display = ''; });
+    document.querySelectorAll('.feedback[data-antes]').forEach(f => { f.style.display = f.dataset.antes; delete f.dataset.antes; });
+    // jump() vuelve a dejar a la vista solo lo que corresponde al modo en que
+    // se estaba trabajando.
+    if (questions.length) {
+        jump(current, true);
+    } else {
+        document.querySelectorAll('.block-header, .stmt-panel').forEach(el => el.classList.remove('visible'));
+    }
+    if (evaluated && estaba.overlay) document.getElementById('overlay').classList.add('show');
+}
+
+window.addEventListener('beforeprint', prepararImpresion);
+window.addEventListener('afterprint', restaurarTrasImpresion);
+
+function printResults() {
+    // El botón solo aparece tras corregir; por si acaso, sin corregir no se imprime la solución
+    if (!evaluated) return;
+    cerrarMasAcciones();
+    prepararImpresion();          // por si el navegador no avisa con beforeprint
     window.print();
-
-    // Restaurar tras impresión: jump() vuelve a dejar a la vista solo lo
-    // que corresponde al modo en que se estaba trabajando.
-    setTimeout(() => {
-        document.querySelectorAll('.question-card').forEach(c => { c.style.display = ''; });
-        if (questions.length) {
-            jump(current, true);
-        } else {
-            document.querySelectorAll('.block-header, .stmt-panel')
-                    .forEach(el => el.classList.remove('visible'));
-        }
-        if (evaluated && overlayWasShown) {
-            document.getElementById('overlay').classList.add('show');
-        }
-    }, 1000);
 }
 
 /* ═══════════════════════════════════════════
@@ -3180,8 +3278,16 @@ function printResults() {
    formulario oculto dirigido a un iframe oculto: así no se navega
    fuera de la página ni hay problemas de CORS.
 ═══════════════════════════════════════════ */
+/* Sin conexión el envío no se pierde: se guarda en una cola de este
+   navegador (pwa.js) y sale solo al volver la conexión o al abrir la app.
+   Devuelve 'enviado' o 'en-cola'. */
 function postAFormulario(url, campos, nombreMarco) {
     const marco = nombreMarco || 'hidden-send-frame';
+    const S = window.SupC1;
+    if (navigator.onLine === false && S && typeof S.encolarEnvio === 'function') {
+        S.encolarEnvio(url, campos);
+        return 'en-cola';
+    }
 
     let iframe = document.getElementById(marco);
     if (!iframe) {
@@ -3209,6 +3315,7 @@ function postAFormulario(url, campos, nombreMarco) {
     document.body.appendChild(form);
     form.submit();
     form.remove();
+    return 'enviado';
 }
 
 /* ═══════════════════════════════════════════
@@ -3278,6 +3385,7 @@ function loQueContesto(qIdx, q) {
 
 function enviarDetalleCorreccion() {
     if (detalleEnviado) return;                 // una sola vez por intento
+    if (esPractica()) return;                   // la práctica personal no se manda
     if (!ENVIO_DETALLE || !ENVIO_DETALLE.url) return;
 
     const campos = {};
@@ -3321,23 +3429,31 @@ function enviarDetalleCorreccion() {
 /* ═══════════════════════════════════════════
    ENVÍO DE RESULTADOS A GOOGLE FORMS
 ═══════════════════════════════════════════ */
-function enviarResultados() {
-    if (!evaluated) return;
+async function enviarResultados() {
+    if (!evaluated || esPractica()) return;
+    cerrarMasAcciones();
 
     if (!ENVIO.url) {
-        alert('Este supuesto no tiene configurada la dirección de envío de resultados.');
+        avisar('Envío no disponible', 'Este supuesto no tiene configurada la dirección de envío de resultados.');
         return;
     }
 
     const sendBtn = document.getElementById('send-btn');
+    if (sendBtn && sendBtn.disabled) return;
 
     // Identificador del examen: título de la página
     const examId = document.title.trim();
 
-    // Nombre del usuario
-    let userName = prompt('Introduce tu nombre para el envío de resultados:', '');
-    if (userName === null) userName = '';
-    userName = userName.trim();
+    // Nombre del usuario (vacío = «Anónimo»; Cancelar = no se envía nada)
+    let userName = await dialogo({
+        titulo: 'Enviar resultados',
+        texto: 'Escribe tu nombre para la tabla de resultados. Si lo dejas en blanco, se envía como «Anónimo».',
+        campo: { placeholder: 'Tu nombre', etiqueta: 'Tu nombre para el envío de resultados' },
+        botones: [{ texto: 'Cancelar', valor: null, cancelar: true },
+                  { texto: 'Enviar', principal: true }]
+    });
+    if (userName === null || userName === undefined) return;
+    userName = String(userName).trim();
     if (!userName) userName = 'Anónimo';
 
     // Estadísticas (globales y por bloque)
@@ -3394,28 +3510,32 @@ function enviarResultados() {
         anota(casTot.puntos,    nUm(res.puntos));
     }
 
-    if (sendBtn) {
-        sendBtn.disabled = true;
-        sendBtn.textContent = '✔ Resultados enviados';
-    }
-
     // Formulario oculto dirigido a un iframe oculto: no se navega fuera de
-    // la página y se evitan los problemas de CORS.
-    postAFormulario(FORM_ACTION_URL, fieldMap, 'hidden-send-frame');
+    // la página y se evitan los problemas de CORS. Sin conexión, a la cola.
+    const estado = postAFormulario(FORM_ACTION_URL, fieldMap, 'hidden-send-frame');
+    const enCola = estado === 'en-cola';
+
+    ['send-btn', 'ov-send-btn'].forEach(id => {
+        const b = document.getElementById(id);
+        if (!b) return;
+        b.disabled = true;
+        b.textContent = enCola ? '⏳ Se enviará al volver la conexión' : '✔ Resultados enviados';
+    });
 
     const desglose = res.bloques.length < 2 ? '' :
         '\n\nPor bloques:' + res.bloques.map(r =>
             '\n · ' + r.bloque.titulo + ': ' + r.aciertos + ' ✓ · ' + r.fallos +
             ' ✗ · ' + r.blancos + ' — · ' + nUm(r.puntos) + ' / ' + nUm(r.max) + ' puntos').join('');
 
-    alert('✅ Resultados enviados correctamente.\n\nExamen: ' + examId +
-          '\nUsuario: ' + userName +
-          '\nAciertos: ' + correct + ' / ' + total +
-          '\nFallos: ' + wrong +
-          '\nEn blanco: ' + blank +
-          '\nPuntuación: ' + nUm(res.puntos) + ' / ' + nUm(res.max) +
-          '\nTiempo empleado: ' + tiempoEmpleado + ' de ' + tiempoAsignado +
-          desglose);
+    // El formulario de Google no contesta a la página, así que no se puede
+    // confirmar la llegada: se dice «enviados», no «recibidos».
+    avisar(enCola ? 'Sin conexión: envío guardado' : 'Resultados enviados', [
+        enCola ? 'Ahora no hay conexión. Tus resultados se han guardado en este dispositivo y se enviarán solos en cuanto vuelva la conexión.' : '',
+        'Examen: ' + examId + ' · Usuario: ' + userName,
+        'Aciertos: ' + correct + ' / ' + total + ' · Fallos: ' + wrong + ' · En blanco: ' + blank,
+        'Puntuación: ' + nUm(res.puntos) + ' / ' + nUm(res.max) + ' · Tiempo empleado: ' + tiempoEmpleado + ' de ' + tiempoAsignado,
+        desglose.trim()
+    ]);
 }
 
 /* ═══════════════════════════════════════════
@@ -3433,10 +3553,14 @@ function modosAleatoriosDisponibles() {
 }
 
 function openRandomModal() {
+    cerrarMasAcciones();
     const modos = modosAleatoriosDisponibles();
     if (modos.length === 1) { confirmRestart(modos[0]); return; }
     if (!modos.length) return;
-    document.getElementById('random-modal').classList.add('show');
+    const modal = document.getElementById('random-modal');
+    modal.classList.add('show');
+    const primero = [...modal.querySelectorAll('button')].find(b => b.offsetParent !== null);
+    if (primero) primero.focus({ preventScroll: true });
 }
 
 function closeRandomModal() {
@@ -3465,13 +3589,18 @@ function confirmRestart(mode) {
 /* ═══════════════════════════════════════════
    VOLVER AL MENÚ PRINCIPAL
 ═══════════════════════════════════════════ */
-function goHome() {
+/* Si el examen está a medias se pregunta antes de salir. El texto lo puede
+   cambiar un módulo (app-supuesto.js guarda el intento y lo dice así), y
+   justo antes de salir se avisa con «supc1:salir» para que guarde. */
+async function goHome() {
     if (!evaluated) {
-        const leave = confirm(
-            'Vas a salir del expediente dejando el test a medias: se perderá el progreso del intento actual.\n\n¿Seguro que quieres volver al menú principal?'
-        );
-        if (!leave) return;
+        const S = window.SupC1;
+        const texto = (S && S.textoSalir) ||
+            'Vas a salir del expediente dejando el test a medias: se perderá el progreso del intento actual.';
+        const salir = await confirmar('¿Volver al menú principal?', texto, 'Volver al menú', 'Seguir aquí');
+        if (!salir) return;
     }
+    emitir('salir');
     window.location.href = (ajusteInterfaz('botonCasa').url || '../index.html');
 }
 

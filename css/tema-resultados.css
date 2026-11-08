@@ -90,3 +90,15 @@ table.results-table thead th, td.rank-cell, td.nota-cell, footer { font-family: 
 /* Accesibilidad: el pie tenía poco contraste */
 footer { opacity: 1; color: #6b5d52; }
 :root[data-tema="oscuro"] footer { color: #c9b8a8; }
+
+@media (max-width: 600px) {
+    /* El botón de tema va arriba, dentro de la cabecera, en vez de flotar sobre la tabla */
+    .btn-tema { position: absolute; top: 12px; bottom: auto; right: 12px; }
+    /* Cabecera más baja para que la tabla se vea antes */
+    .hero-inner { padding: 18px 60px 22px 16px; }
+    .logo-wrap { margin-bottom: 12px; gap: 8px; }
+    .logo-wrap img { max-height: 40px; }
+    .logo-subtitle { font-size: 0.62rem; letter-spacing: 0.08em; padding-top: 8px; }
+    .hero h1 { font-size: 1.2rem; }
+    .hero p { margin-top: 8px; font-size: 0.92rem; }
+}

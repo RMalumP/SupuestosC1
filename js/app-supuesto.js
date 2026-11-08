@@ -1,6 +1,6 @@
 /* Funciones comunes a todos los supuestos y exámenes. Se carga con «defer»
-   DESPUÉS del motor de cada página, así que sirve para cualquier versión del
-   motor sin tocar su código:
+   DESPUÉS del motor de cada página y se engancha a los avisos que da el motor
+   (eventos «supc1:…», motor 10 o posterior) sin tocar su código:
      · guarda el resultado de cada intento completo (lo lee el menú)
      · guarda el intento a medias y permite continuarlo
      · «Repetir solo las falladas»
@@ -8,18 +8,19 @@
      · banco personal de preguntas falladas / marcadas / con nota (lo lee «Mi estudio»)
      · historial de intentos para las estadísticas y «?practicar=falladas|marcadas»
      · tamaño de letra y tema oscuro en el panel ⚙
-   Si el motor no tiene lo que hace falta, no hace nada. */
+   Si el motor no tiene lo que hace falta (uno anterior al 10), no hace nada:
+   el editor de Python ofrece ponerlo al día al guardar. */
 (function () {
     'use strict';
     if (typeof init !== 'function' || typeof QUESTIONS_BANK === 'undefined' ||
-        typeof calcResultados !== 'function' || typeof esAcierto !== 'function') return;
+        typeof calcResultados !== 'function' || typeof esAcierto !== 'function' ||
+        !(window.SUPC1_MOTOR >= 10)) return;
 
     var S = window.SupC1;
     var ID = (location.pathname.split('/').pop() || 'supuesto').replace(/\.html?$/i, '');
     var K_PROG = 'prog:' + ID, K_CURSO = 'curso:' + ID;
     var TRES_DIAS = 3 * 24 * 3600 * 1000;
 
-    var initOrig = init;
     var marcas = new Set();
     var parcial = false;               // intento solo con las falladas
     var durOrig = examDurationSeconds;
@@ -88,9 +89,9 @@
     })();
     function corazonDisponible() { return !(typeof EXAM_CONFIG !== 'undefined' && EXAM_CONFIG && EXAM_CONFIG.corazon === false); }
     function aplicarCorazon() { document.documentElement.classList.toggle('sin-corazon', !corazonDisponible() || S.get('corazon', true) === false); }
-    function pintarFav(i) {
+    function pintarFav(i, b) {
         var q = questions[i]; if (!q) return;
-        var on = !!banco().favoritas[claveDe(q)];
+        var on = !!(b || banco()).favoritas[claveDe(q)];
         var b = document.querySelector('#qcard-' + i + ' .btn-corazon');
         if (b) { b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); b.querySelector('i').textContent = on ? '♥' : '♡'; b.title = on ? 'Quitar de favoritas' : 'Guardar en favoritas'; }
     }
@@ -115,16 +116,16 @@
         var b = banco(), k = claveDe(q);
         if (marcas.has(i)) { marcas.delete(i); delete b.marcadas[k]; b.borradas['m:' + k] = Date.now(); }
         else { marcas.add(i); b.marcadas[k] = { f: ID, h: k.split(':')[1], t: corto(q), ts: Date.now() }; delete b.borradas['m:' + k]; }
-        guardarBanco(b); pintarMarca(i);
+        guardarBanco(b); pintarMarca(i); guardar();
     }
     function marcasDelBanco() {
         var b = banco(); marcas = new Set();
         questions.forEach(function (q, i) { if (b.marcadas[claveDe(q)]) marcas.add(i); });
     }
 
-    function pintarNota(i) {
+    function pintarNota(i, b) {
         var q = questions[i]; if (!q) return;
-        var n = banco().notas[claveDe(q)];
+        var n = (b || banco()).notas[claveDe(q)];
         var btn = document.querySelector('#qcard-' + i + ' .btn-nota');
         var caja = document.querySelector('#qcard-' + i + ' .nota-caja');
         if (btn) { btn.classList.toggle('on', !!n); btn.querySelector('span').textContent = n ? 'Nota' : 'Añadir nota'; }
@@ -146,6 +147,7 @@
 
     function decorar() {
         aplicarCorazon();
+        var bco = banco();          // se lee una sola vez para todas las preguntas
         document.querySelectorAll('.question-card').forEach(function (card) {
             var i = parseInt(card.id.replace('qcard-', ''), 10);
             var h = card.querySelector('.q-header');
@@ -154,9 +156,10 @@
             caja.className = 'q-acciones';
             var b = document.createElement('button');
             b.type = 'button'; b.className = 'btn-marcar'; b.innerHTML = '<i aria-hidden="true">🚩</i><span>Marcar para más tarde</span>'; b.title = 'Marca la pregunta para repasarla o contestarla más tarde (tecla M)';
+            b.setAttribute('aria-pressed', 'false');
             b.addEventListener('click', function (e) { e.stopPropagation(); alternarMarca(i); });
             var nb = document.createElement('button');
-            nb.type = 'button'; nb.className = 'btn-nota'; nb.innerHTML = '<i aria-hidden="true">📝</i><span>Añadir nota</span>';
+            nb.type = 'button'; nb.className = 'btn-nota'; nb.innerHTML = '<i aria-hidden="true">📝</i><span>Añadir nota</span>'; nb.title = 'Nota personal sobre esta pregunta (tecla N)';
             nb.addEventListener('click', function (e) { e.stopPropagation(); alternarNota(i); });
             caja.appendChild(b); caja.appendChild(nb); h.appendChild(caja);
             var ta = document.createElement('textarea');
@@ -167,13 +170,13 @@
             ta.addEventListener('input', function () { clearTimeout(t); t = setTimeout(function () { guardarNota(i, ta.value); }, 400); });
             ta.addEventListener('blur', function () { clearTimeout(t); guardarNota(i, ta.value); });
             h.parentNode.insertBefore(ta, h.nextSibling);
-            pintarNota(i);
+            pintarNota(i, bco);
             if (corazonDisponible() && !card.querySelector('.btn-corazon')) {
                 var cb = document.createElement('button');
                 cb.type = 'button'; cb.className = 'btn-corazon'; cb.innerHTML = '<i aria-hidden="true">♡</i>';
                 cb.setAttribute('aria-label', 'Favorita (tecla H)');
                 cb.addEventListener('click', function (e) { e.stopPropagation(); alternarFav(i); });
-                card.appendChild(cb); pintarFav(i);
+                card.appendChild(cb); pintarFav(i, bco);
             }
         });
         marcas.forEach(pintarMarca);
@@ -208,8 +211,9 @@
     }
     function intentoCompleto() { limpiarCorreccion(); init('default'); }
 
-    // «supuesto.html?practicar=falladas|marcadas»: intento de práctica solo con esas preguntas
-    function practicarDesdeUrl() {
+    // «supuesto.html?practicar=falladas|marcadas»: intento de práctica solo con esas preguntas.
+    // Devuelve una promesa: true si ha arrancado la práctica.
+    async function practicarDesdeUrl() {
         var m = /[?&]practicar=(falladas|marcadas|favoritas)/.exec(location.search);
         if (!m) return false;
         history.replaceState(null, '', location.pathname);
@@ -217,7 +221,8 @@
         var sub = QUESTIONS_BANK.filter(function (q) { return mapa[claveDe(q)]; });
         if (!sub.length) { aviso('No te quedan preguntas ' + m[1] + ' en este supuesto.'); return false; }
         var curso = S.get(K_CURSO, null);
-        if (curso && !curso.parcial && !window.confirm('Tienes un intento sin terminar de este supuesto. Si practicas ahora se sustituirá.\n\n¿Continuar?')) return false;
+        if (curso && !curso.parcial && !(await confirmar('Tienes un intento sin terminar',
+                'Si practicas ahora, ese intento se sustituirá.', 'Practicar', 'Volver al intento'))) return false;
         if (timerInt) clearInterval(timerInt);
         durCambiada = true;
         examDurationSeconds = Math.max(60, Math.round(durOrig * sub.length / Math.max(1, QUESTIONS_BANK.length)));
@@ -270,26 +275,18 @@
     }
 
     function restaurar(st) {
-        var cola = st.o.slice();
-        var original = window.opcionesDePregunta;
-        window.opcionesDePregunta = function (q) {
-            return (cola.shift() || []).map(function (idx) { return { txt: q.a[idx], idx: idx }; });
-        };
-        try {
-            if (timerInt) clearInterval(timerInt);
-            parcial = !!st.parcial;
-            durCambiada = st.dur !== durOrig;
-            examDurationSeconds = st.dur;
-            initOrig('answers', st.q.map(function (i) { return QUESTIONS_BANK[i]; }));
-        } finally { window.opcionesDePregunta = original; }
+        if (timerInt) clearInterval(timerInt);
+        parcial = !!st.parcial;
+        durCambiada = st.dur !== durOrig;
+        examDurationSeconds = st.dur;
+        // Cada pregunta vuelve con sus opciones en el mismo orden en que se dejó
+        init('answers', st.q.map(function (i) { return QUESTIONS_BANK[i]; }), st.o);
         userAns = st.a;
         timeLeft = st.t;
         $('timer-display').textContent = formatTime(timeLeft);
+        if (typeof colorReloj === 'function') colorReloj();
         Object.keys(userAns).forEach(function (k) { pintarRespuesta(parseInt(k, 10)); });
         updateProgress();
-        marcasDelBanco();
-        decorar();
-        document.body.classList.toggle('intento-parcial', parcial);
         jump(Math.min(st.cur || 0, questions.length - 1), true);
     }
 
@@ -314,7 +311,9 @@
             else borrarCurso();
             timerPaused = false;
         });
+        fondo.addEventListener('keydown', function (e) { if (e.key === 'Tab' && typeof atraparFoco === 'function') atraparFoco(e, fondo.firstChild); });
         document.body.appendChild(fondo);
+        fondo.querySelector('[data-r="si"]').focus({ preventScroll: true });
     }
 
     /* Opciones del panel ⚙ que el editor puede ocultar o dejar activadas (config.panel). Sin dato = todo igual que siempre. */
@@ -356,57 +355,41 @@
         }
     }
 
-    /* ── Enganches ── */
-    window.init = function (modo) {
-        if (modo !== 'answers') {
+    /* ── Enganches a los avisos del motor ── */
+    // Al empezar un intento (antes de montarlo): un intento normal deshace lo de
+    // la práctica (solo falladas…) y recupera la duración original.
+    document.addEventListener('supc1:antes-inicio', function (e) {
+        if (e.detail.modo !== 'answers') {
             parcial = false;
             if (durCambiada) { examDurationSeconds = durOrig; durCambiada = false; }
         }
         marcas.clear(); memoBanco = {};
         yaEvaluado = false;
         quitarBotonesExtra();
-        var r = initOrig.apply(this, arguments);
+    });
+    document.addEventListener('supc1:inicio', function () {
         marcasDelBanco();
         document.body.classList.toggle('intento-parcial', parcial);
         decorar();
-        return r;
-    };
+    });
+    document.addEventListener('supc1:corregido', function () {
+        if (yaEvaluado) return;
+        yaEvaluado = true;
+        alCorregir();
+    });
 
-    // Un intento solo con las falladas es práctica personal: no se manda a los
-    // formularios (ni el envío manual, que se oculta, ni el detalle automático).
-    var detalleOrig = window.enviarDetalleCorreccion;
-    if (typeof detalleOrig === 'function') {
-        window.enviarDetalleCorreccion = function () {
-            if (parcial) return;
-            return detalleOrig.apply(this, arguments);
-        };
-    }
-    var enviarOrig = window.enviarResultados;
-    if (typeof enviarOrig === 'function') {
-        window.enviarResultados = function () {
-            if (parcial) return;
-            return enviarOrig.apply(this, arguments);
-        };
-    }
-
-    var goHomeOrig = window.goHome;
-    if (typeof goHomeOrig === 'function') {
-        window.goHome = function () {
-            if (!evaluated) {
-                if (!window.confirm('Vas a salir con el test a medias. Tu intento queda guardado y podrás continuarlo desde este mismo supuesto.\n\n¿Volver al menú principal?')) return;
-                guardar();
-                var c = window.confirm; window.confirm = function () { return true; };
-                try { goHomeOrig.apply(this, arguments); } finally { window.confirm = c; }
-            } else goHomeOrig.apply(this, arguments);
-        };
-    }
-
-    setInterval(function () {
-        if (evaluated && !yaEvaluado) { yaEvaluado = true; alCorregir(); }
-        else if (!evaluated) { yaEvaluado = false; guardar(); }
-    }, 1500);
+    /* El intento a medias se guarda cuando cambia algo (respuesta, pregunta o
+       marca) y al salir u ocultar la página, no cada 1,5 s: antes se escribía
+       sin parar y, con la sincronización de Drive, cada escritura volvía a
+       retrasar la subida. */
+    document.addEventListener('supc1:respuesta', guardar);
+    document.addEventListener('supc1:pregunta', guardar);
+    document.addEventListener('supc1:salir', guardar);
     document.addEventListener('visibilitychange', function () { if (document.hidden) guardar(); });
     window.addEventListener('pagehide', guardar);
+
+    // Al volver al menú con el examen a medias, el motor pregunta con este texto
+    S.textoSalir = 'Vas a salir con el test a medias. Tu intento queda guardado y podrás continuarlo desde este mismo supuesto.';
 
     // API para app-uso.js (atajos de teclado, etc.)
     S.sup = { id: ID, huella: huella, clave: claveDe, corto: corto, marcar: alternarMarca, nota: alternarNota, favorita: alternarFav, aplicarCorazon: aplicarCorazon, corazonDisponible: corazonDisponible, esParcial: function () { return parcial; } };
@@ -414,10 +397,12 @@
     marcasDelBanco();
     decorar();
     ajustesVisuales();
-    if (practicarDesdeUrl()) return;
-    var st = S.get(K_CURSO, null);
-    if (st && st.v === 1 && st.n === QUESTIONS_BANK.length && Date.now() - st.ts < TRES_DIAS &&
-        !evaluated && st.q && st.o && st.q.length === st.o.length && st.q.every(function (i) { return QUESTIONS_BANK[i]; })) {
-        modalContinuar(st);
-    } else if (st) borrarCurso();
+    practicarDesdeUrl().then(function (practicando) {
+        if (practicando) return;
+        var st = S.get(K_CURSO, null);
+        if (st && st.v === 1 && st.n === QUESTIONS_BANK.length && Date.now() - st.ts < TRES_DIAS &&
+            !evaluated && st.q && st.o && st.q.length === st.o.length && st.q.every(function (i) { return QUESTIONS_BANK[i]; })) {
+            modalContinuar(st);
+        } else if (st) borrarCurso();
+    });
 })();

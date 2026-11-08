@@ -29,6 +29,43 @@
         return t;
     }
 
+    /* ── Envíos a Google Forms hechos sin conexión ──
+       El motor del supuesto, si no hay red, deja aquí el envío (resultados y
+       detalle de la corrección) en vez de perderlo. Sale solo al volver la
+       conexión o la próxima vez que se abra cualquier página de la app. */
+    var K_COLA = 'cola-envios', MES = 30 * 24 * 3600 * 1000;
+    S.encolarEnvio = function (url, campos) {
+        if (!S.get || !url) return;
+        var c = S.get(K_COLA, []) || [];
+        c.push({ url: url, campos: campos || {}, ts: Date.now() });
+        S.set(K_COLA, c.slice(-50));
+    };
+    function enviarUno(e, n) {
+        var marco = 'supc1-cola-' + n;
+        var f = document.createElement('iframe'); f.name = marco; f.style.display = 'none'; f.setAttribute('aria-hidden', 'true');
+        document.body.appendChild(f);
+        var form = document.createElement('form'); form.action = e.url; form.method = 'POST'; form.target = marco; form.style.display = 'none';
+        Object.keys(e.campos).forEach(function (k) {
+            var i = document.createElement('input'); i.type = 'hidden'; i.name = k; i.value = e.campos[k]; form.appendChild(i);
+        });
+        document.body.appendChild(form); form.submit(); form.remove();
+        setTimeout(function () { f.remove(); }, 15000);
+    }
+    S.vaciarColaEnvios = function () {
+        if (!S.get || navigator.onLine === false || !document.body) return 0;
+        var c = (S.get(K_COLA, []) || []).filter(function (e) { return e && e.url && Date.now() - (e.ts || 0) < MES; });
+        S.del(K_COLA);
+        c.forEach(function (e, n) { setTimeout(function () { enviarUno(e, n); }, n * 1200); });
+        return c.length;
+    };
+    function vaciarYAvisar() {
+        var n = S.vaciarColaEnvios();
+        if (n) toast(n === 1 ? 'Se ha enviado un resultado que estaba pendiente por falta de conexión.'
+                             : 'Se han enviado ' + n + ' resultados que estaban pendientes por falta de conexión.');
+    }
+    window.addEventListener('online', vaciarYAvisar);
+    setTimeout(vaciarYAvisar, 2500);
+
     /* ── Service worker + aviso de actualización ── */
     if ('serviceWorker' in navigator) {
         var recargar = false;

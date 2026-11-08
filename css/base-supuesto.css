@@ -507,7 +507,7 @@ body.hide-qtags .q-tag { display: none; }
 #overlay {
             display:none; position:fixed; inset:0;
             background:rgba(var(--navy-rgb),0.98); z-index:9999;
-            flex-direction:column; align-items:center; justify-content:center;
+            flex-direction:column; align-items:center; justify-content:flex-start;
             text-align:center; padding:40px; overflow-y:auto;
         }
 
@@ -515,7 +515,13 @@ body.hide-qtags .q-tag { display: none; }
 
 @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
 
-.overlay-content { max-width: 680px; width: 100%; position: relative; }
+.overlay-content { max-width: 680px; width: 100%; position: relative; margin: auto 0; }
+
+/* Botones de la ventana de tiempo agotado (debajo del resultado) */
+.ov-botones { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin: 4px 0 20px; }
+#overlay .score-banner { margin: 0 0 20px; }
+#overlay .ml-emoji { font-size: 2rem; margin-bottom: 6px; }
+.score-verdict { margin-top: 10px; }
 
 #overlay-close {
             position: fixed; top: 20px; right: 24px;
@@ -648,7 +654,7 @@ body.hide-qtags .q-tag { display: none; }
 
 .score-big { font-family:'Playfair Display',serif; font-size:3.5rem; font-weight:900; color:var(--gold); line-height:1; }
 
-.score-lbl { font-family:'JetBrains Mono',monospace; font-size:0.6rem; letter-spacing:0.2em; color:rgba(255,255,255,0.4); margin-top:4px; }
+.score-lbl { font-family:'JetBrains Mono',monospace; font-size:0.66rem; letter-spacing:0.16em; color:rgba(255,255,255,0.78); margin-top:4px; }
 
 .score-verdict { font-size:1rem; margin-top:10px; font-weight:600; }
 
@@ -691,3 +697,32 @@ html.no-just-preg .q-text, html.no-just-preg .option > span:last-child,
 html.no-just-mot .feedback-body p, html.no-just-mot .feedback-body .tip { text-align: left; }
 .al-i { display: block; text-align: left !important; }
 .ci-answers .al-i { display: inline; }
+
+
+/* ── Marcador del resultado encima del examen (motor 10) ──
+   Antes llevaba los estilos escritos dentro del código; el recuento iba en
+   blanco al 40 % sobre marrón y apenas se leía. */
+.marcador-linea {
+    background: var(--navy-mid); border: 1px solid var(--gold); border-radius: 4px;
+    padding: 20px 28px; margin-bottom: 28px; text-align: center;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3); position: relative; z-index: 1;
+}
+.marcador-linea .ml-emoji { font-size: 2.2rem; margin-bottom: 6px; }
+.marcador-linea .ml-puntos { font-family: 'Playfair Display', serif; font-size: 3rem; color: var(--gold); font-weight: 900; line-height: 1; }
+.marcador-linea .ml-recuento { font-family: 'JetBrains Mono', monospace; font-size: 0.66rem; letter-spacing: 0.16em; color: rgba(255,255,255,0.78); margin: 6px 0 10px; }
+.marcador-linea .ml-veredicto { font-size: 1rem; font-weight: 600; }
+.marcador-linea .ml-veredicto.apto { color: #6fcf97; }
+.marcador-linea .ml-veredicto.no-apto { color: #fc8181; }
+
+/* Contador de la barra superior y botón «Más…»: solo se usan en el móvil (tema-supuesto.css) */
+#nav-contador { display: none; }
+#more-btn { display: none; }
+
+/* Ventanas propias del motor (en vez de alert / confirm / prompt) */
+.supc1-dialogo .supc1-modal-caja p { white-space: pre-line; }
+.supc1-dialogo-campo {
+    display: block; width: 100%; margin: 0 0 16px; padding: 12px 14px; font: inherit; font-size: 1rem;
+    color: var(--t-ink, #2b2118); background: var(--t-surface, #fff);
+    border: 1.5px solid var(--t-line, rgba(61,42,32,.25)); border-radius: 10px;
+}
+.supc1-dialogo-campo:focus { outline: 2px solid var(--blue-deep); outline-offset: 1px; }
