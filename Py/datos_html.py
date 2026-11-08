@@ -15,6 +15,7 @@ import unicodedata
 from pathlib import Path
 
 import menu_datos
+from archivos import escribir_seguro
 
 APP_TITULO = "Editor de Supuestos — plantilla ECAP C1"
 PLANTILLA_BASE = "supuesto_plantilla_python.html"   # se busca junto a este .py
@@ -715,7 +716,16 @@ def normalizar_respuestas(q, p):
     "correctas" y "multiple"). Las opciones que se dejen en blanco se
     descartan, para que una pregunta de tres respuestas se guarde con
     tres y no con una vacía."""
-    opciones = [str(x) for x in (p.get("a") or []) if str(x).strip() != ""]
+    brutas = [str(x) for x in (p.get("a") or [])]
+    # Al quitar las opciones vacías, las de detrás suben un puesto: la
+    # correcta se traduce a su nuevo número para que siga siendo la misma
+    # opción (antes se quedaba con el número viejo y pasaba a otra letra).
+    nuevo_num = {}
+    opciones = []
+    for viejo, texto in enumerate(brutas):
+        if texto.strip() != "":
+            nuevo_num[viejo] = len(opciones)
+            opciones.append(texto)
     while len(opciones) < MIN_OPCIONES:
         opciones.append("Opción %s" % LETRAS[len(opciones)])
     q["a"] = opciones[:MAX_OPCIONES]
@@ -723,20 +733,22 @@ def normalizar_respuestas(q, p):
     def dentro(i):
         return isinstance(i, int) and 0 <= i < len(q["a"])
 
-    correctas = []
-    for x in (p.get("correctas") or []):
+    def traducir(x):
         try:
             n = int(x)
         except (TypeError, ValueError):
-            continue
-        if dentro(n) and n not in correctas:
+            return None
+        n = nuevo_num.get(n) if brutas else n
+        return n if dentro(n) else None
+
+    correctas = []
+    for x in (p.get("correctas") or []):
+        n = traducir(x)
+        if n is not None and n not in correctas:
             correctas.append(n)
     if not correctas:
-        try:
-            c = int(p.get("c", 0))
-        except (TypeError, ValueError):
-            c = 0
-        correctas = [c] if dentro(c) else [0]
+        c = traducir(p.get("c", 0))
+        correctas = [c] if c is not None else [0]
 
     q["correctas"] = sorted(correctas)
     q["c"] = q["correctas"][0]
@@ -1154,7 +1166,7 @@ def escribir_html(ruta_destino, html_base, datos, modo, copia=True):
                 destino.read_text(encoding="utf-8"), encoding="utf-8")
         except OSError:
             pass
-    destino.write_text(nuevo, encoding="utf-8")
+    escribir_seguro(destino, nuevo)
     return nuevo
 
 

@@ -536,5 +536,99 @@ class GitSync(unittest.TestCase):
         self.assertIn("Actualizo a.html", gs.mensaje_sugerido([], ["x/a.html"], []))
 
 
+class Fase1Fallos(unittest.TestCase):
+    """Fallos que cambiaban o perdían datos sin avisar (revisión del editor, fase 1)."""
+
+    def test_opcion_vacia_no_mueve_la_correcta(self):
+        d = datos_html.datos_vacios()
+        d["preguntas"] = [{"bloqueId": "B1", "q": "x", "a": ["A", "", "C buena", "D"], "correctas": [2], "c": 2}]
+        p = datos_html.normalizar(d)["preguntas"][0]
+        self.assertEqual(p["a"], ["A", "C buena", "D"])
+        self.assertEqual(p["a"][p["correctas"][0]], "C buena")
+        d["preguntas"] = [{"bloqueId": "B1", "q": "x", "a": ["", "B", "C"], "c": 2}]   # formato antiguo
+        p = datos_html.normalizar(d)["preguntas"][0]
+        self.assertEqual(p["a"][p["c"]], "C")
+
+    def test_renombrar_enunciado_arrastra_sus_preguntas(self):
+        d = datos_html.datos_vacios()
+        d["enunciados"] = [datos_html.enunciado_vacio("E1"), datos_html.enunciado_vacio("E2")]
+        d["preguntas"] = [datos_html.pregunta_vacia("E1", "B1"), datos_html.pregunta_vacia("E2", "B1")]
+        e1 = d["enunciados"][0]
+        self.assertIn("vacío", hd.error_id_enunciado(d, e1, " "))
+        self.assertIn("Ya hay", hd.error_id_enunciado(d, e1, "E2"))
+        self.assertIsNotNone(hd.error_id_enunciado(d, e1, "E 1"))
+        self.assertIsNone(hd.error_id_enunciado(d, e1, "E1b"))
+        self.assertEqual(hd.renombrar_enunciado(d, e1, "E1b"), 1)
+        self.assertEqual(d["preguntas"][0]["statementId"], "E1b")
+        self.assertEqual(hd.errores_graves(d), [])
+
+    def test_guardar_avisa_de_enunciados_que_no_existen(self):
+        d = datos_html.datos_vacios()
+        d["enunciados"] = [datos_html.enunciado_vacio("E1")]
+        d["preguntas"] = [datos_html.pregunta_vacia("E9", "B1")]
+        self.assertTrue(any("E9" in g for g in hd.errores_graves(d)))
+
+    def test_escritura_segura(self):
+        import archivos
+        with tempfile.TemporaryDirectory() as c:
+            r = Path(c) / "a.html"
+            r.write_text("viejo", encoding="utf-8")
+            h1 = archivos.huella_disco(r)
+            archivos.escribir_seguro(r, "nuevo ñ")
+            self.assertEqual(r.read_text(encoding="utf-8"), "nuevo ñ")
+            self.assertEqual(sorted(x.name for x in Path(c).iterdir()), ["a.html"])   # sin temporales
+            self.assertNotEqual(h1, archivos.huella_disco(r))
+            self.assertIsNone(archivos.huella_disco(Path(c) / "no"))
+
+    def test_paginas_atrasadas_no_toca_nada(self):
+        d = copia_del_proyecto()
+        try:
+            antes = sl.foto(d)
+            sl.paginas_atrasadas(d)
+            self.assertEqual(antes, sl.foto(d))
+        finally:
+            shutil.rmtree(d, ignore_errors=True)
+
+
+class ListasYSangria(unittest.TestCase):
+    def setUp(self):
+        import editor_comun
+        self.ec = editor_comun
+
+    def test_lista_pegada_de_word(self):
+        ec = self.ec
+        self.assertEqual(ec.colgar_vineta("•\tJuan Gómez"),
+                         '<span class="cg"><span class="vi">•\t</span>Juan Gómez</span>')
+        self.assertEqual(ec.colgar_vineta('<span class="sg-1">2.\tSegundo</span>'),
+                         '<span class="sg-1 cg"><span class="vi">2.\t</span>Segundo</span>')
+        ya = ec.colgar_vineta("a)\tuno")
+        self.assertEqual(ec.colgar_vineta(ya), ya)                    # no se convierte dos veces
+        self.assertEqual(ec.colgar_vineta("Plazo\t10 días"), "Plazo 10 días")
+        self.assertEqual(ec.colgar_vineta("sin tabulador"), "sin tabulador")
+
+    def test_parrafos_y_textos_convierten_las_listas(self):
+        ec = self.ec
+        parr = ec.partir_parrafos('Intro\n<span class="sg-1">•\tuno</span>\n<span class="sg-1">•\tdos</span>')
+        self.assertEqual(parr[0], "Intro")
+        self.assertTrue(all('class="sg-1 cg"' in x for x in parr[1:]))
+        txt = ec.limpiar_texto("Plazos:\n1.\tAlzada   un mes\n2.\tReposición")
+        self.assertIn('<span class="vi">1.\t</span>Alzada un mes', txt)
+        self.assertEqual(ec.limpiar_texto(txt), txt)                   # estable al volver a guardar
+
+    def test_viñeta_siguiente(self):
+        ec = self.ec
+        self.assertEqual(ec.siguiente_vineta("3."), "4.")
+        self.assertEqual(ec.siguiente_vineta("b)\t"), "c)\t")
+        self.assertEqual(ec.siguiente_vineta("•"), "•")
+        self.assertIn("cg", ec.CLASES_PARRAFO)
+        self.assertEqual(ec.envolver_parrafo({"cg", "sg-1"}, "x"), '<span class="sg-1 cg">x</span>')
+        self.assertEqual(ec.envolver_parrafo(set(), "x"), "x")
+
+    def test_css_de_listas_y_sangria(self):
+        css = (RAIZ / "css" / "base-supuesto.css").read_text(encoding="utf-8")
+        for pieza in (".cg {", ".cg > .vi", "inline-block", ".sg-3 { width"):
+            self.assertIn(pieza, css)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

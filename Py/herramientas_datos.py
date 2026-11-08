@@ -306,7 +306,44 @@ def errores_graves(datos):
     for n, p in enumerate(datos["preguntas"], 1):
         if not (p.get("correctas") or []):
             salida.append("Pregunta %d: sin respuesta correcta marcada" % n)
+    ids = [str(e.get("id") or "") for e in datos.get("enunciados", [])]
+    if any(not i.strip() for i in ids):
+        salida.append("Hay un enunciado sin identificador")
+    for i in sorted({i for i in ids if i and ids.count(i) > 1}):
+        salida.append("Identificador de enunciado repetido: %s" % i)
+    for n, p in enumerate(datos["preguntas"], 1):
+        sid = p.get("statementId")
+        if sid and sid not in ids:
+            salida.append("Pregunta %d: apunta al enunciado %s, que no existe" % (n, sid))
     return salida
+
+
+# ── identificadores de enunciado ─────────────────────────────────────
+RE_ID = re.compile(r"[A-Za-z0-9_-]+")
+
+
+def error_id_enunciado(datos, enunciado, nuevo):
+    """Texto del problema si `nuevo` no vale como identificador de `enunciado`; None si vale."""
+    nuevo = (nuevo or "").strip()
+    if not nuevo:
+        return "El identificador no puede quedar vacío."
+    if not RE_ID.fullmatch(nuevo):
+        return "Usa solo letras sin tilde, números, guion (-) y guion bajo (_)."
+    if any(e is not enunciado and e.get("id") == nuevo for e in datos.get("enunciados", [])):
+        return "Ya hay otro enunciado que se llama %s." % nuevo
+    return None
+
+
+def renombrar_enunciado(datos, enunciado, nuevo):
+    """Cambia el id del enunciado y el de las preguntas que cuelgan de él. Devuelve cuántas."""
+    viejo = enunciado.get("id")
+    enunciado["id"] = nuevo
+    cuantas = 0
+    for p in datos.get("preguntas", []):
+        if p.get("statementId") == viejo:
+            p["statementId"] = nuevo
+            cuantas += 1
+    return cuantas
 
 
 def _norma(texto):

@@ -13,6 +13,8 @@ import urllib.request
 from datetime import datetime
 from pathlib import Path
 
+from archivos import escribir_seguro
+
 # ── subir la versión de la app (config/version.js) ──────────────────
 _RE_VERSION = re.compile(r'(SUPC1_VERSION\s*=\s*")v(\d+)\.(\d+)(")')
 
@@ -32,7 +34,7 @@ def subir_version(raiz):
         raise ValueError("No encuentro SUPC1_VERSION en config/version.js")
     antes = "v%s.%s" % (m.group(2), m.group(3))
     despues = "v%s.%d" % (m.group(2), int(m.group(3)) + 1)
-    ruta.write_text(t[:m.start()] + 'SUPC1_VERSION = "%s"' % despues + t[m.end():], encoding="utf-8")
+    escribir_seguro(ruta, t[:m.start()] + 'SUPC1_VERSION = "%s"' % despues + t[m.end():])
     return antes, despues
 
 

@@ -15,7 +15,10 @@ ETIQUETAS = {
 }
 
 
-def abrir(app):
+def abrir(app, antes_de_subir=None):
+    """antes_de_subir: función opcional que se llama justo antes de subir (por ejemplo,
+    la de «Publicar todo», que sube el número de versión) y devuelve un archivo más
+    que añadir a la subida, o None."""
     raiz = sl.RAIZ_DEFECTO
     if not gs.hay_git():
         messagebox.showinfo("Sincronizar", gs.SIN_GIT, parent=app)
@@ -109,6 +112,10 @@ def abrir(app):
         try:
             v.config(cursor="watch")
             v.update_idletasks()
+            if antes_de_subir:
+                extra = antes_de_subir()
+                if extra and extra not in marcados:
+                    marcados.append(extra)
             texto, enlace = gs.subir(raiz, marcados, msg.get(), destino.get())
         except gs.ErrorGit as err:
             messagebox.showerror("No se ha podido subir", str(err), parent=v)

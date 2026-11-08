@@ -130,6 +130,23 @@ def _motor_de(html):
     return int(m.group(1)) if m else 0
 
 
+def paginas_atrasadas(raiz):
+    """Supuestos cuya página es de un motor anterior al de la plantilla (sin tocar nada)."""
+    raiz = Path(raiz)
+    plantilla_ruta = raiz / "Py" / datos_html.PLANTILLA_BASE
+    if not plantilla_ruta.is_file():
+        return []
+    nuevo = _motor_de(plantilla_ruta.read_text(encoding="utf-8"))
+    res = []
+    for p in sorted((raiz / "supuestos").glob("*.html")):
+        try:
+            if _motor_de(p.read_text(encoding="utf-8")) < nuevo:
+                res.append(p.name)
+        except OSError:
+            continue
+    return res
+
+
 def poner_al_dia(raiz):
     """Rehace con la plantilla actual la página de cada supuesto con motor antiguo.
     Devuelve [(archivo, motor_viejo, motor_nuevo)] de los que ha tocado y [(archivo, motivo)] de los que no."""

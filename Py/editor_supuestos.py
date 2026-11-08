@@ -130,6 +130,7 @@ class EditorApp(PestanaGeneral,
         self.bind_all("<Alt-Down>", lambda e: self._mover_con_atajo(1))
         self.after(AUTOGUARDADO_MS, self._autoguardar)
 
+        self.bind("<FocusIn>", self._mirar_disco, add="+")
         self.after(200, self._carga_inicial)
         self.after(2500, self._avisar_si_hay_cambios_en_github)
 
@@ -281,6 +282,33 @@ class EditorApp(PestanaGeneral,
                             % resultado["n"])
 
         esperar()
+
+    def _mirar_disco(self, _evento=None):
+        """Al volver a la ventana: si el archivo abierto cambió fuera, se recarga
+        (sin cambios aquí) o se avisa una vez (con cambios sin guardar)."""
+        if getattr(self, "_mirando_disco", False) or not self.cambiado_fuera():
+            return
+        huella = huella_disco(self.ruta)
+        if huella == getattr(self, "_aviso_disco", None):
+            return
+        self._mirando_disco = True
+        try:
+            if not self.hay_cambios:
+                i = self.i_preg
+                self._cargar_ruta(self.ruta)
+                if i is not None and self.datos["preguntas"]:
+                    self.refrescar_lista_preg(min(i, len(self.datos["preguntas"]) - 1))
+                self.estado("«%s» había cambiado fuera del editor: recargado." % self.ruta.name)
+            else:
+                self._aviso_disco = huella
+                messagebox.showwarning(
+                    "El archivo ha cambiado fuera del editor",
+                    "«%s» se ha modificado en el disco (GitHub, la ventana del menú u otro "
+                    "programa) y aquí tienes cambios sin guardar.\n\nSi guardas, se quedará "
+                    "lo que ves en el editor; el programa te lo volverá a preguntar." % self.ruta.name,
+                    parent=self)
+        finally:
+            self._mirando_disco = False
 
     def _instantanea(self):
         """Pasa lo escrito en la ventana a los datos sin reordenar nada."""

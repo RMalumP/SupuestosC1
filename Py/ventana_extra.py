@@ -339,23 +339,39 @@ def publicar_todo(app):
         messagebox.showerror("Publicar", "Hay errores en los supuestos; arréglalos antes de publicar:\n\n"
                              + "\n".join(informe["errores"][:12]), parent=app)
         return
-    hechos, _saltados = sl.poner_al_dia(raiz)
+    atrasadas = sl.paginas_atrasadas(raiz)
     try:
         version = pub.version_actual(raiz)
     except OSError:
         version = None
-    msg = ("Se va a publicar:\n\n · %d supuestos revisados, 0 errores\n · %d páginas rehechas con la plantilla actual\n"
-           " · versión %s → siguiente número\n\nDespués se abrirá «Sincronizar» para subirlo. ¿Seguir?"
-           % (informe["revisados"], len(hechos), version or "?"))
+    # Primero se pregunta y DESPUÉS se toca algo: antes se rehacían las páginas
+    # aunque se contestara que no.
+    msg = ("Se va a publicar:\n\n · %d supuestos revisados, 0 errores\n · %d páginas se rehacen con la plantilla actual\n"
+           " · la versión %s pasa al número siguiente justo al subir (si cierras sin subir, no cambia)\n\n"
+           "Después se abrirá «Sincronizar» para subirlo. ¿Seguir?"
+           % (informe["revisados"], len(atrasadas), version or "?"))
     if not messagebox.askyesno("Publicar todo", msg, parent=app):
         return
-    try:
-        antes, despues = pub.subir_version(raiz)
-    except (OSError, ValueError) as err:
-        messagebox.showerror("Publicar", str(err), parent=app)
-        return
-    app.estado("Versión %s → %s. Sincroniza para subirla." % (antes, despues))
-    ventana_sync.abrir(app)
+    hechos, _saltados = sl.poner_al_dia(raiz)
+    if hechos:
+        app.estado("%d página(s) rehechas con la plantilla actual." % len(hechos))
+
+    subida = {}
+
+    def subir_version():
+        """Se llama justo antes de subir; devuelve el archivo que hay que añadir.
+        Solo sube el número una vez, aunque haya que reintentar la subida."""
+        if not subida:
+            try:
+                antes, despues = pub.subir_version(raiz)
+            except (OSError, ValueError) as err:
+                messagebox.showerror("Publicar", "No he podido subir la versión:\n\n%s" % err, parent=app)
+                return None
+            subida["hecho"] = True
+            app.estado("Versión %s → %s." % (antes, despues))
+        return "config/version.js"
+
+    ventana_sync.abrir(app, antes_de_subir=subir_version)
 
 
 def validar_supuestos_resumen(raiz):

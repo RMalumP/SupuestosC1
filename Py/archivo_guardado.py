@@ -137,6 +137,7 @@ class ArchivoGuardado:
                                  "%s\n\n%s" % (Path(ruta).name, err), parent=self)
             return
         self.ruta = Path(ruta)
+        self._huella = huella_disco(self.ruta)
         herr_pub.anotar_reciente(self._prefs, self.ruta)
         self._recordar_carpeta()
         self.hay_cambios = False
@@ -272,7 +273,30 @@ class ArchivoGuardado:
         self.html_base = plantilla
         self.estado("Página rehecha con la plantilla actual (versión %d)." % nueva)
 
+    def cambiado_fuera(self, destino=None):
+        """¿El archivo abierto ha cambiado en el disco desde que se abrió o se guardó?
+        (por «Traer lo último» de GitHub, la ventana del menú, otro programa…)"""
+        destino = Path(destino or self.ruta) if (destino or self.ruta) else None
+        if destino is None or self.ruta is None or getattr(self, "_huella", None) is None:
+            return False
+        try:
+            if destino.resolve() != self.ruta.resolve():
+                return False
+        except OSError:
+            return False
+        ahora = huella_disco(destino)
+        return ahora is not None and ahora != self._huella
+
     def _escribir(self, destino):
+        if self.cambiado_fuera(destino) and not messagebox.askyesno(
+                "El archivo ha cambiado fuera del editor",
+                "«%s» se ha modificado en el disco después de abrirlo aquí (por ejemplo al "
+                "traer lo último de GitHub o desde la ventana del menú).\n\n"
+                "Si guardas, esos cambios se pierden y se queda lo que ves en el editor.\n\n"
+                "¿Guardar de todas formas? (Con «No» no se guarda: puedes cerrar sin guardar "
+                "y volver a abrirlo para ver la versión del disco.)" % Path(destino).name,
+                icon="warning", parent=self):
+            return False
         self._prefs["carpeta"] = str(Path(destino).parent)
         self._poner_motor_al_dia()
         if self.modo != "json" and bloques_se_pierden(self.datos):
@@ -303,6 +327,8 @@ class ArchivoGuardado:
             messagebox.showerror("No se ha podido guardar", str(err), parent=self)
             return False
         self.ruta = Path(destino)
+        self._huella = huella_disco(self.ruta)
+        self._aviso_disco = None
         self.hay_cambios = False
         self._pintar_titulo()
         self.estado("Guardado en %s   (%d preguntas)"
