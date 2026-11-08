@@ -176,7 +176,7 @@
                 cb.type = 'button'; cb.className = 'btn-corazon'; cb.innerHTML = '<i aria-hidden="true">♡</i>';
                 cb.setAttribute('aria-label', 'Favorita (tecla H)');
                 cb.addEventListener('click', function (e) { e.stopPropagation(); alternarFav(i); });
-                card.appendChild(cb); pintarFav(i, bco);
+                caja.appendChild(cb); pintarFav(i, bco);
             }
         });
         marcas.forEach(pintarMarca);

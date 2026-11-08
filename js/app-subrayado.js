@@ -160,6 +160,7 @@
         var y = rect.bottom + 10; if (y + h > window.innerHeight - 8) y = rect.top - h - 10;
         y = Math.min(Math.max(8, y), window.innerHeight - h - 8);
         d.style.left = x + 'px'; d.style.top = y + 'px';
+        d.dataset.modo = opciones.marca ? 'marca' : 'seleccion';
         pop = d;
     }
 
@@ -204,7 +205,12 @@
     /* ── Selección con ratón o dedo ── */
     function revisarSeleccion() {
         var sel = window.getSelection();
-        if (!activo() || !sel || sel.isCollapsed || !sel.rangeCount) { cerrarPop(); return; }
+        if (!activo() || !sel || sel.isCollapsed || !sel.rangeCount) {
+            // El menú abierto al tocar un subrayado no depende de ninguna selección: no se cierra aquí
+            // (en el móvil el toque dispara un «selectionchange» vacío y lo cerraba al instante).
+            if (!(pop && pop.dataset.modo === 'marca')) cerrarPop();
+            return;
+        }
         var r = sel.getRangeAt(0), z = zonaDe(r.startContainer), z2 = zonaDe(r.endContainer);
         if (!z || z !== z2 || !compacto(sel.toString())) { cerrarPop(); return; }
         var rango = r.cloneRange(), solapados = quitarEnSeleccion(z, rango);
@@ -221,7 +227,7 @@
         var m = e.target.closest && e.target.closest('mark.subr');
         if (m && activo() && !m.closest('.option')) {
             var clave = m.dataset.k, h = leer().subrayados[clave];
-            if (h) abrirPop(m.getBoundingClientRect(), { actual: h.c, elegir: function (c) { cambiarColor(clave, c); }, quitar: function () { quitar(clave); } });
+            if (h) abrirPop(m.getBoundingClientRect(), { marca: true, actual: h.c, elegir: function (c) { cambiarColor(clave, c); }, quitar: function () { quitar(clave); } });
         } else if (pop && !e.target.closest('.subr-pop')) { cerrarPop(); }
     }, true);
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') cerrarPop(); });

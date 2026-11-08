@@ -294,6 +294,22 @@ async function funciones() {
         await ctx.close();
         return (/subr-c2\|/.test(a.marcas) && a.n === 1 && !a.pop && resp.n === 2 && resp.ans === '{}' && resp.m === 1 && tras === 2 && /subr-c0/.test(color) && fin.n === 1 && fin.lap === 1 && fin.m === 0) || JSON.stringify({ a, resp, tras, color, fin });
     });
+    await caso('subrayar: el menú de un subrayado sigue abierto tras el «selectionchange» del toque (móvil)', async () => {
+        const ctx = await contexto(); const pg = await abrir(ctx, T);
+        await seleccionar(pg, '#qcard-0 .q-text', 3, 20); await pg.waitForSelector('.subr-pop'); await pg.click('.subr-pop .subr-punto.subr-c2'); await pg.waitForTimeout(200);
+        await pg.evaluate(() => { window.getSelection().removeAllRanges(); });
+        await pg.click('#qcard-0 .q-text mark.subr'); await pg.waitForSelector('.subr-pop .subr-quitar');
+        await pg.evaluate(() => document.dispatchEvent(new Event('selectionchange'))); await pg.waitForTimeout(600);
+        const sigue = await pg.evaluate(() => !!document.querySelector('.subr-pop .subr-quitar'));
+        await ctx.close();
+        return sigue || 'el menú se cerró solo';
+    });
+    await caso('corazón, bandera y nota van juntos y del mismo tamaño', async () => {
+        const ctx = await contexto(); const pg = await abrir(ctx, T);
+        const r = await pg.evaluate(() => ['.btn-marcar', '.btn-nota', '.btn-corazon'].map(c => { const e = document.querySelector('#qcard-0 ' + c); const b = e.getBoundingClientRect(); return [!!e.closest('.q-acciones'), Math.round(b.width), Math.round(b.height)]; }));
+        await ctx.close();
+        return r.every(x => x[0]) || JSON.stringify(r);
+    });
     await caso('subrayar: lo nuevo sustituye a lo solapado y arrastrar para seleccionar no responde', async () => {
         const ctx = await contexto(); const pg = await abrir(ctx, T);
         await seleccionar(pg, '#qcard-0 .q-text', 3, 20); await pg.waitForSelector('.subr-pop'); await pg.click('.subr-pop .subr-punto.subr-c0'); await pg.waitForTimeout(150);
