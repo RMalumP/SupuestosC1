@@ -233,15 +233,21 @@ def importar_texto(texto, bloque_id="B1", statement_id=None):
             bloques = bloques[:-1]
     for k, bloque in enumerate(bloques, 1):
         q, opciones, correctas, law, tip = [], [], [], "", ""
+        campo = None                         # tras «Motivación:» o «Consejo:», sus líneas siguientes
         for linea in bloque.split("\n"):
             m = _OPC.match(linea)
             c = _CORR.match(linea)
             if c:
                 correctas = [LETRAS.index(x.upper()) for x in re.findall(r"[a-gA-G]", c.group(1))]
+                campo = None
             elif linea.lower().lstrip().startswith(("motivación:", "motivacion:")):
-                law = linea.split(":", 1)[1].strip()
+                law, campo = linea.split(":", 1)[1].strip(), "law"
             elif linea.lower().lstrip().startswith(("consejo:", "tip:")):
-                tip = linea.split(":", 1)[1].strip()
+                tip, campo = linea.split(":", 1)[1].strip(), "tip"
+            elif campo == "law":
+                law += "\n" + linea.strip()
+            elif campo == "tip":
+                tip += "\n" + linea.strip()
             elif m and (opciones or q):
                 t = m.group(2).strip()
                 if t.startswith("*"):
@@ -301,6 +307,7 @@ def leer_soluciones(bloque):
 def importar_csv(texto, bloque_id="B1", statement_id=None):
     """Columnas: pregunta, a, b, c, d[, e, f, g], correcta (letras), motivación, consejo.
     Acepta ; o , como separador. Devuelve (preguntas, avisos)."""
+    texto = texto.lstrip("\ufeff")
     try:
         sep = csv.Sniffer().sniff(texto[:2000], delimiters=";,\t").delimiter
     except csv.Error:
@@ -318,7 +325,7 @@ def importar_csv(texto, bloque_id="B1", statement_id=None):
         if corr_i is None or corr_i < 3:
             avisos.append("Fila %d ignorada: faltan opciones o la columna de la correcta." % n)
             continue
-        opciones = [c for c in fila[1:corr_i]]
+        opciones = [c for c in fila[1:corr_i] if c]
         opciones = opciones[:datos_html.MAX_OPCIONES]
         correctas = sorted({LETRAS.index(x.upper()) for x in re.findall(r"[a-gA-G]", fila[corr_i])
                             if LETRAS.index(x.upper()) < len(opciones)})
@@ -498,3 +505,158 @@ def pregunta_de_plantilla(nombre, bloque_id="B1", statement_id=None):
     p = _pregunta(bloque_id, statement_id, pl["q"], list(pl["a"]), list(pl["c"]), pl.get("law", ""), "")
     p["multiple"] = bool(pl.get("multiple"))
     return p
+
+
+# ── F4 · citas de la motivación que se enlazan al BOE ────────────────
+def enlaces_boe(texto, normas):
+    """Las mismas citas que la página convierte en enlace (js/app-uso.js):
+    «art. 12 … LGSS» → [(cita, artículo, siglas, dirección del BOE)], sin repetir."""
+    reglas = [(s, n.get("boe")) for n in normas or [] for s in n.get("siglas", []) if s and n.get("boe")]
+    if not reglas:
+        return []
+    alt = "|".join(re.escape(s) for s, _b in sorted(reglas, key=lambda r: -len(r[0])))
+    patron = re.compile(r"\b([Aa]rt(?:ículos?|s?\.?)?\.?\s*(\d+)[^;:]{0,45}?\b(" + alt + r")(?![\wÀ-ÿ]))")
+    boe_de = dict(reglas)
+    plano = re.sub(r"<[^>]+>", "", texto or "")
+    res, vistos = [], set()
+    for m in patron.finditer(plano):
+        art, sig = m.group(2), m.group(3)
+        url = "https://www.boe.es/buscar/act.php?id=%s#a%s" % (boe_de[sig], art)
+        if url not in vistos:
+            vistos.add(url)
+            res.append(("art. %s %s" % (art, sig), art, sig, url))
+    return res
+
+
+# ── F7 · sugerir los hechos de los que depende una pregunta ──────────
+_VACIAS = set("""a al ante bajo con contra de del desde durante e el en entre esta este esto ha han hasta la las
+le les lo los mas más me mi no o os para pero por que qué se ser si sí sin sobre su sus tal te tiene tu un una uno
+unos unas y ya es son fue era está están cual cuál cuales cuáles cuando cuándo como cómo debe deberá puede podrá
+dicho dicha dichos dichas otro otra otros otras le señale indique correcta incorrecta respuesta pregunta caso
+supuesto según art artículo ley real decreto""".split())
+
+
+def _palabras(texto):
+    plano = re.sub(r"<[^>]+>", " ", str(texto or "")).lower()
+    return [w for w in re.findall(r"[a-záéíóúüñ0-9]{3,}", plano) if w not in _VACIAS]
+
+
+def sugerir_hechos(pregunta, enunciado, maximo=2, minimo=0.12):
+    """Hechos del enunciado que más se parecen a la pregunta (texto, opciones y motivación):
+    [(id del hecho, parecido 0-1, palabras en común)], de más a menos parecido.
+    Pesa más una palabra rara (nombres, cifras, fechas) que una que sale en todos los hechos."""
+    import math
+    hechos = [h for h in (enunciado or {}).get("factBlocks") or [] if h.get("id")]
+    if not hechos:
+        return []
+    docs = [set(_palabras(" ".join([h.get("title", "")] + list(h.get("paragraphs") or [])))) for h in hechos]
+    preg = set(_palabras(" ".join([pregunta.get("q", ""), pregunta.get("law", "")] + list(pregunta.get("a") or []))))
+    if not preg:
+        return []
+    n = len(docs)
+    idf = {w: math.log((n + 1) / (1 + sum(w in d for d in docs))) + 1 for w in preg}
+    total = sum(idf.values())
+    res = []
+    for h, d in zip(hechos, docs):
+        comunes = preg & d
+        peso = sum(idf[w] for w in comunes) / total if total else 0
+        if peso >= minimo:
+            res.append((h["id"], round(peso, 2), sorted(comunes, key=lambda w: -idf[w])[:6]))
+    res.sort(key=lambda x: -x[1])
+    return res[:maximo]
+
+
+# ── F8 · qué cambia entre dos versiones de un supuesto ───────────────
+def comparar_versiones(antes, ahora):
+    """Líneas legibles con lo que cambió de `antes` a `ahora` (preguntas añadidas,
+    quitadas o cambiadas, enunciados, bloques y datos generales)."""
+    def plano(t):
+        return " ".join(re.sub(r"<[^>]+>", " ", str(t or "")).split())
+
+    lineas = []
+    ca, cb = antes.get("config") or {}, ahora.get("config") or {}
+    for k in sorted(set(ca) | set(cb)):
+        if isinstance(ca.get(k), (str, int, float, bool)) or isinstance(cb.get(k), (str, int, float, bool)):
+            if ca.get(k) != cb.get(k):
+                lineas.append("Datos generales · %s: «%s» → «%s»" % (k, plano(ca.get(k))[:60], plano(cb.get(k))[:60]))
+    ids_a = [b.get("id") for b in antes.get("bloques") or []]
+    ids_b = [b.get("id") for b in ahora.get("bloques") or []]
+    for i in ids_b:
+        if i not in ids_a:
+            lineas.append("Bloque %s: nuevo" % i)
+    for i in ids_a:
+        if i not in ids_b:
+            lineas.append("Bloque %s: quitado" % i)
+    ea = {e.get("id"): e for e in antes.get("enunciados") or []}
+    eb = {e.get("id"): e for e in ahora.get("enunciados") or []}
+    for i in eb:
+        if i not in ea:
+            lineas.append("Enunciado %s: nuevo" % i)
+        elif json.dumps(ea[i], sort_keys=True) != json.dumps(eb[i], sort_keys=True):
+            cambios = [k for k in sorted(set(ea[i]) | set(eb[i])) if ea[i].get(k) != eb[i].get(k)]
+            lineas.append("Enunciado %s: cambia %s" % (i, ", ".join(cambios)))
+    for i in ea:
+        if i not in eb:
+            lineas.append("Enunciado %s: quitado" % i)
+
+    pa, pb = antes.get("preguntas") or [], ahora.get("preguntas") or []
+    clave_a = [plano(p.get("q")) for p in pa]
+    usadas = set()
+    nombres = {"q": "texto", "a": "opciones", "correctas": "correcta", "law": "motivación", "tip": "consejo",
+               "bloqueId": "bloque", "statementId": "enunciado", "tag": "etiqueta", "multiple": "múltiple",
+               "factIds": "modo foco", "respuestas": "nº de respuestas"}
+    for n, p in enumerate(pb):
+        q = plano(p.get("q"))
+        # la misma pregunta: igual texto, o la que estaba en el mismo sitio
+        j = next((k for k, t in enumerate(clave_a) if t == q and k not in usadas), None)
+        if j is None and n < len(pa) and n not in usadas and \
+                difflib.SequenceMatcher(None, clave_a[n], q).ratio() > 0.6:
+            j = n
+        if j is None:
+            lineas.append("Pregunta %d: nueva · %s" % (n + 1, q[:70]))
+            continue
+        usadas.add(j)
+        cambios = [nombres.get(k, k) for k in nombres if pa[j].get(k) != p.get(k)]
+        if cambios:
+            lineas.append("Pregunta %d%s: cambia %s · %s" % (
+                n + 1, "" if j == n else " (antes %d)" % (j + 1), ", ".join(cambios), q[:60]))
+        elif j != n:
+            lineas.append("Pregunta %d: movida (antes %d)" % (n + 1, j + 1))
+    for k, p in enumerate(pa):
+        if k not in usadas:
+            lineas.append("Pregunta %d (de antes): quitada · %s" % (k + 1, clave_a[k][:70]))
+    return lineas
+
+
+# ── F9 · exportar preguntas (lo contrario de importar) ───────────────
+def exportar_texto(preguntas):
+    """Texto para leer, imprimir o pasar a otro supuesto con «Importar preguntas»: pregunta,
+    opciones con * en la correcta, Motivación y Consejo, separadas por una línea en blanco.
+    (Los saltos de línea dentro de la pregunta se vuelven espacios; el CSV lo conserva todo.)"""
+    bloques = []
+    for n, p in enumerate(preguntas, 1):
+        correctas = set(p.get("correctas") or [p.get("c", 0)])
+        lineas = ["%d) %s" % (n, (p.get("q") or "").replace("\n", " "))]
+        for i, op in enumerate(p.get("a") or []):
+            lineas.append("%s) %s%s" % (LETRAS[i].lower(), "*" if i in correctas else "", op.replace("\n", " ")))
+        # (una línea en blanco separaría la pregunta en dos al volver a importar)
+        for campo, rotulo in (("law", "Motivación"), ("tip", "Consejo")):
+            if p.get(campo):
+                lineas.append(rotulo + ": " + re.sub(r"\n\s*\n+", "\n", p[campo]).replace("\n", "\n    "))
+        bloques.append("\n".join(lineas))
+    return "\n\n".join(bloques) + "\n"
+
+
+def exportar_csv(preguntas):
+    """CSV con «;» (pregunta; A…G; correcta; motivación; consejo) que se abre en Excel
+    y que «Importar preguntas» también entiende."""
+    salida = io.StringIO()
+    w = csv.writer(salida, delimiter=";", lineterminator="\r\n")
+    maximo = max([len(p.get("a") or []) for p in preguntas] + [datos_html.MIN_OPCIONES])
+    w.writerow(["Pregunta"] + list(LETRAS[:maximo]) + ["Correcta", "Motivación", "Consejo"])
+    for p in preguntas:
+        ops = list(p.get("a") or [])
+        ops += [""] * (maximo - len(ops))
+        correctas = ", ".join(LETRAS[i] for i in (p.get("correctas") or [p.get("c", 0)]))
+        w.writerow([p.get("q", "")] + ops + [correctas, p.get("law", ""), p.get("tip", "")])
+    return "﻿" + salida.getvalue()

@@ -169,6 +169,31 @@
         «Enunciado E1»…) y una caja para buscar por texto o número. Con Ctrl+clic o
         Mayús+clic se marcan varias: Subir, Bajar, Duplicar y Borrar (o Supr) actúan sobre
         todas a la vez, sin sacarlas de su bloque.
+    ABRIR LA CITA EN EL BOE (pestaña 4, bajo la motivación)
+        Las citas que la página convertirá en enlace («art. 12 … LGSS») salen como botones;
+        un clic abre ese artículo en boe.es. Si una cita no sale, la página tampoco la
+        enlazará: revisa las siglas en la pestaña 7.
+    SUGERIR HECHOS DEL MODO FOCO (pestaña 4, botón «✨ Sugerir»)
+        Marca los hechos del enunciado que más palabras raras (nombres, cifras, fechas)
+        comparten con la pregunta, sus opciones y su motivación. Es una sugerencia: revísala.
+    IMPUGNACIONES (Herramientas → Impugnaciones recibidas…)
+        «Descargar» lee la hoja de Google sin congelar la ventana y busca la pregunta
+        EXACTA de cada impugnación por su texto (el número que trae es el del examen
+        barajado). Doble clic abre el supuesto en esa pregunta. Marca cada una como
+        aceptada, rechazada o pendiente y añade una nota; se guarda en
+        «.impugnaciones_estado.json» (solo en tu ordenador, no se sube).
+    CALCULADORA DE PLAZOS (Herramientas → Calculadora de plazos…)
+        Días hábiles, naturales, meses o años con las reglas del art. 30 LPAC (desde el día
+        siguiente, de fecha a fecha, último día inhábil → siguiente hábil). Trae los
+        festivos nacionales y el Viernes Santo; añade los de tu comunidad (se recuerdan).
+        «Copiar la explicación» la deja lista para pegar en la motivación.
+    VOLVER A UNA VERSIÓN ANTERIOR (Archivo)
+        Al elegir una versión se ve QUÉ cambiaría (preguntas nuevas, quitadas, movidas,
+        con otra correcta o motivación…) antes de cargarla.
+    EXPORTAR PREGUNTAS (Edición → Exportar preguntas…)
+        A CSV (Excel; lo conserva todo) o a texto (para leer o imprimir). Si tienes varias
+        marcadas en la lista, pregunta si exportar solo esas. Los dos formatos se pueden
+        volver a meter con «Importar preguntas».
     UNA SOLA REVISIÓN
         Los colores de la lista de preguntas, el aviso al guardar, «Comprobar», «Publicar»
         y el validador del proyecto (validar_supuestos.py) usan las mismas reglas

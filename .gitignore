@@ -8,3 +8,4 @@ PARA_SUBIR/
 .recuperacion_*.json
 .historial/
 .vista_previa_*
+.impugnaciones_estado.json

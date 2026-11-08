@@ -5,9 +5,12 @@ PESTAÑA 4 · PREGUNTAS Y RESPUESTAS
 Parte del editor de supuestos: los métodos de esta parte de la ventana viven aquí
 y EditorApp (editor_supuestos.py) los hereda. No se ejecuta solo.
 """
+import herramientas_datos as herr
+import normas_enlaces
 import operaciones
 import revision
 import tkinter as tk
+import webbrowser
 from tkinter import messagebox, ttk
 from editor_comun import (  # noqa: F401
     C_FONDO, C_VERDE, LETRAS, MAX_OPCIONES, MIN_OPCIONES, MarcoScroll, OPCIONES_POR_DEFECTO,
@@ -148,6 +151,10 @@ class PestanaPreguntas:
         colf.pack(side="left", padx=(6, 0))
         ttk.Button(colf, text="Ninguno", width=11,
                    command=self.limpiar_factlink).pack(pady=1)
+        b_sug = ttk.Button(colf, text="✨ Sugerir", width=11, command=self.sugerir_factlink)
+        b_sug.pack(pady=1)
+        _consejo(b_sug, "Marca los hechos que más palabras raras (nombres, cifras, fechas…) comparten "
+                        "con la pregunta, sus opciones y su motivación. Revísalo: es una sugerencia.")
         self.lbl_factlink = ttk.Label(caja, text="", style="Tec.TLabel")
         self.lbl_factlink.pack(anchor="w", padx=10, pady=(2, 2))
 
@@ -232,8 +239,13 @@ class PestanaPreguntas:
                "APLICABLE», y también en la corrección completa y en el PDF."
                ).pack(anchor="w", padx=10, pady=(8, 2))
         marco, self.txt_preg_law = caja_texto(caja, alto=7)
-        marco.pack(fill="both", expand=True, padx=10, pady=(0, 6))
+        marco.pack(fill="both", expand=True, padx=10, pady=(0, 2))
         self._vigilar(self.txt_preg_law)
+        # Las citas que la página enlazará al BOE, para abrirlas y comprobarlas desde aquí.
+        self.marco_boe = ttk.Frame(caja, style="Panel.TFrame")
+        self.marco_boe.pack(fill="x", padx=10, pady=(0, 6))
+        for evento in ("<KeyRelease>", "<<TextoTocado>>"):
+            self.txt_preg_law.bind(evento, lambda e: self._boe_luego(), add="+")
 
         rotulo(caja, "Consejo o matiz práctico", "preguntas[].tip",
                '<div class="tip">  ·  <div class="ci-tip">',
@@ -242,6 +254,29 @@ class PestanaPreguntas:
         marco, self.txt_preg_tip = caja_texto(caja, alto=4)
         marco.pack(fill="x", padx=10, pady=(0, 12))
         self._vigilar(self.txt_preg_tip)
+
+    # ---------- citas al BOE de la motivación ----------
+    def _boe_luego(self):
+        if getattr(self, "_espera_boe", None):
+            self.after_cancel(self._espera_boe)
+        self._espera_boe = self.after(600, self._pintar_boe)
+
+    def _pintar_boe(self):
+        self._espera_boe = None
+        for w in self.marco_boe.winfo_children():
+            w.destroy()
+        try:
+            normas = normas_enlaces.leer()[1]
+        except OSError:
+            normas = []
+        citas = herr.enlaces_boe(sacar_texto(self.txt_preg_law), normas)
+        if not citas:
+            return
+        ttk.Label(self.marco_boe, text="⚖ Abrir en el BOE:", style="Tec.TLabel").pack(side="left")
+        for cita, _art, _sig, url in citas[:8]:
+            b = ttk.Button(self.marco_boe, text=cita, command=lambda u=url: webbrowser.open(u))
+            b.pack(side="left", padx=(4, 0))
+            _consejo(b, url)
 
     # ---------- desplegable de bloques ----------
     def refrescar_combo_bloques(self):
@@ -378,6 +413,24 @@ class PestanaPreguntas:
                  else "En modo foco se mostrarán solo: %s." % ", ".join(p["factIds"]))
         self._pintar_vinculos_bloque()
         self._tocado()
+
+    def sugerir_factlink(self):
+        """Marca los hechos que más se parecen a la pregunta (se puede corregir a mano)."""
+        p = self.pregunta_actual()
+        if p is None or not getattr(self, "_ids_factlink", None):
+            return
+        self.volcar_pregunta()
+        enun = next((e for e in self.datos["enunciados"] if e["id"] == p.get("statementId")), None)
+        sugeridos = herr.sugerir_hechos(p, enun)
+        if not sugeridos:
+            self.estado("No veo ningún hecho claramente relacionado con esta pregunta.")
+            return
+        p["factIds"] = [ident for ident, _peso, _pal in sugeridos]
+        self.refrescar_lista_factlink()
+        self._pintar_vinculos_bloque()
+        self._tocado()
+        self.estado("Sugeridos: " + "; ".join("%s (por «%s»)" % (i, ", ".join(pal[:3]))
+                                               for i, _peso, pal in sugeridos))
 
     def limpiar_factlink(self):
         """Quita todos los vínculos de la pregunta actual."""
@@ -589,6 +642,7 @@ class PestanaPreguntas:
         self.var_preg_respuestas.set(self._etiquetas_preg_resp[pos])
 
         poner_texto(self.txt_preg_law, "" if p is None else p["law"])
+        self._pintar_boe()
         poner_texto(self.txt_preg_tip, "" if p is None else p["tip"])
         self._pintar_correctas()
         self._sincronizar_combo_bloque()

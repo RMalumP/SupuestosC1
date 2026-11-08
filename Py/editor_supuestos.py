@@ -236,6 +236,8 @@ class EditorApp(PestanaGeneral,
                             command=lambda: ventana_extra.nueva_de_plantilla(self))
         edicion.add_command(label="Copiar preguntas de otro supuesto…",
                             command=lambda: ventana_extra.copiar_de_otro(self))
+        edicion.add_command(label="Exportar preguntas (CSV o texto)…",
+                            command=lambda: ventana_extra.exportar_preguntas(self))
         edicion.add_command(label="Vista previa de la pregunta", accelerator="F6",
                             command=lambda: ventana_extra.vista_previa(self))
         edicion.add_separator()
@@ -248,6 +250,7 @@ class EditorApp(PestanaGeneral,
         herram.add_command(label="Estadísticas del supuesto…", command=lambda: ventana_extra.estadisticas(self))
         herram.add_command(label="Preguntas repetidas…", command=lambda: ventana_extra.repetidas(self))
         herram.add_command(label="Impugnaciones recibidas…", command=lambda: ventana_extra.impugnaciones(self))
+        herram.add_command(label="Calculadora de plazos…", command=lambda: ventana_extra.calculadora_plazos(self))
         herram.add_separator()
         herram.add_command(label="Publicar (comprobar, versión y subir)…",
                            command=lambda: ventana_extra.publicar_todo(self))

@@ -675,6 +675,86 @@ class ListaDePreguntas(unittest.TestCase):
         self.assertIn("Bloque B1", op.opciones_de_filtro(d))
 
 
+class FuncionesNuevas(unittest.TestCase):
+    """F4–F9: BOE, impugnaciones, plazos, sugerir hechos, comparar versiones, exportar."""
+
+    def test_f4_citas_al_boe_como_la_pagina(self):
+        normas = [{"siglas": ["LGSS", "TRLGSS"], "boe": "BOE-A-2015-11724"}, {"siglas": ["LPAC"], "boe": "BOE-A-2015-10565"}]
+        citas = hd.enlaces_boe("Según el <b>art. 12</b> de la LGSS y el artículo 21 LPAC; art. 3 sin norma.", normas)
+        self.assertEqual([c[0] for c in citas], ["art. 12 LGSS", "art. 21 LPAC"])
+        self.assertTrue(citas[0][3].endswith("id=BOE-A-2015-11724#a12"))
+
+    def test_f5_impugnacion_va_a_la_pregunta_exacta_y_guarda_su_estado(self):
+        import impugnaciones_datos as imp
+        d = datos_html.datos_vacios()
+        d["config"]["titulo"] = "Tema 3"
+        d["preguntas"] = [datos_html.pregunta_vacia(None, "B1") for _ in range(3)]
+        for i, t in enumerate(["¿Plazo para el alta?", "¿Quién paga la <b>cuota</b>?", "¿Cuándo prescribe?"]):
+            d["preguntas"][i]["q"] = t
+        sup = [(Path("supuestos/supuesto_tema3.html"), d)]
+        fila = {"supuesto": "Tema 3", "pegunta": "7. ¿Quién paga la cuota? ‖ El trabajador ‖ La empresa",
+                "impugnacion del usuario": "La b también vale", "id": "abc123"}
+        ruta, n, parecido = imp.localizar(fila, sup)
+        self.assertEqual((ruta.name, n, parecido), ("supuesto_tema3.html", 1, 1.0))
+        self.assertEqual(imp.clave(fila), "abc123")
+        with tempfile.TemporaryDirectory() as c:
+            est = imp.leer_estados(c)
+            imp.poner_estado(c, est, "abc123", estado="aceptada", nota="corregida la b")
+            otra = imp.leer_estados(c)
+            self.assertEqual(imp.estado_de(otra, "abc123"), "aceptada")
+            self.assertEqual(otra["abc123"]["nota"], "corregida la b")
+            self.assertEqual(imp.resumen([fila], otra)["aceptada"], 1)
+
+    def test_f6_plazos(self):
+        import plazos
+        from datetime import date
+        cal = plazos.Calendario()
+        # 10 hábiles desde el lunes 30/3/2026: se saltan Viernes Santo y dos fines de semana
+        self.assertEqual(plazos.calcular(date(2026, 3, 30), 10, "días hábiles", cal)[0], date(2026, 4, 14))
+        # 1 mes desde el 31/1: no hay 31 de febrero → 28/2 (sábado) → lunes 2/3
+        self.assertEqual(plazos.calcular(date(2026, 1, 31), 1, "meses", cal)[0], date(2026, 3, 2))
+        # naturales que acaban en festivo nacional (8/12) → día siguiente hábil
+        self.assertEqual(plazos.calcular(date(2026, 11, 28), 10, "días naturales", cal)[0], date(2026, 12, 9))
+        local = plazos.Calendario(plazos.leer_festivos("09/12/2026 fiesta local"))
+        self.assertEqual(plazos.calcular(date(2026, 11, 28), 10, "días naturales", local)[0], date(2026, 12, 10))
+        self.assertEqual(plazos.pascua(2027), date(2027, 3, 28))
+
+    def test_f7_sugerir_hechos(self):
+        e = datos_html.enunciado_vacio("E1")
+        e["factBlocks"] = [dict(datos_html.bloque_hechos_vacio("H1"), title="Contrato",
+                                paragraphs=["Marta firma un contrato temporal con Construcciones Ruiz el 3 de marzo."]),
+                           dict(datos_html.bloque_hechos_vacio("H2"), title="Baja",
+                                paragraphs=["Marta sufre un accidente laboral y causa baja médica en junio."])]
+        p = datos_html.pregunta_vacia("E1", "B1")
+        p["q"] = "¿Qué prestación corresponde a Marta por el accidente laboral de junio?"
+        self.assertEqual(hd.sugerir_hechos(p, e)[0][0], "H2")
+
+    def test_f8_comparar_versiones(self):
+        a = datos_html.datos_vacios()
+        a["preguntas"] = [datos_html.pregunta_vacia(None, "B1") for _ in range(2)]
+        a["preguntas"][0]["q"], a["preguntas"][1]["q"] = "Uno", "Dos"
+        b = json.loads(json.dumps(a))
+        b["preguntas"][1]["law"] = "art. 5"
+        b["preguntas"].append(dict(b["preguntas"][0], q="Tres"))
+        cambios = hd.comparar_versiones(a, b)
+        self.assertTrue(any("Pregunta 2" in c and "motivación" in c for c in cambios))
+        self.assertTrue(any("Pregunta 3: nueva" in c for c in cambios))
+        self.assertEqual(hd.comparar_versiones(a, a), [])
+
+    def test_f9_exportar_y_volver_a_importar(self):
+        ps = [datos_html.pregunta_vacia(None, "B1") for _ in range(2)]
+        ps[0].update(q="¿Plazo?", a=["10 días", "15 días", "1 mes"], correctas=[1], law="art. 21\nLPAC", tip="ojo")
+        ps[1].update(q="¿Varias?", a=["x", "y", "z", "w"], correctas=[0, 2], multiple=True, law="", tip="")
+        de_texto, avisos = hd.importar_texto(hd.exportar_texto(ps), "B1")
+        self.assertEqual(avisos, [])
+        de_csv, _ = hd.importar_csv(hd.exportar_csv(ps), "B1")
+        for vuelta in (de_texto, de_csv):
+            self.assertEqual([p["q"] for p in vuelta], ["¿Plazo?", "¿Varias?"])
+            self.assertEqual([p["a"] for p in vuelta], [ps[0]["a"], ps[1]["a"]])
+            self.assertEqual([p["correctas"] for p in vuelta], [[1], [0, 2]])
+            self.assertEqual(vuelta[0]["law"], "art. 21\nLPAC")
+
+
 class Fase1Fallos(unittest.TestCase):
     """Fallos que cambiaban o perdían datos sin avisar (revisión del editor, fase 1)."""
 
