@@ -48,14 +48,20 @@ jobs:
           node-version: 22
 
       - name: Instalar Playwright
-        run: npm install
+        id: pw
+        run: |
+          npm install
+          echo "version=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_OUTPUT"
 
+      # La clave lleva la versión instalada de Playwright, no solo package.json: con «^1.50.0»
+      # npm puede instalar una versión nueva que pide otro navegador, y una caché vieja
+      # daba «Executable doesn't exist» en todos los trabajos.
       - name: Guardar en caché el navegador de pruebas
         id: cache-pw
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('package.json') }}
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
 
       # Con la caché no hace falta `install-deps`: el runner ya trae las librerías que
       # necesita Chromium, y ese paso hace apt-get update y descarga fuentes (un run

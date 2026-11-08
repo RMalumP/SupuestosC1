@@ -97,7 +97,7 @@ body::before { display: none; }
         border-top: 1px solid rgba(var(--navy-rgb), 0.12);
     }
     .btn-zone .btn { flex: 1 1 40%; padding: 11px 8px; font-size: 0.68rem; text-align: center; letter-spacing: 0.08em; }
-    #check-btn, #print-btn, #restart-btn, #send-btn, #home-btn-bottom { flex: 1 1 100%; padding: 9px; font-size: 0.62rem; }
+    #print-btn, #restart-btn, #send-btn, #home-btn-bottom { flex: 1 1 100%; padding: 6px 10px; font-size: 0.88rem; }
 
     #timer { right: 8px; top: calc(var(--nav-h, 64px) + 6px); padding: 5px 10px; min-width: 0; font-size: 1.05rem; opacity: 0.95; box-shadow: 0 4px 14px rgba(0,0,0,0.25); }
     #timer .timer-label { display: none; }
@@ -190,11 +190,10 @@ body.intento-parcial #send-btn { display: none !important; }
 :root[data-tema="oscuro"] .option.wrong { background: rgba(200, 70, 70, .2); color: #fca5a5; border-color: #c84646; }
 :root[data-tema="oscuro"] .fact-block { background: rgba(255,255,255,.05); color: var(--t-ink); }
 :root[data-tema="oscuro"] .btn-marcar.on { background: #5b3d0a; color: #fde68a; }
-:root[data-tema="oscuro"] .btn { }
 :root[data-tema="oscuro"] .btn-primary { background: var(--navy-mid); border-color: var(--navy-mid); }
 :root[data-tema="oscuro"] .question-card::before { background: linear-gradient(90deg, var(--gold), var(--navy-mid)) !important; }
 :root[data-tema="oscuro"] .q-header { border-bottom-color: var(--t-line); }
-@media (min-width: 0) { :root[data-tema="oscuro"] .supc1-modal-caja { border-top-color: var(--gold); } }
+:root[data-tema="oscuro"] .supc1-modal-caja { border-top-color: var(--gold); }
 
 /* Tipografía · Public Sans en los textos (la barra superior y el cronómetro no cambian) */
 :root { --f-ui: 'Public Sans', 'Segoe UI', Helvetica, Arial, sans-serif; }
@@ -253,4 +252,143 @@ html, body { overscroll-behavior-x: none; }
     .q-header .q-tag { grid-area: t; margin-bottom: 0; }
     .q-header .q-acciones { grid-area: a; margin-left: 0; }
     .q-header .q-text { grid-area: x; }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   MÓVIL (motor 10) · revisión de la interfaz en iPhone SE y Pixel 7
+   ────────────────────────────────────────────────────────────────
+   · Barra superior en dos filas: 🏠, contador «4/15 · 5 resp.», reloj y ⚙
+     arriba; las casillas de las preguntas debajo, a todo el ancho.
+     El reloj ya no flota encima del texto (el motor lo mete en la barra).
+   · Barra inferior en UNA fila: ← · Corregir · →. Tras corregir:
+     ← · «⋯ Más» · →, y el resto de acciones sale en una hoja desde abajo.
+   · Letra mínima de 12 px y zonas táctiles de 44 px.
+   · Cabecera del supuesto más compacta, progreso fijo bajo la barra y
+     justificado con partición de palabras.
+════════════════════════════════════════════════════════════════ */
+@media (max-width: 600px) {
+    /* ── Barra superior ── */
+    #nav-header {
+        display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto auto;
+        grid-template-areas: "casa cont reloj plegar ajustes" "casillas casillas casillas casillas casillas";
+        align-items: center; gap: 6px 6px; padding: 6px 8px 8px;
+    }
+    #nav-boxes   { grid-area: casillas; }
+    #home-btn-top { grid-area: casa; }
+    #nav-contador { grid-area: cont; }
+    #nav-header #timer { grid-area: reloj; }
+    #fold-btn    { grid-area: plegar; }
+    .settings-wrap { grid-area: ajustes; margin-left: 0; }
+
+    .home-btn, #settings-toggle { width: 44px; height: 44px; font-size: 1.15rem; }
+    #settings-panel { top: 50px; }
+
+    #nav-contador {
+        display: flex; align-items: baseline; gap: 6px; min-width: 0; padding-left: 4px;
+        font-family: 'JetBrains Mono', monospace; color: var(--cream); white-space: nowrap; overflow: hidden;
+    }
+    #nav-actual { font-size: 0.95rem; font-weight: 700; color: var(--gold); }
+    #nav-respondidas { font-size: 0.75rem; color: rgba(255,255,255,0.75); overflow: hidden; text-overflow: ellipsis; }
+
+    /* El reloj, dentro de la barra */
+    #nav-header #timer {
+        position: static; height: 44px; min-width: 0; padding: 0 10px; font-size: 1.05rem;
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: none; border-width: 1.5px; opacity: 1;
+    }
+    #nav-header #timer .timer-label { display: none; }
+
+    /* Casillas: 44 px, rótulo del bloque solo si hay más de uno, y un
+       degradado en el borde cuando hay más casillas fuera de la vista */
+    .nav-box { width: 44px; height: 44px; font-size: 0.85rem; }
+    .nav-row { gap: 6px; }
+    .nav-row + .nav-row { padding-top: 6px; }
+    body.un-bloque .nav-group-label { display: none; }
+    .nav-group-label { flex-basis: 64px; font-size: 0.68rem; letter-spacing: 0.04em; }
+    .nav-row-boxes { padding: 2px 0; }
+    .nav-row-boxes.desborda-dcha { -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent); mask-image: linear-gradient(90deg, #000 85%, transparent); }
+    .nav-row-boxes.desborda-izda { -webkit-mask-image: linear-gradient(90deg, transparent, #000 15%); mask-image: linear-gradient(90deg, transparent, #000 15%); }
+    .nav-row-boxes.desborda-izda.desborda-dcha { -webkit-mask-image: linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent); mask-image: linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent); }
+
+    /* ── Progreso siempre a la vista, pegado bajo la barra superior ── */
+    .progress-bar-wrap {
+        position: sticky; top: var(--nav-h, 100px); z-index: 5;
+        height: 4px; margin: 0 -6px 14px; border-radius: 0; background: rgba(var(--navy-rgb), 0.12);
+    }
+
+    /* ── Cabecera del supuesto, compacta ── */
+    .container { padding: 10px 6px 92px; }
+    .inst-header { padding: 14px 14px 12px; }
+    .inst-header .logo-img { max-height: 28px; margin-bottom: 4px; }
+    .inst-header .organismo { font-size: 0.72rem; letter-spacing: 0.08em; padding-top: 4px; }
+    .inst-header h1 { font-size: 1.05rem; margin: 6px 0 0; }
+    .inst-header .meta-strip { gap: 4px; margin-top: 8px; }
+    .meta-pill { font-size: 0.75rem; padding: 3px 9px; letter-spacing: 0.02em; }
+    .exp-number { width: 40px; height: 40px; font-size: 1.1rem; }
+    .statement-header { margin-bottom: 18px; padding-bottom: 14px; }
+
+    /* ── Letra mínima de 12 px ── */
+    .q-tag, .block-header .bh-tipo, .block-header .bh-datos, .fact-block .fact-title, .tl-item .tl-date,
+    .feedback-header span, .multi-aviso, .score-lbl, .marcador-linea .ml-recuento { font-size: 0.75rem; letter-spacing: 0.06em; }
+    .score-big, .marcador-linea .ml-puntos { font-size: 2.4rem; }
+    .marcador-linea { padding: 16px 14px; margin-bottom: 16px; }
+
+    /* ── Justificado con partición de palabras (sin huecos grandes) ── */
+    .fact-block p, .statement p, .q-text, .option > span:last-child, .feedback-body p, .feedback-body .tip, .al-j {
+        -webkit-hyphens: auto; hyphens: auto;
+    }
+
+    /* ── Marcar, nota y corazón: solo icono, 44 px ── */
+    .q-acciones { gap: 8px; }
+    .btn-marcar, .btn-nota { width: 44px; height: 44px; padding: 0; justify-content: center; font-size: 1.1rem; }
+    .btn-marcar span, .btn-nota span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .btn-marcar i, .btn-nota i { opacity: .8; }
+    .btn-corazon { width: 44px; height: 44px; top: 4px; right: 4px; font-size: 1.2rem; }
+    .question-card .q-header { padding-right: 40px; }
+
+    /* ── Barra inferior en una fila ── */
+    .btn-zone { flex-wrap: wrap; gap: 8px; padding: 8px 8px calc(8px + env(safe-area-inset-bottom)); }
+    /* Letra de interfaz (no monoespaciada) y sin mayúsculas forzadas: así
+       «Siguiente →» cabe en una línea también en un iPhone SE */
+    .btn-zone .btn, .ov-botones .btn {
+        min-height: 48px; padding: 6px 8px; font-family: var(--f-ui); font-size: 0.88rem; font-weight: 700;
+        text-transform: none; letter-spacing: 0; white-space: normal; line-height: 1.2;
+        align-items: center; justify-content: center; text-align: center;
+    }
+    #prev-btn { order: 1; flex: 1 1 0; }
+    #check-btn { order: 2; flex: 1.3 1 0; padding: 6px 10px; }
+    #more-btn { order: 2; flex: 1 1 0; }
+    #next-btn { order: 3; flex: 1 1 0; }
+    body.corregido #more-btn { display: inline-flex; }
+
+    /* Tras corregir, las demás acciones esperan en la hoja «Más…» */
+    body.corregido:not(.mas-abierto) .btn-zone #print-btn,
+    body.corregido:not(.mas-abierto) .btn-zone #restart-btn,
+    body.corregido:not(.mas-abierto) .btn-zone #send-btn,
+    body.corregido:not(.mas-abierto) .btn-zone #home-btn-bottom,
+    body.corregido:not(.mas-abierto) .btn-zone .btn-extra { display: none !important; }
+    /* La sombra enorme oscurece el resto de la página sin taparla para los toques
+       (tocar fuera cierra la hoja) */
+    body.mas-abierto .btn-zone {
+        border-top-left-radius: 18px; border-top-right-radius: 18px; padding-top: 14px;
+        box-shadow: 0 0 0 100vmax rgba(29,21,17,0.45), 0 -12px 40px rgba(0,0,0,0.3);
+    }
+    body.mas-abierto .btn-zone #print-btn,
+    body.mas-abierto .btn-zone #restart-btn,
+    body.mas-abierto .btn-zone #send-btn,
+    body.mas-abierto .btn-zone #home-btn-bottom,
+    body.mas-abierto .btn-zone .btn-extra { order: 0; flex: 1 1 100%; }
+
+    /* ── Ventana de tiempo agotado: nada cortado y el resultado primero ── */
+    #overlay { padding: 60px 14px 24px; }
+    #overlay-close { top: 10px; right: 10px; width: 44px; height: 44px; }
+    #gremlin-svg { width: 140px; height: 128px; }
+    #overlay h1 { font-size: 1.6rem; }
+    #overlay .sub { font-size: 0.9rem; margin-bottom: 16px; }
+    .ov-botones { gap: 8px; }
+    .ov-botones .btn { flex: 1 1 45%; }
+    .ov-botones #ov-corr-btn { flex-basis: 100%; }
+}
+@media (max-width: 360px) {
+    .btn-zone .btn { font-size: 0.8rem; padding: 6px 4px; }
 }

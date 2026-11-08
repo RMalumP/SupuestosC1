@@ -32,7 +32,23 @@
         if (f && f !== 'normal') d.setAttribute('data-fuente', f); else d.removeAttribute('data-fuente');
         S.set('fuente', f || 'normal');
     };
-    if (S.get('tema', 'claro') === 'oscuro') d.setAttribute('data-tema', 'oscuro');
+    // Sin elección propia se sigue el tema del sistema (claro u oscuro) y se
+    // cambia con él; en cuanto la persona elige uno en la app, manda el suyo.
+    var sistema = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+    S.temaElegido = function () { return S.get('tema', null) !== null; };
+    function aplicarTema() {
+        var t = S.get('tema', null);
+        var oscuro = t === 'oscuro' || (t === null && !!(sistema && sistema.matches));
+        if (oscuro) d.setAttribute('data-tema', 'oscuro'); else d.removeAttribute('data-tema');
+        var m = document.querySelector('meta[name="theme-color"]');
+        if (m) m.setAttribute('content', oscuro ? '#1d1511' : '#3d2a20');
+        return oscuro;
+    }
+    aplicarTema();
+    if (sistema) {
+        var cambio = function () { if (!S.temaElegido()) aplicarTema(); };
+        if (sistema.addEventListener) sistema.addEventListener('change', cambio); else if (sistema.addListener) sistema.addListener(cambio);
+    }
     var f = S.get('fuente', 'normal');
     if (f !== 'normal') d.setAttribute('data-fuente', f);
 })();
