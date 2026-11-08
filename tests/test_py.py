@@ -498,7 +498,7 @@ class GitSync(unittest.TestCase):
         _g(self.a, "checkout", "-q", "-b", "otra")
         (self.a / "supuestos" / "a.html").write_text("v2", encoding="utf-8")
         gs.subir(self.a, ["supuestos/a.html"], "directo", "principal")
-        self.assertEqual(gs.rama_actual(self.a), "main")
+        self.assertEqual(gs.rama_actual(self.a), "otra")              # no te cambia de rama
         self.assertEqual(gs.rama_principal(self.a), "main")
         _g(self.t, "clone", "-q", "remoto.git", "dos")
         self.assertEqual((self.t / "dos" / "supuestos" / "a.html").read_text(encoding="utf-8"), "v2")
@@ -517,6 +517,59 @@ class GitSync(unittest.TestCase):
             gs.subir(self.a, [], "x", "dia")
         with self.assertRaises(gs.ErrorGit):
             gs.subir(self.a, ["supuestos/a.html"], "  ", "dia")
+
+    def _otro_clon(self):
+        _g(self.t, "clone", "-q", "remoto.git", "dos")
+        dos = self.t / "dos"
+        for k, v in (("user.name", "Otro"), ("user.email", "o@o.o")):
+            _g(dos, "config", k, v)
+        return dos
+
+    def _en_remoto(self, rama, ruta):
+        r = subprocess.run(["git", "-C", str(self.t / "remoto.git"), "show", "%s:%s" % (rama, ruta)],
+                           capture_output=True, text=True)
+        return r.stdout if r.returncode == 0 else None
+
+    def test_rama_del_dia_sale_de_lo_ultimo_de_github_y_no_pisa(self):
+        from datetime import date
+        hoy = date(2026, 11, 8)
+        dos = self._otro_clon()
+        (dos / "supuestos" / "c.html").write_text("de otro", encoding="utf-8")
+        _g(dos, "add", "-A")
+        _g(dos, "commit", "-q", "-m", "otro archivo")
+        _g(dos, "push", "-q")
+        (self.a / "supuestos" / "a.html").write_text("mío", encoding="utf-8")
+        gs.subir(self.a, ["supuestos/a.html"], "mío", "dia", hoy=hoy)
+        rama = gs.nombre_rama_dia(hoy)
+        self.assertEqual(self._en_remoto(rama, "supuestos/a.html"), "mío")
+        self.assertEqual(self._en_remoto(rama, "supuestos/c.html"), "de otro")   # no se deshace lo de otro
+        self.assertEqual(gs.rama_actual(self.a), "main")
+        self.assertEqual(gs.ya_subidos(self.a, ["supuestos/a.html"], "origin/" + rama), {"supuestos/a.html"})
+        # Un archivo que también cambió en GitHub: se para sin tocar nada.
+        (dos / "supuestos" / "a.html").write_text("web", encoding="utf-8")
+        _g(dos, "commit", "-q", "-am", "web")
+        _g(dos, "push", "-q")
+        with self.assertRaises(gs.ErrorGit):
+            gs.subir(self.a, ["supuestos/a.html"], "otra vez", "principal")
+        self.assertEqual(self._en_remoto("main", "supuestos/a.html"), "web")
+
+    def test_traer_tras_fusionar_la_rama_del_dia(self):
+        from datetime import date
+        (self.a / "supuestos" / "a.html").write_text("mío", encoding="utf-8")
+        (self.a / "supuestos" / "sin_subir.html").write_text("local", encoding="utf-8")
+        gs.subir(self.a, ["supuestos/a.html"], "mío", "dia", hoy=date(2026, 11, 8))
+        dos = self._otro_clon()                       # «fusionar en GitHub»
+        _g(dos, "merge", "-q", "--ff-only", "origin/" + gs.nombre_rama_dia(date(2026, 11, 8)))
+        _g(dos, "push", "-q")
+        self.assertIn("Traído", gs.traer(self.a))     # antes: «your local changes would be overwritten»
+        self.assertEqual(gs.estado(self.a), (["supuestos/sin_subir.html"], [], []))
+
+    def test_volver_a_la_principal(self):
+        _g(self.a, "checkout", "-q", "-b", "editor-2026-01-01")
+        (self.a / "supuestos" / "a.html").write_text("sin subir", encoding="utf-8")
+        self.assertIn("principal", gs.volver_a_principal(self.a))
+        self.assertEqual(gs.rama_actual(self.a), "main")
+        self.assertEqual((self.a / "supuestos" / "a.html").read_text(encoding="utf-8"), "sin subir")
 
     def test_buscar_git_dentro_de_github_desktop(self):
         with tempfile.TemporaryDirectory() as c:

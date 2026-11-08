@@ -177,27 +177,20 @@ class EditorApp(PestanaGeneral,
         barra = ttk.Frame(self)
         barra.pack(fill="x", padx=10, pady=(10, 0))
 
-        ttk.Button(barra, text="📂  Abrir plantilla…", command=self.abrir,
-                   style="Accion.TButton").pack(side="left")
-        ttk.Button(barra, text="🆕  Nuevo supuesto", command=self.nuevo).pack(side="left", padx=(6, 0))
-        ttk.Separator(barra, orient="vertical").pack(side="left", fill="y", padx=10)
+        # Solo lo de cada día; lo demás está en los menús (Archivo, Herramientas).
+        ttk.Button(barra, text="📂  Abrir…", command=self.abrir).pack(side="left")
         ttk.Button(barra, text="💾  Guardar", command=self.guardar,
-                   style="Accion.TButton").pack(side="left")
-        ttk.Button(barra, text="💾  Guardar como…", command=self.guardar_como).pack(side="left", padx=(6, 0))
+                   style="Accion.TButton").pack(side="left", padx=(6, 0))
         ttk.Separator(barra, orient="vertical").pack(side="left", fill="y", padx=10)
-        ttk.Button(barra, text="🌐  Ver en el navegador", command=self.ver_navegador).pack(side="left")
+        ttk.Button(barra, text="🌐  Ver", command=self.ver_navegador).pack(side="left")
         ttk.Button(barra, text="✔  Comprobar", command=self.comprobar).pack(side="left", padx=(6, 0))
         ttk.Separator(barra, orient="vertical").pack(side="left", fill="y", padx=10)
-        ttk.Button(barra, text="🗂  Menú de inicio…",
-                   command=lambda: ventana_menu.abrir(self)).pack(side="left", padx=(0, 6))
-        ttk.Button(barra, text="📦  Para subir…",
-                   command=lambda: ventana_subir.abrir(self)).pack(side="left")
-        ttk.Button(barra, text="☁  Sincronizar",
-                   command=lambda: ventana_sync.abrir(self)).pack(side="left", padx=(6, 0))
+        ttk.Button(barra, text="☁  Publicar…", style="Accion.TButton",
+                   command=lambda: ventana_extra.publicar_todo(self)).pack(side="left")
 
         self.lbl_archivo = ttk.Label(barra, text="(ningún archivo abierto)",
-                                     style="Tec.TLabel")
-        self.lbl_archivo.pack(side="right")
+                                     style="Tec.TLabel", anchor="e")
+        self.lbl_archivo.pack(side="right", fill="x", expand=True, padx=(10, 0))
 
     # ─────────────────────────────────────────────────────────────
     #  Menús, deshacer/rehacer y autoguardado
@@ -245,11 +238,11 @@ class EditorApp(PestanaGeneral,
         herram.add_command(label="Preguntas repetidas…", command=lambda: ventana_extra.repetidas(self))
         herram.add_command(label="Impugnaciones recibidas…", command=lambda: ventana_extra.impugnaciones(self))
         herram.add_separator()
-        herram.add_command(label="Publicar todo (comprobar, versión, sincronizar)…",
+        herram.add_command(label="Publicar (comprobar, versión y subir)…",
                            command=lambda: ventana_extra.publicar_todo(self))
         herram.add_command(label="Menú de inicio…", command=lambda: ventana_menu.abrir(self))
         herram.add_command(label="Para subir a GitHub…", command=lambda: ventana_subir.abrir(self))
-        herram.add_command(label="Sincronizar con GitHub (git)…", accelerator="Ctrl+Mayús+U",
+        herram.add_command(label="Subir a GitHub sin cambiar la versión (git)…", accelerator="Ctrl+Mayús+U",
                            command=lambda: ventana_sync.abrir(self))
         barra.add_cascade(label="Herramientas", menu=herram)
         ver = tk.Menu(barra, tearoff=False, postcommand=lambda: (
@@ -278,27 +271,24 @@ class EditorApp(PestanaGeneral,
             self._menu_recientes.add_command(label="(ninguno todavía)", state="disabled")
 
     def _avisar_si_hay_cambios_en_github(self):
-        """Al arrancar, mira en segundo plano si GitHub tiene cambios que aún no tienes."""
-        import threading
+        """Al arrancar, mira en segundo plano si GitHub tiene cambios que aún no tienes
+        y si estás en una rama que no es la principal."""
         raiz = sincronizar_local.RAIZ_DEFECTO
         if not (git_sync.hay_git() and git_sync.es_clon(raiz)):
             return
-        resultado = {}
 
-        def mirar():
-            resultado["n"] = git_sync.commits_atras(raiz)
+        def avisar(sit):
+            if not sit:
+                return
+            if sit["rama"] != sit["principal"]:
+                self.estado("Estás en la rama «%s», no en la principal «%s»: ☁ Publicar → «Volver a la principal»."
+                            % (sit["rama"], sit["principal"]))
+            elif sit["atras"]:
+                self.estado("GitHub tiene %d cambio(s) nuevo(s) que no tienes: ☁ Publicar → «Traer lo último»."
+                            % sit["atras"])
 
-        hilo = threading.Thread(target=mirar, daemon=True)
-        hilo.start()
-
-        def esperar(intentos=0):
-            if hilo.is_alive() and intentos < 40:
-                self.after(500, esperar, intentos + 1)
-            elif resultado.get("n"):
-                self.estado("GitHub tiene %d cambio(s) nuevo(s) que no tienes: ☁ Sincronizar → «Traer lo último»."
-                            % resultado["n"])
-
-        esperar()
+        segundo_plano.lanzar(self, lambda: git_sync.situacion(raiz), avisar, al_fallar=lambda _e: None,
+                             cada_ms=500)
 
     def _mirar_disco(self, _evento=None):
         """Al volver a la ventana: si el archivo abierto cambió fuera, se recarga

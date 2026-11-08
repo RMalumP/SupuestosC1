@@ -11,6 +11,12 @@ Destinos de la subida:
     "principal"  directamente la rama principal del repositorio
 
 El editor nunca ve la contraseña ni el token: los gestiona git.
+
+Cómo sube sin cambiarte de rama: prepara el commit en un índice aparte, encima de
+lo último de GitHub (origin/<rama>), con SOLO los archivos marcados, y lo sube.
+Tu carpeta y tu rama no se tocan, así que no hay que «volver a la principal»
+ni se arrastran cambios de otros días. Si un archivo que subes también ha
+cambiado en GitHub, se para y pide traer lo último primero (nunca pisa nada).
 """
 import glob
 import os
@@ -18,6 +24,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 from datetime import date
 from pathlib import Path
 
@@ -89,11 +96,12 @@ SIN_GIT = ("No encuentro git en este ordenador (ni en el PATH ni dentro de GitHu
            "Para usar este botón instala git desde git-scm.com y reinicia el editor.")
 
 
-def _git(raiz, *args, permitir_fallo=False):
-    env = dict(os.environ, GIT_TERMINAL_PROMPT="0", LC_ALL="C", LANGUAGE="C")
+def _git(raiz, *args, permitir_fallo=False, env_extra=None, entrada=None):
+    env = dict(os.environ, GIT_TERMINAL_PROMPT="0", LC_ALL="C", LANGUAGE="C", **(env_extra or {}))
     try:
         r = subprocess.run([_exe(), "-C", str(raiz), *args], capture_output=True, text=True,
-                           encoding="utf-8", errors="replace", env=env, timeout=180)
+                           encoding="utf-8", errors="replace", env=env, timeout=180,
+                           input=entrada)
     except FileNotFoundError:
         raise ErrorGit(SIN_GIT)
     except subprocess.TimeoutExpired:
@@ -209,14 +217,61 @@ def estado(raiz):
     return sorted(nuevos), sorted(modif), sorted(borrados)
 
 
+def _sucio(raiz):
+    _, out = _git(raiz, "status", "--porcelain", "-uall")
+    return bool(out.strip())
+
+
+def _con_cambios_apartados(raiz, accion):
+    """Aparta tus cambios (stash), hace `accion` y los vuelve a poner. Así traer lo
+    último no choca con lo que ya subiste a la rama del día y GitHub fusionó."""
+    apartado = _sucio(raiz)
+    if apartado:
+        _git(raiz, "stash", "push", "-q", "-u", "-m", "editor: cambios apartados al traer")
+    try:
+        resultado = accion()
+    except ErrorGit:
+        if apartado:
+            _git(raiz, "stash", "pop", "-q", permitir_fallo=True)
+        raise
+    if apartado:
+        rc, out = _git(raiz, "stash", "pop", "-q", permitir_fallo=True)
+        if rc != 0:
+            raise ErrorGit("Se ha traído lo último, pero algunos cambios tuyos chocan con los de GitHub "
+                           "en el mismo sitio. Tus cambios NO se han perdido: están en «git stash». "
+                           "Pide ayuda antes de seguir.\n\n(git dijo: %s)" % out.strip()[-200:])
+    return resultado
+
+
 def traer(raiz):
-    """Trae lo último de GitHub a la rama actual sin mezclar nada raro. Devuelve un texto."""
+    """Trae lo último de GitHub a la rama actual sin perder tus cambios. Devuelve un texto."""
     _git(raiz, "fetch", "--prune", "origin")
     rc, _ = _git(raiz, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}", permitir_fallo=True)
     if rc != 0:
         return "Esta rama aún no existe en GitHub: no hay nada que traer."
-    _, out = _git(raiz, "pull", "--ff-only")
-    return "Al día con GitHub." if "up to date" in out.lower() else "Traído lo último de GitHub."
+    rc, out = _git(raiz, "rev-list", "--count", "HEAD..@{u}", permitir_fallo=True)
+    if rc == 0 and out.strip() == "0":
+        return "Al día con GitHub."
+    _con_cambios_apartados(raiz, lambda: _git(raiz, "merge", "-q", "--ff-only", "@{u}"))
+    return "Traído lo último de GitHub (tus cambios siguen ahí)."
+
+
+def volver_a_principal(raiz):
+    """Cambia a la rama principal, al día con GitHub, conservando tus cambios sin subir."""
+    _git(raiz, "fetch", "--prune", "origin")
+    principal = rama_principal(raiz)
+    if rama_actual(raiz) == principal:
+        return traer(raiz)
+
+    def cambiar():
+        rc, _ = _git(raiz, "rev-parse", "--verify", "-q", "refs/heads/" + principal, permitir_fallo=True)
+        if rc == 0:
+            _git(raiz, "checkout", "-q", principal)
+            _git(raiz, "merge", "-q", "--ff-only", "origin/" + principal)
+        else:
+            _git(raiz, "checkout", "-q", "-b", principal, "--track", "origin/" + principal)
+    _con_cambios_apartados(raiz, cambiar)
+    return "Ahora estás en la rama principal «%s», al día con GitHub." % principal
 
 
 def commits_atras(raiz):
@@ -229,37 +284,140 @@ def commits_atras(raiz):
         return 0
 
 
+def situacion(raiz):
+    """Para el aviso al arrancar: {'rama', 'principal', 'atras'} (atras: commits de la
+    principal en GitHub que no tienes). None si no se puede saber."""
+    try:
+        _git(raiz, "fetch", "--quiet", "origin")
+        rama, principal = rama_actual(raiz), rama_principal(raiz)
+        rc, out = _git(raiz, "rev-list", "--count", "HEAD..origin/" + principal, permitir_fallo=True)
+        atras = int(out.strip()) if rc == 0 and out.strip().isdigit() else 0
+        return {"rama": rama, "principal": principal, "atras": atras}
+    except ErrorGit:
+        return None
+
+
 def _enlace(raiz, rama):
     rc, url = _git(raiz, "remote", "get-url", "origin", permitir_fallo=True)
     m = re.search(r"github\.com[:/]([^/\s]+)/([^/\s]+?)(?:\.git)?$", url.strip()) if rc == 0 else None
     return "https://github.com/%s/%s/tree/%s" % (m.group(1), m.group(2), rama) if m else ""
 
 
+def _existe_ref(raiz, ref):
+    rc, out = _git(raiz, "rev-parse", "--verify", "-q", ref + "^{commit}", permitir_fallo=True)
+    return out.strip() if rc == 0 else None
+
+
+def _blobs(raiz, ref, rutas):
+    """{ruta: sha del archivo en `ref`} (las que no están, no salen)."""
+    if not rutas or not ref:
+        return {}
+    _, out = _git(raiz, "ls-tree", "-r", "-z", ref, "--", *rutas)
+    res = {}
+    for linea in out.split("\0"):
+        if "\t" in linea:
+            meta, ruta = linea.split("\t", 1)
+            res[ruta] = meta.split()[2]
+    return res
+
+
+def _blobs_carpeta(raiz, rutas):
+    """{ruta: sha del archivo tal y como está en tu carpeta} (los borrados no salen)."""
+    existen = [r for r in rutas if (Path(raiz) / r).is_file()]
+    if not existen:
+        return {}
+    _, out = _git(raiz, "hash-object", "--stdin-paths", entrada="\n".join(existen) + "\n")
+    return dict(zip(existen, out.split()))
+
+
+def referencia_destino(raiz, destino, hoy=None):
+    """Sobre qué se sube: lo último de esa rama en GitHub; si aún no existe, la rama
+    del día sale de la principal de GitHub y las demás de tu rama actual."""
+    rama = rama_destino(raiz, destino, hoy)
+    for ref in ("refs/remotes/origin/" + rama,) + (
+            ("refs/remotes/origin/" + rama_principal(raiz),) if destino == "dia" else ("HEAD",)):
+        sha = _existe_ref(raiz, ref)
+        if sha:
+            return rama, ref, sha
+    raise ErrorGit("No encuentro la rama «%s» ni en GitHub ni aquí." % rama)
+
+
+def ya_subidos(raiz, rutas, ref):
+    """Rutas que en tu carpeta están EXACTAMENTE igual que en `ref` (ya subidas allí)."""
+    if not ref or not rutas:
+        return set()
+    en_ref = _blobs(raiz, ref, rutas)
+    aqui = _blobs_carpeta(raiz, rutas)
+    return {r for r in rutas if en_ref.get(r) == aqui.get(r)}
+
+
 def subir(raiz, archivos, mensaje, destino="dia", hoy=None):
-    """Sube SOLO `archivos` (rutas relativas). Devuelve (texto, enlace). Lanza ErrorGit si falla."""
-    archivos = [a for a in archivos if not _ignorado(a)]
+    """Sube SOLO `archivos` (rutas relativas) sin cambiar de rama ni tocar tu carpeta.
+    Devuelve (texto, enlace). Lanza ErrorGit si falla."""
+    archivos = sorted({a for a in archivos if not _ignorado(a)})
     if not archivos:
         raise ErrorGit("No hay ningún archivo marcado para subir.")
     if not mensaje.strip():
         raise ErrorGit("Escribe un mensaje para describir el cambio.")
-    rama = rama_destino(raiz, destino, hoy)
-    actual = rama_actual(raiz)
-    if rama != actual:
-        rc, _ = _git(raiz, "rev-parse", "--verify", "-q", "refs/heads/" + rama, permitir_fallo=True)
-        if rc == 0:
-            _git(raiz, "checkout", rama)
-        elif destino == "principal":
-            _git(raiz, "checkout", "-b", rama, "origin/" + rama)
-        else:
-            _git(raiz, "checkout", "-b", rama)
-    _git(raiz, "reset", "-q")                                   # no arrastrar nada que no hayas marcado
-    _git(raiz, "add", "-A", "--", *archivos)
-    rc, _ = _git(raiz, "diff", "--cached", "--quiet", permitir_fallo=True)
-    if rc == 0:
+    _git(raiz, "fetch", "--prune", "origin")
+    rama, ref, padre = referencia_destino(raiz, destino, hoy)
+
+    # ¿Algún archivo ha cambiado en GitHub desde que lo bajaste? Entonces subir tu
+    # versión desharía ese cambio: mejor parar.
+    en_head = _blobs(raiz, "HEAD", archivos)
+    en_padre = _blobs(raiz, padre, archivos)
+    aqui = _blobs_carpeta(raiz, archivos)
+    chocan = [a for a in archivos
+              if en_head.get(a) != en_padre.get(a) and aqui.get(a) != en_padre.get(a)
+              and not _es_rama_del_dia_propia(raiz, rama, ref, a, en_padre)]
+    if chocan:
+        raise ErrorGit("Estos archivos han cambiado en GitHub desde que los bajaste y subir los tuyos "
+                       "desharía ese cambio:\n  · " + "\n  · ".join(chocan[:8]) +
+                       "\n\nPulsa «Traer lo último» y vuelve a subir. No se ha tocado nada.")
+
+    fd, indice = tempfile.mkstemp(prefix="editor-indice-")
+    os.close(fd)
+    os.unlink(indice)
+    entorno = {"GIT_INDEX_FILE": indice}
+    try:
+        _git(raiz, "read-tree", padre, env_extra=entorno)
+        existen = [a for a in archivos if (Path(raiz) / a).exists()]
+        faltan = [a for a in archivos if a not in existen]
+        if existen:
+            _git(raiz, "add", "-f", "--", *existen, env_extra=entorno)
+        if faltan:
+            _git(raiz, "rm", "-q", "--cached", "--ignore-unmatch", "--", *faltan, env_extra=entorno)
+        _, arbol = _git(raiz, "write-tree", env_extra=entorno)
+    finally:
+        try:
+            os.unlink(indice)
+        except OSError:
+            pass
+    _, arbol_padre = _git(raiz, "rev-parse", padre + "^{tree}")
+    if arbol.strip() == arbol_padre.strip():
         return "No había nada nuevo que subir en esos archivos.", _enlace(raiz, rama)
-    _git(raiz, "commit", "-q", "-m", mensaje.strip())
-    _git(raiz, "push", "-u", "origin", rama)
+    _, nuevo = _git(raiz, "commit-tree", arbol.strip(), "-p", padre, "-m", mensaje.strip())
+    nuevo = nuevo.strip()
+    _git(raiz, "push", "origin", "%s:refs/heads/%s" % (nuevo, rama))
+    _git(raiz, "fetch", "-q", "origin", rama, permitir_fallo=True)
+
+    # Si estás en esa misma rama y no se había movido, se pone al día sin tocar tus archivos.
+    if rama_actual(raiz) == rama and _existe_ref(raiz, "HEAD") == padre:
+        _git(raiz, "reset", "-q", nuevo)
+        if not _existe_ref(raiz, "@{u}"):
+            _git(raiz, "branch", "-q", "--set-upstream-to=origin/" + rama, permitir_fallo=True)
     return "Subido a la rama «%s» (%d archivo(s))." % (rama, len(archivos)), _enlace(raiz, rama)
+
+
+def _es_rama_del_dia_propia(raiz, rama, ref, archivo, en_padre):
+    """En la rama del día que ya existía, el archivo puede ser distinto de tu HEAD porque
+    lo subiste tú antes hoy: eso no es un choque si en la principal no ha cambiado."""
+    if not rama.startswith("editor-") or not ref.endswith("/" + rama):
+        return False
+    principal = "refs/remotes/origin/" + rama_principal(raiz)
+    if not _existe_ref(raiz, principal):
+        return False
+    return _blobs(raiz, "HEAD", [archivo]).get(archivo) == _blobs(raiz, principal, [archivo]).get(archivo)
 
 
 def mensaje_sugerido(nuevos, modif, borrados):

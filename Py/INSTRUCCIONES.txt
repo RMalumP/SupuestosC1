@@ -148,11 +148,19 @@
         ha elegido nada. (Se guarda en config.panel y config.justificar.)
 
   MÁS AYUDAS PARA TRABAJAR MÁS RÁPIDO
-    PUBLICAR TODO (Herramientas → Publicar todo…)
+    PUBLICAR (botón «☁ Publicar…» de arriba, o Herramientas → Publicar…)
         Encadena: guarda → revisa TODOS los supuestos (si hay errores graves, se para y
-        te los lista) → rehace con la plantilla actual los que tengan un motor antiguo →
-        sube el número de versión (config/version.js, v28.9 → v28.10) → abre «Sincronizar».
-        Así no se te olvida subir la versión.
+        te los lista) → te dice lo que va a hacer y PREGUNTA → rehace con la plantilla
+        actual los que tengan un motor antiguo → abre la ventana de subir. El número de
+        versión (config/version.js, v28.9 → v28.10) sube justo al pulsar «☁ Subir»; si
+        cierras sin subir, no cambia. Sin git (carpeta no clonada) prepara PARA_SUBIR.
+    LA BARRA DE ARRIBA
+        Solo lo de cada día: Abrir, Guardar, Ver, Comprobar y Publicar. Nuevo, Guardar
+        como, Menú de inicio y Para subir están en los menús Archivo y Herramientas.
+    VER › AYUDAS TÉCNICAS
+        Por defecto la ventana va compacta: sin el nombre del campo en el archivo, el HTML
+        ni la explicación larga. Deja el ratón medio segundo sobre el nombre de un campo y
+        sale en un globo. Ver → Ayudas técnicas las enseña siempre (se recuerda).
     AL GUARDAR
         Si hay errores graves (pregunta sin texto, opción vacía, sin correcta) el editor
         los lista y pregunta si guardas igualmente. Además deja una copia con fecha en
@@ -883,9 +891,19 @@
      y al aceptar, tiempo, referencia y título también se guardan DENTRO del
      supuesto para que menú y supuesto no se contradigan.
 
-  SINCRONIZAR CON GITHUB DESDE EL EDITOR  (botón «☁ Sincronizar», Ctrl+Mayús+U)
+  SUBIR A GITHUB DESDE EL EDITOR  (botón «☁ Publicar…»; sin cambiar la versión: Ctrl+Mayús+U)
      Sube los cambios a GitHub sin terminal y sin arrastrar archivos. Usa git por
-     debajo; el editor nunca ve tu contraseña ni tu token.
+     debajo; el editor nunca ve tu contraseña ni tu token. Mientras git trabaja la
+     ventana sigue respondiendo («Subiendo a GitHub…»).
+     NO TE CAMBIA DE RAMA: prepara la subida aparte, encima de lo último de GitHub, con
+     solo los archivos marcados. La rama del día sale siempre de lo último de la rama
+     principal (no arrastra cosas de otros días). Si un archivo que subes también ha
+     cambiado en GitHub, se para y te pide «Traer lo último»: nunca deshace cambios ajenos.
+     Los archivos que ya están subidos a la rama elegida salen en gris y sin marcar.
+     «Traer lo último» aparta tus cambios, trae lo de GitHub y los vuelve a poner, así que
+     funciona aunque ya hayas subido esos archivos a la rama del día y se hayan fusionado.
+     Si estás en otra rama (por ejemplo, una «editor-…» de días antiguos), el editor lo avisa
+     al arrancar y la ventana muestra «↩ Volver a la principal» (conserva lo que no has subido).
 
      PREPARACIÓN (una sola vez)
        1. Instala git (git-scm.com) o GitHub Desktop (ya lo trae).
@@ -901,7 +919,7 @@
      USO DIARIO
        1. «Traer lo último» (por si cambiaste algo desde la web o desde otro ordenador).
        2. Trabaja y guarda en el editor como siempre.
-       3. Pulsa «☁ Sincronizar». Verás la lista de archivos nuevos, modificados y borrados.
+       3. Pulsa «☁ Publicar…». Verás la lista de archivos nuevos, modificados y borrados.
           Todos vienen marcados; quita los que no quieras subir (Ctrl+clic).
        4. Elige DÓNDE SUBIR:
             · Rama propia del día (editor-AAAA-MM-DD): lo más seguro. Luego, en GitHub, abres
@@ -919,7 +937,7 @@
        (%LOCALAPPDATA%\\GitHubDesktop\\app-*\\resources\\app\\git\\cmd\\git.exe) y en las
        instalaciones típicas de Git para Windows y Mac, así que normalmente no hay que instalar nada.
        Dos formas de subir, las dos válidas:
-         · Desde el editor: «☁ Sincronizar». Si dice que GitHub no te reconoce, haz «Push» una vez
+         · Desde el editor: «☁ Publicar…». Si dice que GitHub no te reconoce, haz «Push» una vez
            desde GitHub Desktop (ahí está tu sesión) y vuelve a intentarlo.
          · Desde GitHub Desktop: «Changes» muestra los mismos archivos que lista «Para subir a GitHub…»
            en una carpeta clonada; escribe el resumen, «Commit to …» y «Push origin».

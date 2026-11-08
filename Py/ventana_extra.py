@@ -24,6 +24,8 @@ import herramientas_datos as hd
 import publicar as pub
 import sincronizar_local as sl
 import datos_html
+import git_sync as gs
+import ventana_subir
 import ventana_sync
 
 LETRAS = "ABCDEFG"
@@ -346,15 +348,26 @@ def publicar_todo(app):
         version = None
     # Primero se pregunta y DESPUÉS se toca algo: antes se rehacían las páginas
     # aunque se contestara que no.
+    usa_git = gs.es_clon(raiz) and gs.hay_git()
     msg = ("Se va a publicar:\n\n · %d supuestos revisados, 0 errores\n · %d páginas se rehacen con la plantilla actual\n"
-           " · la versión %s pasa al número siguiente justo al subir (si cierras sin subir, no cambia)\n\n"
-           "Después se abrirá «Sincronizar» para subirlo. ¿Seguir?"
-           % (informe["revisados"], len(atrasadas), version or "?"))
-    if not messagebox.askyesno("Publicar todo", msg, parent=app):
+           " · la versión %s pasa al número siguiente %s\n\n%s ¿Seguir?"
+           % (informe["revisados"], len(atrasadas), version or "?",
+              "justo al subir (si cierras sin subir, no cambia)" if usa_git else "ahora",
+              "Después eliges qué archivos subir a GitHub." if usa_git else
+              "Después se prepara la carpeta PARA_SUBIR para arrastrarla a la web de GitHub."))
+    if not messagebox.askyesno("Publicar", msg, parent=app):
         return
     hechos, _saltados = sl.poner_al_dia(raiz)
     if hechos:
         app.estado("%d página(s) rehechas con la plantilla actual." % len(hechos))
+    if not usa_git:
+        try:
+            antes, despues = pub.subir_version(raiz)
+            app.estado("Versión %s → %s." % (antes, despues))
+        except (OSError, ValueError) as err:
+            messagebox.showerror("Publicar", "No he podido subir la versión:\n\n%s" % err, parent=app)
+        ventana_subir.abrir(app)
+        return
 
     subida = {}
 
