@@ -172,6 +172,10 @@
         «Enunciado E1»…) y una caja para buscar por texto o número. Con Ctrl+clic o
         Mayús+clic se marcan varias: Subir, Bajar, Duplicar y Borrar (o Supr) actúan sobre
         todas a la vez, sin sacarlas de su bloque.
+        Debajo de la lista están los botones Añadir, Duplicar, Borrar, Subir y Bajar. Y
+        «Crear N preguntas con M respuestas»: añade de una vez N preguntas vacías, cada
+        una ya con M respuestas (de 2 a 7), detrás de la seleccionada y en su mismo
+        bloque y enunciado.
     ABRIR LA CITA EN EL BOE (pestaña 4, bajo la motivación)
         Las citas que la página convertirá en enlace («art. 12 … LGSS») salen como botones;
         un clic abre ese artículo en boe.es. Si una cita no sale, la página tampoco la

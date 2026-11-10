@@ -10,11 +10,15 @@ preguntas sin depender de tkinter, para poder probarlo solo:
   filtrar             qué preguntas casan con un filtro (texto, errores, bloque…)
   mover_varias        sube o baja varias a la vez, sin salirse de su bloque
   borrar_varias, duplicar_varias
+  preguntas_nuevas    N preguntas vacías con el número de respuestas pedido
 """
 import copy
 import re
 
 import revision
+from datos_html import MAX_OPCIONES, MIN_OPCIONES, pregunta_vacia
+
+MAX_CREAR = 50      # preguntas que se pueden crear de una vez
 
 RE_TAG = re.compile(r"<[^<>]*>")
 
@@ -129,3 +133,17 @@ def duplicar_varias(preguntas, indices):
     destino = indices[-1] + 1
     preguntas[destino:destino] = copias
     return list(range(destino, destino + len(copias)))
+
+
+def preguntas_nuevas(statement_id, bloque_id, cuantas=1, respuestas=None):
+    """`cuantas` preguntas vacías (entre 1 y MAX_CREAR) del mismo bloque y enunciado.
+    Con `respuestas`, cada una lleva ya ese número de opciones (la primera, correcta)."""
+    cuantas = max(1, min(MAX_CREAR, int(cuantas)))
+    nuevas = []
+    for _ in range(cuantas):
+        p = pregunta_vacia(statement_id, bloque_id)
+        if respuestas:
+            n = max(MIN_OPCIONES, min(MAX_OPCIONES, int(respuestas)))
+            p["a"] = ["Opción correcta"] + ["Opción incorrecta"] * (n - 1)
+        nuevas.append(p)
+    return nuevas
