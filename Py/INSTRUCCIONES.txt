@@ -176,6 +176,21 @@
         «Crear N preguntas con M respuestas»: añade de una vez N preguntas vacías, cada
         una ya con M respuestas (de 2 a 7), detrás de la seleccionada y en su mismo
         bloque y enunciado.
+    IMÁGENES (pestañas 3 y 4)
+        Cada bloque de hechos, cada pregunta y cada motivación legal admiten hasta 3
+        imágenes (PNG, JPG, GIF o WebP). En su recuadro «Imágenes»: Añadir, Quitar, Subir,
+        Bajar y un pie opcional para la imagen marcada. En la página salen debajo de la
+        narración del bloque, entre la pregunta y las respuestas, y debajo de la motivación
+        (estas solo al corregir); al pulsar una se amplía. También salen al imprimir.
+        Al AÑADIR no se copia nada: el editor solo recuerda el archivo. Al GUARDAR las
+        reparte a la carpeta complementaria del supuesto, supuestos/img/NOMBRE/, con un
+        nombre sin espacios ni acentos, y aparta las que ya no se usan (quedan en
+        .historial/img/, que no se sube, y vuelven solas si deshaces el cambio).
+        Al publicar con «☁ Sincronizar», las imágenes de un supuesto marcado se suben
+        siempre con él. PARA_SUBIR las incluye con su carpeta. El menú anota las imágenes
+        de cada supuesto para que se guarden también sin conexión.
+        «Exportar autónomo» las mete dentro del .html. «Comprobar» avisa si falta alguna
+        o si pesa más de 500 KB (el editor no las reduce: conviene traerlas ya pequeñas).
     ABRIR LA CITA EN EL BOE (pestaña 4, bajo la motivación)
         Las citas que la página convertirá en enlace («art. 12 … LGSS») salen como botones;
         un clic abre ese artículo en boe.es. Si una cita no sale, la página tampoco la

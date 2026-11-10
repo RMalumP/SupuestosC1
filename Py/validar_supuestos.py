@@ -69,7 +69,7 @@ def validar_supuesto(ruta, motor_actual):
             err(nom, "el archivo enlazado «%s» no existe" % r)
 
     # Las reglas de los datos son las mismas que usa el editor (Py/revision.py).
-    for h in revision.revisar(d):
+    for h in revision.revisar(d, carpeta=ruta.parent):
         donde = nom if h.pregunta is None else "%s, pregunta %d" % (nom, h.pregunta + 1)
         texto = re.sub(r"^Pregunta \d+: ", "", h.texto)
         (err if h.nivel == "error" else aviso)(donde, texto[:1].lower() + texto[1:])

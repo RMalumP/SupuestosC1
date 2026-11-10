@@ -555,5 +555,83 @@
     "entry.943386498=8"
    ]
   }
+ ],
+ "supuesto_tema4.html": [
+  {
+   "url": "https://docs.google.com/forms/d/e/1FAIpQLSfICCUGWcmcJ1zLFtphE1pictGOyfY9epNbSrHtEFfGvvK8HQ/formResponse",
+   "body": [
+    "entry.315726614=Tema 4. Cotización a la Seguridad Social 2026",
+    "entry.1329722701=FECHA",
+    "entry.979170555=6",
+    "entry.1962238201=1",
+    "entry.712361381=Correcta: Empresa «Alfa»: 3.470,49 €; Empresa «Beta»: 1.630,71 €.",
+    "entry.709874002=Correcta: No; en las situaciones de pluriempleo la cuota adicional de solidaridad se analiza de forma individualizada para cada relación laboral, por lo que ninguna empresa debe liquidarla al no superar ninguna de las nóminas por sí sola la base máxima de 5.101,20 €.",
+    "entry.661924675=Correcta: A partir de la liquidación de cuotas correspondiente al mes de abril de 2026, mes en que se acredita la situación de pluriempleo ante la TGSS.",
+    "entry.1030651222=Correcta: 200,00 € al mes.",
+    "entry.200283712=Correcta: La valoración es de 500,00 € al mes (5 % valor catastral) y no vulnera el límite legal de salario en especie.",
+    "entry.134789499=Correcta: Por 65,00 € mensuales, al aplicarse la regla específica del coste marginal prevista para centros educativos autorizados en enseñanzas regladas.",
+    "entry.966701265=Incorrecta",
+    "entry.2110630525=En blanco",
+    "entry.1056110206=En blanco",
+    "entry.960222499=En blanco",
+    "entry.1846963224=En blanco",
+    "entry.900211285=En blanco",
+    "entry.1003793269=En blanco",
+    "entry.263573841=En blanco",
+    "entry.784118366=En blanco"
+   ]
+  },
+  {
+   "url": "https://docs.google.com/forms/d/e/1FAIpQLSd9h52UH7XzaRDRSIxSevScmqKZC28Fvtfnp39drKtC5SiwGA/formResponse",
+   "body": [
+    "entry.241409513=Tema 4. Cotización a la Seguridad Social 2026",
+    "entry.1810433543=Alumno Prueba",
+    "entry.1069013600=30:00",
+    "entry.815398067=TIEMPO",
+    "entry.771114786=15",
+    "entry.1903892811=6",
+    "entry.1155230396=1",
+    "entry.943386498=8"
+   ]
+  }
+ ],
+ "supuesto_tema4I.html": [
+  {
+   "url": "https://docs.google.com/forms/d/e/1FAIpQLSfICCUGWcmcJ1zLFtphE1pictGOyfY9epNbSrHtEFfGvvK8HQ/formResponse",
+   "body": [
+    "entry.315726614=Tema 4 Inicial. Cotización a la Seguridad Social 2026",
+    "entry.1329722701=FECHA",
+    "entry.979170555=6",
+    "entry.1962238201=1",
+    "entry.712361381=Correcta: 23,60 % a cargo de la empresa y 4,70 % a cargo del trabajador (Total: 28,30 %).",
+    "entry.709874002=Correcta: Hasta el penúltimo día natural del respectivo plazo reglamentario de ingreso (mes de abril de 2026).",
+    "entry.661924675=Correcta: Un 14,00 % en total (12,00 % a cargo de la empresa y 2,00 % a cargo del trabajador).",
+    "entry.1030651222=Correcta: 33,62 €, a cargo exclusivo del empresario.",
+    "entry.200283712=Correcta: La TGSS tiene 48 horas y la empresa hasta el penúltimo día natural del plazo reglamentario de ingreso.",
+    "entry.134789499=Correcta: 7,05 % (5,50 % a cargo de la empresa y 1,55 % a cargo del trabajador).",
+    "entry.966701265=Incorrecta",
+    "entry.2110630525=En blanco",
+    "entry.1056110206=En blanco",
+    "entry.960222499=En blanco",
+    "entry.1846963224=En blanco",
+    "entry.900211285=En blanco",
+    "entry.1003793269=En blanco",
+    "entry.263573841=En blanco",
+    "entry.784118366=En blanco"
+   ]
+  },
+  {
+   "url": "https://docs.google.com/forms/d/e/1FAIpQLSd9h52UH7XzaRDRSIxSevScmqKZC28Fvtfnp39drKtC5SiwGA/formResponse",
+   "body": [
+    "entry.241409513=Tema 4 Inicial. Cotización a la Seguridad Social 2026",
+    "entry.1810433543=Alumno Prueba",
+    "entry.1069013600=30:00",
+    "entry.815398067=TIEMPO",
+    "entry.771114786=15",
+    "entry.1903892811=6",
+    "entry.1155230396=1",
+    "entry.943386498=8"
+   ]
+  }
  ]
 }

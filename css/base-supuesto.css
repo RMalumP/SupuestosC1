@@ -753,3 +753,20 @@ html.no-just-mot .feedback-body p, html.no-just-mot .feedback-body .tip { text-a
 .cg > .vi { display: inline-block; min-width: 1.6em; text-indent: 0; }
 .ci-answers .cg { display: inline; padding-left: 0; text-indent: 0; }
 .ci-answers .cg > .vi { display: inline; min-width: 0; margin-right: 0.3em; }
+
+/* ── Imágenes de los supuestos: en un bloque de hechos, bajo la pregunta y bajo la
+      motivación legal (hasta 3 por recuadro). Se reparten en fila y bajan de línea
+      en pantallas estrechas; al pulsar una se amplía a pantalla completa. ── */
+.sup-imgs { display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0 4px; align-items: flex-start; justify-content: center; }
+.sup-img { margin: 0; flex: 1 1 200px; max-width: 100%; text-align: center; }
+.sup-imgs-1 .sup-img { flex-basis: 100%; }
+.sup-img img { display: block; max-width: 100%; max-height: 420px; width: auto; height: auto; margin: 0 auto; border: 1px solid rgba(var(--navy-rgb),0.18); border-radius: var(--radius); background: #fff; cursor: zoom-in; }
+.sup-img img:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.sup-img figcaption { font-size: 0.8rem; font-style: italic; opacity: 0.8; margin-top: 6px; text-align: center; }
+#sup-img-ampliada { position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,0.88); display: flex; align-items: center; justify-content: center; padding: 12px; cursor: zoom-out; }
+#sup-img-ampliada img { max-width: 100%; max-height: 100%; background: #fff; border-radius: 4px; }
+@media print {
+    #sup-img-ampliada { display: none; }
+    .sup-img { break-inside: avoid; }
+    .sup-img img { max-height: 320px; }
+}

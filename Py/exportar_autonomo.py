@@ -19,6 +19,8 @@ _RE_SCRIPT = re.compile(r'<script\b([^>]*)\bsrc=["\']([^"\']+)["\']([^>]*)>\s*</
 _RE_HREF = re.compile(r'\bhref=["\']([^"\']+)["\']', re.I)
 _RE_URL = re.compile(r'url\(\s*(["\']?)([^)"\']+)\1\s*\)')
 _RE_IMG = re.compile(r'(<img\b[^>]*\bsrc=)(["\'])([^"\']+)\2', re.I)
+# Imágenes de los supuestos: no son etiquetas del HTML, van en los datos ("src": "img/…").
+_RE_IMG_DATOS = re.compile(r'("src"\s*:\s*")((?:[^"\\]|\\.)+\.(?:png|jpe?g|gif|webp))(")', re.I)
 
 
 def _local(ref):
@@ -26,7 +28,8 @@ def _local(ref):
 
 
 def _data_uri(ruta):
-    tipo = mimetypes.guess_type(str(ruta))[0] or ("font/woff2" if ruta.suffix == ".woff2" else "application/octet-stream")
+    tipo = mimetypes.guess_type(str(ruta))[0] or {".woff2": "font/woff2", ".webp": "image/webp"}.get(
+        ruta.suffix.lower(), "application/octet-stream")
     return "data:%s;base64,%s" % (tipo, base64.b64encode(ruta.read_bytes()).decode("ascii"))
 
 
@@ -84,6 +87,17 @@ def exportar_html(html, carpeta):
         ruta = ruta_de(ref)
         return m.group(1) + m.group(2) + _data_uri(ruta) + m.group(2) if ruta.is_file() else m.group(0)
 
+    def img_datos(m):
+        ref = m.group(2)
+        if not _local(ref):
+            return m.group(0)
+        ruta = ruta_de(ref)
+        if not ruta.is_file():
+            faltan.append(ref)
+            return m.group(0)
+        return m.group(1) + _data_uri(ruta) + m.group(3)
+
+    html = _RE_IMG_DATOS.sub(img_datos, html)     # antes de meter los scripts: solo toca los datos
     html = _RE_LINK_OTRO.sub("", html)
     html = _RE_LINK_CSS.sub(css, html)
     html = _RE_SCRIPT.sub(script, html)

@@ -123,6 +123,49 @@ class Ventana(unittest.TestCase):
         app._borrar_previas()
         self.assertFalse(previa.exists())
 
+    def test_imagenes_se_anaden_en_el_editor_y_se_reparten_al_guardar(self):
+        app = self.app
+        ruta = self._copia("supuesto_0.html")
+        carpeta = RAIZ / "supuestos" / "img" / ruta.stem
+        self.addCleanup(shutil.rmtree, carpeta, True)
+        self.addCleanup(lambda: [(RAIZ / "supuestos" / "img").rmdir()] if (RAIZ / "supuestos" / "img").is_dir()
+                        and not any((RAIZ / "supuestos" / "img").iterdir()) else None)
+        menu = RAIZ / "datos" / "supuestos-datos.js"
+        menu_antes = menu.read_bytes()
+        self.addCleanup(menu.write_bytes, menu_antes)
+        app._cargar_ruta(ruta)
+        app.ir_a_pregunta(0)
+        app.update()
+        foto = self.tmp / "Foto de prueba.png"
+        shutil.copy(RAIZ / "icons" / "icon-192.png", foto)
+        self.assertEqual(app.imgs_preg.anadir_archivos([str(foto)] * 5 + [str(self.tmp / "nota.txt")]), 3)   # máximo 3
+        app.imgs_preg.quitar()
+        app.imgs_law.anadir_archivos([str(foto)])
+        app.imgs_law.var_pie.set("Pie de prueba")
+        app.imgs_law._cambio_pie()
+        app.cuaderno.select(2)
+        app.update()
+        app.imgs_bloque.anadir_archivos([str(foto)])
+        self.assertTrue(app.hay_cambios)
+        app.volcar_todo()
+        p = app.datos["preguntas"][0]
+        self.assertEqual((len(p["imgs"]), len(p["imgsLaw"]), p["imgsLaw"][0]["pie"]), (2, 1, "Pie de prueba"))
+        self.assertFalse(carpeta.exists())                     # hasta guardar no se copia nada
+        from tkinter import messagebox
+        original = messagebox.askyesno
+        messagebox.askyesno = lambda *a, **k: True
+        self.addCleanup(setattr, messagebox, "askyesno", original)
+        app._pedir_grupo_menu = lambda archivo: None           # sin darlo de alta en el menú
+        self.assertTrue(app._escribir(ruta))
+        self.assertEqual([f.name for f in carpeta.iterdir()], ["foto-de-prueba.png"])
+        import datos_html
+        leido, _, _ = datos_html.leer_html(ruta)
+        self.assertEqual(leido["preguntas"][0]["imgsLaw"], [{"src": "img/%s/foto-de-prueba.png" % ruta.stem, "pie": "Pie de prueba"}])
+        self.assertEqual(len(leido["preguntas"][0]["imgs"]), 2)
+        self.assertTrue(any(fb["imgs"] for e in leido["enunciados"] for fb in e["factBlocks"]))
+        self.assertNotIn("origen", ruta.read_text(encoding="utf-8"))
+        self.assertNotIn("nueva", app.imgs_law.caja.get(0))    # el recuadro ya la da por guardada
+
     def test_generar_simulacro_lo_abre_sin_archivo(self):
         app = self.app
         import simulacro

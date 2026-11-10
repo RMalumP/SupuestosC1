@@ -56,14 +56,17 @@ const PRECACHE_BASE = [
   "icons/icon-512.png",
   "resultados/resultados.html"
 ];
-const PRECACHE = PRECACHE_BASE.concat(
-  (self.SUPUESTOS_DATOS && self.SUPUESTOS_DATOS.lista || []).map(it => "supuestos/" + it.archivo + ".html")
-);
+const LISTA = self.SUPUESTOS_DATOS && self.SUPUESTOS_DATOS.lista || [];
+const PRECACHE = PRECACHE_BASE.concat(LISTA.map(it => "supuestos/" + it.archivo + ".html"));
+// Imágenes de los supuestos (las anota el editor en «imagenes» al guardar): se guardan
+// también para verlas sin conexión, pero una que falte no impide instalar el resto.
+const IMAGENES = LISTA.reduce((todas, it) => todas.concat(Array.isArray(it.imagenes) ? it.imagenes : []), []);
 
 self.addEventListener("install", e => {
   // Primera instalación: se activa ya. Si había una versión anterior, espera a
   // que la persona pulse «Actualizar» (ver pwa.js) para no cambiar nada a mitad de un examen.
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(PRECACHE)).then(() => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(PRECACHE)
+    .then(() => Promise.all(IMAGENES.map(u => c.add(u).catch(() => {}))))).then(() => {
     if (!self.registration.active) self.skipWaiting();
   }));
 });

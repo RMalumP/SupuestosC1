@@ -368,6 +368,56 @@ async function funciones() {
         await ctx.close();
         return (r.radios === r.opciones && r.nav === r.navs && r.norma > 0 && r.salto) || JSON.stringify(r);
     });
+    await caso('imágenes: salen en el bloque de hechos, la pregunta y la motivación (máx. 3) y se amplían', async () => {
+        // Supuesto de prueba con imágenes, hecho sobre la marcha a partir de uno real (se borra al acabar).
+        const nombre = '_prueba_imagenes', dir = path.join(RAIZ, 'supuestos'), carpeta = path.join(dir, 'img', nombre);
+        const html = fs.readFileSync(path.join(RAIZ, 'supuestos/supuesto_0.html'), 'utf8');
+        const re = /(<script[^>]*id="datos-supuesto"[^>]*>)([\s\S]*?)(<\/script>)/;
+        const d = JSON.parse(re.exec(html)[2]);
+        const img = (n, pie) => Object.assign({ src: 'img/' + nombre + '/' + n + '.png' }, pie ? { pie } : {});
+        const conHechos = d.preguntas.findIndex(q => q.statementId);
+        const fb = d.enunciados.find(e => e.id === d.preguntas[conHechos].statementId).factBlocks.find(b => !b.hidden);
+        fb.imgs = [img('a', 'Pie del <b>hecho</b>'), img('b'), img('c'), img('d')];      // la cuarta no debe salir
+        d.preguntas.forEach(q => { q.imgs = [img('a', 'Pie de la pregunta')]; q.imgsLaw = [img('b'), img('c')]; delete q.factIds; });
+        fs.mkdirSync(carpeta, { recursive: true });
+        ['a', 'b', 'c', 'd'].forEach(n => fs.copyFileSync(path.join(RAIZ, 'icons', 'icon-192.png'), path.join(carpeta, n + '.png')));
+        fs.writeFileSync(path.join(dir, nombre + '.html'), html.replace(re, (m, a, _b, c) => a + '\n' + JSON.stringify(d).replace(/</g, '\\u003c') + '\n' + c));
+        try {
+            const ctx = await contexto(); const pg = await abrir(ctx, 'supuestos/' + nombre + '.html');
+            const r = await pg.evaluate(async () => {
+                const cargadas = sel => [...document.querySelectorAll(sel)].filter(i => i.complete && i.naturalWidth > 0).length;
+                await Promise.all([...document.images].map(i => i.complete ? 0 : new Promise(ok => { i.onload = i.onerror = ok; })));
+                const tarjeta = document.querySelector('.question-card.active');
+                const res = { hecho: cargadas('.fact-block .sup-img img'), pieHecho: (document.querySelector('.fact-block figcaption') || {}).innerHTML,
+                    pregunta: cargadas('.question-card.active > .sup-imgs img'),
+                    motivOculta: getComputedStyle(tarjeta.querySelector('.feedback')).display === 'none' };
+                tarjeta.querySelector(':scope > .sup-imgs img').click();
+                res.ampliada = !!document.querySelector('#sup-img-ampliada img');
+                document.getElementById('sup-img-ampliada').click();
+                res.cerrada = !document.getElementById('sup-img-ampliada');
+                selectAnswer(0, 0); evaluateExam(true);
+                await new Promise(ok => setTimeout(ok, 600));
+                showCorrectionPanel();
+                await Promise.all([...document.images].map(i => i.complete ? 0 : new Promise(ok => { i.onload = i.onerror = ok; })));
+                res.motiv = cargadas('#feed-0 .sup-img img'); res.correccion = [...document.querySelector('#correction-panel .corr-item').querySelectorAll('.sup-img img')].filter(i => i.complete && i.naturalWidth > 0).length;
+                res.ancho = document.documentElement.scrollWidth <= window.innerWidth + 1;
+                return res;
+            });
+            const errores = pg.errores.slice(); await ctx.close();
+            const visibles = new Set((await (async () => { const c2 = await contexto(); const p2 = await abrir(c2, 'supuestos/' + nombre + '.html');
+                const n = await p2.evaluate(() => [...document.querySelectorAll('.statement')].map(s => s.querySelectorAll('.fact-block .sup-img').length)); await c2.close(); return n; })()));
+            return (r.hecho >= 3 && visibles.has(3) && !visibles.has(4) && r.pieHecho === 'Pie del <b>hecho</b>' && r.pregunta === 1 && r.motivOculta && r.ampliada && r.cerrada
+                && r.motiv === 2 && r.correccion === 3 && r.ancho && !errores.length) || JSON.stringify([r, [...visibles], errores]);
+        } finally {
+            fs.rmSync(path.join(dir, nombre + '.html'), { force: true }); fs.rmSync(carpeta, { recursive: true, force: true });
+            try { fs.rmdirSync(path.join(dir, 'img')); } catch (e) { /* la carpeta tiene imágenes de otros supuestos */ }
+        }
+    });
+    await caso('un supuesto sin imágenes no pinta ningún hueco de imagen', async () => {
+        const ctx = await contexto(); const pg = await abrir(ctx, T);
+        const n = await pg.evaluate(() => { selectAnswer(0, 0); evaluateExam(true); return document.querySelectorAll('.sup-imgs, .sup-img').length; });
+        await ctx.close(); return n === 0 || n + ' huecos';
+    });
 }
 
 /* ───────── 5. menú y «Mi estudio» ───────── */

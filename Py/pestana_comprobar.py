@@ -44,7 +44,8 @@ class PestanaComprobar:
         except OSError:
             normas = []
         # Las mismas reglas que la lista de preguntas, el aviso al guardar y el validador.
-        hallazgos = revision.revisar(d, normas=normas, parecidas=True)
+        hallazgos = revision.revisar(d, normas=normas, parecidas=True,
+                                     carpeta=self.ruta.parent if self.ruta else None)
         errores, avisos = revision.errores(hallazgos), revision.avisos(hallazgos)
 
         lineas = ["REVISIÓN DEL SUPUESTO", "=" * 60, ""]

@@ -9,6 +9,7 @@ import herramientas_datos as herr
 import json
 import tkinter as tk
 from tkinter import messagebox, simpledialog, ttk
+from imagenes_ui import RecuadroImagenes
 from editor_comun import (  # noqa: F401
     CAMPOS_ENUNCIADO, MarcoScroll, bloque_hechos_vacio, caja_texto, enunciado_vacio, hito_vacio,
     limpiar_texto, nuevo_id_hecho, partir_parrafos, poner_texto, resumen, rotulo, sacar_texto)
@@ -146,6 +147,12 @@ class PestanaEnunciados:
         marco, self.txt_bloque_parr = caja_texto(pb, alto=9)
         marco.pack(fill="both", expand=True, padx=8)
         self._vigilar(self.txt_bloque_parr)
+
+        self.imgs_bloque = RecuadroImagenes(
+            pb, self, "Imágenes de este bloque de hechos", "factBlocks[].imgs[]  →  <figure class=\"sup-img\">",
+            "Hasta 3 imágenes que salen debajo de la narración de este bloque. Se copian a la "
+            "carpeta del supuesto (supuestos/img/…) al guardar y se suben con él.")
+        self.imgs_bloque.pack(fill="x", padx=8, pady=(8, 0))
 
         filac = ttk.Frame(pb)
         filac.pack(fill="x", padx=8, pady=8)
@@ -401,6 +408,7 @@ class PestanaEnunciados:
         poner_texto(self.txt_bloque_parr, "" if b is None else "\n\n".join(b["paragraphs"]))
         self.var_bloque_red.set(bool(b and b["red"]))
         self.var_bloque_hidden.set(bool(b and b["hidden"]))
+        self.imgs_bloque.poner(b.get("imgs") if b else [])
         self._pintar_vinculos_bloque()
 
     def _pintar_vinculos_bloque(self):
@@ -431,6 +439,7 @@ class PestanaEnunciados:
         b["paragraphs"] = partir_parrafos(crudo)
         b["red"] = bool(self.var_bloque_red.get())
         b["hidden"] = bool(self.var_bloque_hidden.get())
+        b["imgs"] = self.imgs_bloque.sacar()
 
     def anadir_bloque(self):
         e = self.enunciado_actual()

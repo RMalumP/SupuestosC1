@@ -15,6 +15,7 @@ Dentro del programa el menú se maneja como un diccionario anidado
 un formato al otro. También se lee el formato antiguo (todo anidado).
 Sin dependencias: solo la biblioteca estándar.
 """
+import imagenes
 import json
 import re
 from pathlib import Path
@@ -204,11 +205,16 @@ def ficha(archivo, datos, letra=None):
         partes.append("%s minutos" % cfg["minutos"])
     if cfg.get("ambito"):
         partes.append(str(cfg["ambito"]))
-    return {"archivo": archivo,
-            "letra": letra or archivo.replace("supuesto_", "").upper()[:4],
-            "ref": str(cfg.get("referencia") or archivo).strip(),
-            "titulo": str(cfg.get("titulo") or archivo).strip(),
-            "desc": " · ".join(partes)}
+    f = {"archivo": archivo,
+         "letra": letra or archivo.replace("supuesto_", "").upper()[:4],
+         "ref": str(cfg.get("referencia") or archivo).strip(),
+         "titulo": str(cfg.get("titulo") or archivo).strip(),
+         "desc": " · ".join(partes)}
+    # Imágenes del supuesto: el service worker las guarda para verlas sin conexión.
+    fotos = ["supuestos/" + src for src in imagenes.rutas(datos) if not src.startswith("data:")]
+    if fotos:
+        f["imagenes"] = fotos
+    return f
 
 
 def lista_de(menu, clave):
