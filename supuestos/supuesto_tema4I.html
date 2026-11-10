@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#3d2a20">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Supuestos C1">
+    <link rel="manifest" href="../manifest.webmanifest">
+    <link rel="icon" href="../icons/icon-192.png">
+    <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+    <script src="../js/prefs.js"></script>
+    <script src="../js/pwa.js" defer></script>
+    <!--
+        Versión del MOTOR de la plantilla (el código que hace funcionar la
+        página, no los datos del supuesto). El editor de Python la compara
+        con la suya y, si el archivo se quedó atrás, ofrece ponerlo al día
+        al guardar. Subir este número al cambiar el motor.
+    -->
+    <meta name="motor-plantilla" content="10">
+    <title>[TÍTULO DE LA EVALUACIÓN]</title>
+    <link rel="stylesheet" href="../fuentes/fuentes.css">
+
+    <link rel="stylesheet" href="../css/base-supuesto.css">
+    <style>
+        /* Solo lo propio de esta versión del motor: lo común a todos los supuestos
+           está en ../css/base-supuesto.css y el diseño en ../css/tema-supuesto.css. */
+
+        /* Cabecera plegada: la fila del bloque actual ocupa UNA sola línea, por
+           largo que sea el bloque; las casillas que no caben se alcanzan deslizando
+           la fila. Al cambiar de pregunta, la activa se centra sola
+           (ver centrarCasillaActiva). */
+        body.nav-plegada .nav-row.fila-actual .nav-row-boxes {
+            flex-wrap: nowrap;
+            overflow-x: auto; overflow-y: hidden;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-x: contain;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(var(--gold-rgb),0.45) transparent;
+            padding-bottom: 4px;
+        }
+        body.nav-plegada .nav-row.fila-actual .nav-row-boxes::-webkit-scrollbar { height: 5px; }
+        body.nav-plegada .nav-row.fila-actual .nav-row-boxes::-webkit-scrollbar-track { background: transparent; }
+        body.nav-plegada .nav-row.fila-actual .nav-row-boxes::-webkit-scrollbar-thumb {
+            background: rgba(var(--gold-rgb),0.45); border-radius: 3px;
+        }
+        /* Sin esto las casillas se encogerían hasta deformarse al no caber */
+        body.nav-plegada .nav-row.fila-actual .nav-box { flex: 0 0 auto; }
+
+        /* ── FORMATO DEL TEXTO ────────────────────────────────────────
+           Negrita, cursiva, subrayado, tachado, resaltado y tamaños de
+           letra que se pueden usar dentro de cualquier texto del supuesto
+           (narración de los hechos, hitos, preguntas, respuestas,
+           motivación legal y consejo). Las escribe el editor de Python
+           con sus botones, pero también valen escritas a mano:
+
+               <b>negrita</b>   <i>cursiva</i>   <u>subrayado</u>
+               <s>tachado</s>   <mark>resaltado</mark>
+               <mark class="mk-verde">resaltado en verde</mark>
+               <span class="fs-l">letra más grande</span>
+        ─────────────────────────────────────────────────────────────── */
+        b, strong { font-weight: 700; }
+        i, em     { font-style: italic; }
+        u         { text-decoration: underline; text-underline-offset: 2px; }
+        s, del, strike { text-decoration: line-through; }
+
+        /* Rotulador. El color de la letra se fija a oscuro porque hay
+           sitios (la cronología, las opciones marcadas) donde el texto es
+           claro y sobre el resaltado no se leería. */
+        mark { background: #ffe9a8; color: #1f2937; padding: 0 3px; border-radius: 3px;
+               box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+        mark.mk-verde { background: #c9f0d2; }
+        mark.mk-azul  { background: #cfe4fb; }
+        mark.mk-rosa  { background: #fbd0e2; }
+
+        /* Tamaños de letra, relativos al texto que los rodea: así una
+           pregunta y un párrafo del enunciado guardan su proporción. */
+        .fs-xs  { font-size: 0.75em; }
+        .fs-s   { font-size: 0.875em; }
+        .fs-m   { font-size: 1em; }
+        .fs-l   { font-size: 1.15em; }
+        .fs-xl  { font-size: 1.35em; }
+        .fs-xxl { font-size: 1.6em; }
+
+        /* ── PÁRRAFOS Y JUSTIFICADO ───────────────────────────────────
+           Los saltos de línea (Enter) que se escriben en el editor se
+           respetan en la página: sin esto el navegador los trata como un
+           espacio y junta todo el texto en un solo párrafo.
+           pre-line conserva los saltos pero sigue colapsando los espacios
+           repetidos, así que el resto del texto se ve igual que antes. */
+        .q-text, .statement p, .feedback-body p, .feedback-body .tip,
+        .tl-item, .ci-q, .ci-law, .ci-tip, .option > span:last-child { white-space: pre-line; }
+
+        /* Justificado: ajusta el párrafo al ancho de la línea. Lo escribe
+           el editor con el botón «Just.»:  <span class="al-j">…</span>
+           (la última línea de cada párrafo queda alineada a la izquierda,
+           como en cualquier procesador de textos). Es un span en bloque y
+           no un div para que sea válido también dentro de un <p>. */
+        .al-j { display: block; text-align: justify; text-justify: inter-word; }
+        /* En la lista de respuestas de la corrección va en línea, para que
+           «A)» no quede solo en una línea y el texto debajo. */
+        .ci-answers .al-j { display: inline; text-align: inherit; }
+
+        /* ── SANGRÍA ──────────────────────────────────────────────────
+           Mete un párrafo más hacia dentro que el anterior, hasta tres
+           niveles. La escribe el editor con los botones «Sang+» y
+           «Sang-» (o con Tab y Mayús+Tab):
+               <span class="sg-1">…</span>   (sg-2, sg-3: más adentro)
+           Puede ir junto al justificado:  class="al-j sg-1" */
+        .sg-1 { display: block; margin-left: 1.5em; }
+        .sg-2 { display: block; margin-left: 3em; }
+        .sg-3 { display: block; margin-left: 4.5em; }
+        .ci-answers .sg-1, .ci-answers .sg-2, .ci-answers .sg-3 { display: inline; margin-left: 0; }
+
+        /* ── TIPOGRAFÍAS ──────────────────────────────────────────────
+           Se eligen en el editor con el menú «Fuente». Las tres últimas
+           ya se cargan arriba desde Google Fonts; cada una lleva una
+           fuente de reserva por si no hubiera conexión. */
+        .ff-sans   { font-family: 'Segoe UI', Helvetica, Arial, sans-serif; }
+        .ff-titulo { font-family: 'Playfair Display', Georgia, serif; }
+        .ff-mono   { font-family: 'JetBrains Mono', Consolas, monospace; font-size: 0.9em; }
+        .ff-mano   { font-family: 'Caveat', 'Segoe Script', cursive; font-size: 1.2em; }
+
+        @media print {
+            body { background: white !important; color: black !important; }
+            #nav-header, #timer, #overlay, #random-modal, .btn-zone, body::before { display:none !important; }
+            .container { max-width:100%; padding:20px; }
+            .statement { box-shadow:none; border:1px solid #ccc; }
+            .question-card { display:block !important; box-shadow:none; border:1px solid #ccc; page-break-inside:avoid; margin-bottom:16px; }
+            .block-header { display:flex !important; box-shadow:none; border:1px solid #ccc; page-break-after:avoid; }
+            .stmt-panel { display:block !important; page-break-after:avoid; }
+            .stmt-foco { display:none !important; }
+            .block-header h3 { color:#000 !important; }
+            .score-bloques .sb-fila { background:#f3f4f6 !important; }
+            .score-bloques .sb-nombre, .score-bloques .sb-detalle, .score-bloques .sb-puntos { color:#111827 !important; }
+            .question-card::before { display:none; }
+            .feedback { display:block !important; }
+            .inst-header { background:#f0f0f0 !important; color:black !important; }
+            .inst-header h1, .inst-header .organismo { color:black !important; }
+            .inst-header::before { display:none; }
+            .progress-bar-wrap { display:none; }
+            .fact-block { border-left-color:#999; }
+            /* El resaltado tiene que salir también en el PDF: por
+               defecto el navegador quita los fondos al imprimir. */
+            mark { -webkit-print-color-adjust: exact; print-color-adjust: exact;
+                   background:#ffe9a8 !important; color:#1f2937 !important; }
+            mark.mk-verde { background:#c9f0d2 !important; }
+            mark.mk-azul  { background:#cfe4fb !important; }
+            mark.mk-rosa  { background:#fbd0e2 !important; }
+            .timeline { display:none; }
+            .option { border-color:#ccc; color:black !important; background:white !important; }
+            .option.correct { background:#e6f4ea !important; border-color:#2d8c5a !important; color:#1a4731 !important; }
+            .option.wrong   { background:#fde8e8 !important; border-color:#8b1a1a !important; color:#8b1a1a !important; }
+            .option.selected:not(.correct):not(.wrong) { background:#f0f4ff !important; border-color:#3b5bdb !important; }
+            .feedback-body { background:#fafafa !important; }
+            .feedback-body .tip { background:#e9f5ee !important; color:#1a4731 !important; }
+            .q-num { color:#ddd !important; }
+            #print-title { display:block !important; }
+        }
+
+        
+    </style>
+    <link rel="stylesheet" href="../css/tema-supuesto.css">
+    <link rel="stylesheet" href="../css/subrayado.css">
+</head>
+<body>
+
+<!-- NAVEGACIÓN -->
+<nav id="nav-header">
+    <div id="nav-boxes"></div>
+
+    <!-- Contador «pregunta actual / total» y respondidas (se rellena solo) -->
+    <div id="nav-contador" aria-live="off"><span id="nav-actual">1/1</span><small id="nav-respondidas"></small></div>
+
+    <button id="fold-btn" class="home-btn" onclick="togglePlegado()"
+            title="Plegar: ver solo el bloque actual" aria-label="Plegar bloques"
+            style="display:none;">⌃</button>
+
+    <button id="home-btn-top" class="home-btn" onclick="goHome()"
+            title="Volver al menú principal" aria-label="Volver al menú principal">🏠</button>
+
+    <div class="settings-wrap">
+        <button id="settings-toggle" onclick="toggleSettings()" title="Configuración del temporizador" aria-label="Configuración" aria-expanded="false" aria-controls="settings-panel">⚙</button>
+        <div id="settings-panel">
+            <div class="settings-title" id="settings-title">Configuración</div>
+            <div class="settings-row" id="row-tiempo">
+                <label for="time-input"><span id="lbl-tiempo">Duración del examen (mm:ss)</span></label>
+                <div class="time-edit-line">
+                    <input type="text" id="time-input" placeholder="30:00">
+                    <button class="btn-mini" onclick="applyTimer()">Aplicar</button>
+                </div>
+            </div>
+            <div class="settings-row settings-check" id="row-corregir">
+                <label>
+                    <input type="checkbox" id="instant-feedback-toggle" onchange="toggleInstantFeedback(this.checked)">
+                    <span id="lbl-corregir">Corregir pregunta a pregunta</span>
+                </label>
+            </div>
+            <!--
+                UNA CASILLA POR BLOQUE. El examen puede tener un bloque o
+                cinco, así que estas casillas las crea sola la página al
+                arrancar (ver montarOpcionesUnaEnUna): una por cada bloque
+                que salga en el intento y que no esté marcado como oculto
+                en el editor. Sin marcar = ese bloque se ve EN CADENA.
+            -->
+            <div class="settings-row" id="row-una">
+                <label><span id="lbl-una">Ver las preguntas de una en una</span></label>
+                <div id="una-por-bloque"></div>
+            </div>
+            <div class="settings-row settings-check settings-sub" id="row-foco">
+                <label>
+                    <input type="checkbox" id="foco-toggle" onchange="toggleModoFoco(this.checked)">
+                    <span id="lbl-foco">Modo foco: solo los hechos de cada pregunta</span>
+                </label>
+            </div>
+            <div class="settings-row settings-check" id="row-qtags">
+                <label>
+                    <input type="checkbox" id="hide-qtags-toggle" onchange="toggleHideQTags(this.checked)">
+                    <span id="lbl-qtags">Ocultar etiquetas de pregunta (q-tag)</span>
+                </label>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- TEMPORIZADOR -->
+<div id="timer" onclick="toggleTimerPause()" title="Clic para pausar / reanudar" role="button" tabindex="0" aria-label="Tiempo restante. Pulsa para pausar o reanudar">
+    <span class="timer-label">TIEMPO RESTANTE</span>
+    <span id="timer-display">30:00</span>
+</div>
+
+<!-- ══════════════════════════════════════════
+     CONTENIDO PRINCIPAL
+══════════════════════════════════════════ -->
+<div class="container">
+
+    <!--
+        Título, referencia, ámbito y minutos NO se editan aquí: se rellenan
+        automáticamente en el arranque a partir de EXAM_CONFIG (al principio
+        de la ZONA EDITABLE del bloque de JavaScript, al final de la
+        página). El nº de preguntas se calcula solo, contando
+        QUESTIONS_BANK. Así solo hay un sitio donde tocar
+        estos datos y nunca queda desactualizado un lugar y otro no.
+    -->
+
+    <!-- Título para impresión -->
+    <div id="print-title" style="text-align:center; margin-bottom:24px; font-family:'Playfair Display',serif;">
+        <h1 id="print-title-h1" style="font-size:1.4rem; color:#3d2a20;"></h1>
+        <p id="print-title-sub" style="font-size:0.85rem; color:#555; margin-top:4px;"></p>
+        <p id="print-fecha" style="font-size:0.8rem; color:#777; margin-top:4px;"></p>
+    </div>
+
+    <!-- CABECERA INSTITUCIONAL -->
+    <header class="inst-header">
+        <img id="inst-logo" class="logo-img" src="" alt="">
+        <div class="organismo" id="inst-organismo"></div>
+        <h1 id="inst-title"></h1>
+        <div class="meta-strip">
+            <span class="meta-pill" id="meta-preguntas"></span>
+            <span class="meta-pill" id="meta-minutos"></span>
+            <span class="meta-pill" id="meta-legislacion"></span>
+            <span class="meta-pill" id="meta-referencia"></span>
+        </div>
+    </header>
+
+    <!--
+        ENUNCIADOS
+        ──────────
+        Ya no hay un panel fijo de enunciado encima de la página: cada
+        enunciado se pinta DENTRO del hilo de preguntas (#quiz-container),
+        justo delante del grupo de preguntas al que pertenece y debajo de
+        la cabecera de su bloque. Así el documento se lee en su orden
+        natural: cabecera del bloque → enunciado 1 → sus preguntas →
+        enunciado 2 → sus preguntas…
+
+        Cada pregunta de QUESTIONS_BANK indica a qué enunciado pertenece
+        mediante "statementId"; una pregunta con statementId null/ausente es
+        una "pregunta suelta" y no muestra ningún bloque de hechos.
+
+        Estructura disponible dentro de cada enunciado (ver STATEMENTS_BANK):
+        - factBlocks[]  → bloques de hechos (borde dorado; "red:true" = borde rojo/crítico)
+                          cada uno con su "id" (H1, H2…) para poder vincularle preguntas
+        - timeline[]    → hitos de la línea de tiempo ("red:true" = hito crítico)
+        - "hidden:true" en cualquier factBlock/hito lo omite del renderizado
+          (útil para preparar variantes de un mismo supuesto sin borrar datos).
+
+        Cada pregunta puede además vincularse a uno o varios bloques de
+        hechos concretos con "factIds": en el MODO FOCO (⚙, dentro de «ver
+        las preguntas de una en una») el enunciado se recorta a esos hechos.
+    -->
+
+    <!-- BARRA DE PROGRESO -->
+    <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+
+    <!-- PREGUNTAS -->
+    <div id="quiz-container"></div>
+
+    <!-- BOTONERA -->
+    <div class="btn-zone" id="btn-zone">
+        <button id="prev-btn" class="btn btn-primary" onclick="move(-1)">← Anterior</button>
+        <button id="next-btn" class="btn btn-primary" onclick="move(1)">Siguiente →</button>
+        <button id="check-btn"   class="btn btn-danger"   onclick="evaluateExam()">✓ Corregir Expediente</button>
+        <button id="print-btn"   class="btn btn-success"  onclick="printResults()">🖨 Imprimir / PDF</button>
+        <button id="restart-btn" class="btn btn-info"     onclick="openRandomModal()">🔀 Nuevo Intento (Aleatorio)</button>
+        <button id="send-btn"    class="btn btn-send"     onclick="enviarResultados()">📤 Enviar Resultados</button>
+        <button id="home-btn-bottom" class="btn btn-info" style="display:none;" onclick="goHome()">🏠 Volver al Menú Principal</button>
+        <!-- Solo en el móvil y tras corregir: abre las demás acciones en una hoja desde abajo -->
+        <button id="more-btn" class="btn btn-info" type="button" onclick="toggleMasAcciones()" aria-expanded="false" aria-controls="btn-zone">⋯ Más</button>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     OVERLAY — TIEMPO AGOTADO + CORRECCIÓN
+══════════════════════════════════════════ -->
+<div id="overlay" role="dialog" aria-modal="true" aria-labelledby="overlay-title">
+    <button id="overlay-close" onclick="closeOverlay()" title="Cerrar" aria-label="Cerrar">✕</button>
+    <div class="overlay-content">
+
+        <!-- GREMLIN SVG -->
+        <div id="gremlin-wrap">
+          <svg id="gremlin-svg" viewBox="0 0 220 200" xmlns="http://www.w3.org/2000/svg">
+            <!-- Monitor -->
+            <rect x="50" y="100" width="110" height="70" rx="6" fill="#1e293b" stroke="#475569" stroke-width="2"/>
+            <rect x="58" y="108" width="94" height="52" rx="3" id="screen-glow" fill="#0ea5e9" opacity="0.85"/>
+            <!-- Pantalla rota -->
+            <path d="M85 120 L105 108 L115 125 L130 112 L120 135 L100 128 Z" fill="#fff" opacity="0.15"/>
+            <text x="80" y="140" font-size="10" fill="white" font-family="monospace" font-weight="bold">ERROR!</text>
+            <!-- Base monitor -->
+            <rect x="96" y="170" width="28" height="8" rx="2" fill="#334155"/>
+            <rect x="88" y="177" width="44" height="5" rx="2" fill="#475569"/>
+            <!-- Cable -->
+            <g id="cable">
+                <path d="M200 155 Q175 160 155 155 Q135 150 110 158" stroke="#94a3b8" stroke-width="3" fill="none" stroke-linecap="round"/>
+                <!-- Enchufe -->
+                <rect x="196" y="149" width="14" height="12" rx="2" fill="#64748b" stroke="#94a3b8" stroke-width="1"/>
+                <rect x="200" y="145" width="3" height="6" rx="1" fill="#94a3b8"/>
+                <rect x="205" y="145" width="3" height="6" rx="1" fill="#94a3b8"/>
+            </g>
+
+            <!-- GREMLIN cuerpo -->
+            <g id="gremlin-body">
+                <!-- Cuerpo -->
+                <ellipse cx="112" cy="80" rx="28" ry="32" fill="#4ade80"/>
+                <!-- Panza -->
+                <ellipse cx="112" cy="85" rx="18" ry="20" fill="#86efac"/>
+                <!-- Cabeza -->
+                <ellipse cx="112" cy="48" rx="26" ry="24" fill="#4ade80"/>
+                <!-- Orejas -->
+                <ellipse cx="88" cy="45" rx="10" ry="16" fill="#4ade80" transform="rotate(-20, 88, 45)"/>
+                <ellipse cx="136" cy="45" rx="10" ry="16" fill="#4ade80" transform="rotate(20, 136, 45)"/>
+                <ellipse cx="88" cy="45" rx="5" ry="10" fill="#f9a8d4" transform="rotate(-20, 88, 45)"/>
+                <ellipse cx="136" cy="45" rx="5" ry="10" fill="#f9a8d4" transform="rotate(20, 136, 45)"/>
+                <!-- Ojos -->
+                <g id="eye-l">
+                    <ellipse cx="103" cy="46" rx="7" ry="8" fill="white"/>
+                    <ellipse cx="103" cy="48" rx="4" ry="4" fill="#dc2626"/>
+                    <ellipse cx="104" cy="47" rx="1.5" ry="1.5" fill="white"/>
+                </g>
+                <g id="eye-r">
+                    <ellipse cx="121" cy="46" rx="7" ry="8" fill="white"/>
+                    <ellipse cx="121" cy="48" rx="4" ry="4" fill="#dc2626"/>
+                    <ellipse cx="122" cy="47" rx="1.5" ry="1.5" fill="white"/>
+                </g>
+                <!-- Cejas maléficas -->
+                <path d="M96 38 Q100 34 108 36" stroke="#166534" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+                <path d="M128 36 Q120 34 116 38" stroke="#166534" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+                <!-- Nariz -->
+                <ellipse cx="112" cy="54" rx="4" ry="3" fill="#16a34a"/>
+                <circle cx="110" cy="54" r="1" fill="#15803d"/>
+                <circle cx="114" cy="54" r="1" fill="#15803d"/>
+                <!-- Boca maliciosa -->
+                <path d="M100 61 Q112 70 124 61" stroke="#166534" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+                <!-- Dientes -->
+                <rect x="106" y="61" width="4" height="5" rx="1" fill="white"/>
+                <rect x="112" y="61" width="4" height="5" rx="1" fill="white"/>
+                <!-- Brazos -->
+                <path d="M84 75 Q70 60 60 70" stroke="#4ade80" stroke-width="8" stroke-linecap="round" fill="none"/>
+                <path d="M140 75 Q160 60 170 80" stroke="#4ade80" stroke-width="8" stroke-linecap="round" fill="none"/>
+                <!-- Mano izquierda (agarrando cable) -->
+                <circle cx="60" cy="70" r="8" fill="#4ade80"/>
+                <!-- Garras -->
+                <path d="M54 65 L50 58" stroke="#4ade80" stroke-width="5" stroke-linecap="round"/>
+                <path d="M56 63 L53 55" stroke="#4ade80" stroke-width="5" stroke-linecap="round"/>
+                <path d="M60 62 L58 54" stroke="#4ade80" stroke-width="5" stroke-linecap="round"/>
+                <!-- Piernas -->
+                <path d="M100 110 Q95 130 92 140" stroke="#4ade80" stroke-width="10" stroke-linecap="round" fill="none"/>
+                <path d="M124 110 Q129 130 132 140" stroke="#4ade80" stroke-width="10" stroke-linecap="round" fill="none"/>
+                <!-- Pies -->
+                <ellipse cx="92" cy="143" rx="10" ry="6" fill="#16a34a"/>
+                <ellipse cx="132" cy="143" rx="10" ry="6" fill="#16a34a"/>
+                <!-- Cola -->
+                <path d="M138 100 Q155 90 158 105 Q161 115 148 112" stroke="#4ade80" stroke-width="6" stroke-linecap="round" fill="none"/>
+            </g>
+          </svg>
+        </div>
+
+        <h1 id="overlay-title">¡TIEMPO AGOTADO!</h1>
+        <p class="sub" id="overlay-msg">El tiempo del examen ha concluido. El gremlin ha tirado del cable.<br>A continuación se muestra la corrección completa con motivación legal.</p>
+
+        <!-- Resultado: lo primero que se lee tras el aviso -->
+        <div class="score-banner" id="score-banner" style="display:none;"></div>
+
+        <!-- Botones en overlay: primero «Ver corrección», el resto debajo -->
+        <div class="ov-botones">
+            <button class="btn btn-danger" id="ov-corr-btn" style="display:inline-flex;" onclick="showCorrectionPanel()">✓ Ver Corrección Completa</button>
+            <button class="btn btn-success" id="ov-print-btn" style="display:inline-flex;" onclick="printResults()">🖨 Imprimir / PDF</button>
+            <button class="btn btn-info" id="ov-restart-btn" style="display:inline-flex;" onclick="openRandomModal()">🔀 Repetir (Aleatorio)</button>
+            <button class="btn btn-send" id="ov-send-btn" style="display:inline-flex;" onclick="enviarResultados()">📤 Enviar Resultados</button>
+            <button class="btn btn-info" id="ov-home-btn" style="display:inline-flex;" onclick="goHome()">🏠 Menú Principal</button>
+        </div>
+
+        <!-- Panel corrección completa -->
+        <div id="correction-panel"></div>
+
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     MODAL — ELECCIÓN DE ALEATORIEDAD AL REPETIR
+══════════════════════════════════════════ -->
+<div id="random-modal" onclick="if (event.target === this) closeRandomModal();">
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="rnd-titulo">
+        <h3 id="rnd-titulo">🔀 Nuevo intento aleatorio</h3>
+        <p id="rnd-sub">¿Cómo quieres repetir el expediente?</p>
+        <button class="btn btn-modal-a" id="rnd-answers" onclick="confirmRestart('answers')">🔁 Mismas preguntas y mismo orden<br><small style="font-weight:400;opacity:0.8;">solo cambia el orden de las respuestas</small></button>
+        <button class="btn btn-modal-b" id="rnd-order" onclick="confirmRestart('order')">🎲 Mismas preguntas en otro orden<br><small style="font-weight:400;opacity:0.8;">salen todas, barajadas dentro de su bloque y su enunciado</small></button>
+        <button class="btn" onclick="closeRandomModal()">Cancelar</button>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════ --><!-- ══════════════════════════════════════════
+     DATOS DEL SUPUESTO  (ZONA EDITABLE)
+     ──────────────────────────────────────────
+     Este bloque JSON es lo ÚNICO que hay que cambiar para crear un
+     supuesto nuevo, y lo edita automáticamente el programa Python
+     "editor_supuestos.py" (interfaz gráfica). No hace falta tocarlo
+     a mano; si se toca, respetar el formato JSON:
+       · los textos van entre comillas dobles "así"
+       · las comillas dobles DENTRO de un texto se escriben \"
+       · true / false / null se escriben en minúscula y sin comillas
+     Estructura:
+       config     → título, referencia, ámbito, minutos, % para APTO y el
+                    encabezado (logo y organismo)
+       tema       → colores de toda la página (fondos, textos, acentos)
+       interfaz   → qué botones se ven y cómo se llaman
+       envio      → dirección del formulario y casilla de cada dato;
+                    "total" = casillas del recuento ABSOLUTO (suma de todos
+                    los bloques) y "enviarTotal" = si se manda o no
+       envioDetalle → (opcional) segundo formulario, el del detalle
+                    pregunta a pregunta que sale solo al corregir. Si no
+                    aparece, se usa el del proyecto, que ya viene puesto
+       bloques    → secciones del examen, en el orden en que salen:
+                    tipo "supuesto" (con enunciados) o tipo "test" (teoría),
+                    con su color, su forma de verse y su baremo
+                    ("cabeceraSobreEnunciado": la barra del bloque va
+                     encima del enunciado; con false baja hasta justo
+                     delante de la primera pregunta)
+       enunciados → bloques de hechos comunes a un grupo de preguntas;
+                    cada bloque de hechos lleva su "id" (H1, H2…)
+       preguntas  → cada pregunta, con el bloque al que pertenece y, si
+                    procede, los "factIds" de los hechos concretos de los
+                    que depende (modo foco del panel ⚙)
+══════════════════════════════════════════ -->
+<script type="application/json" id="datos-supuesto">
+{
+  "config": {
+    "titulo": "Cotización a la Seguridad Social 2026 · Casos prácticos",
+    "referencia": "Cotización 2026",
+    "ambito": "TRLGSS · Orden de cotización 2026",
+    "minutos": 30,
+    "aptoPorcentaje": 50.0,
+    "respuestas": 0,
+    "corazon": true,
+    "subrayar": true,
+    "justificar": {
+      "enunciado": true,
+      "pregunta": true,
+      "motivacion": true
+    },
+    "panel": {
+      "fuente": {
+        "visible": true
+      },
+      "tema": {
+        "visible": true,
+        "activa": false
+      },
+      "deslizar": {
+        "visible": true,
+        "activa": true
+      },
+      "atajos": {
+        "visible": true
+      }
+    },
+    "logo": "https://academia.ecap.es/pluginfile.php?file=%2F1%2Fcore_admin%2Flogo%2F0x200%2F1782109950%2FACADEMIA%20VIRTUAL%20%281%29.png",
+    "logoAlt": "ECAP - Escuela Ciudadana de Administración Pública",
+    "organismo": "Comunidad ECAP ASS C1"
+  },
+  "tema": {
+    "fondo": "#3d2a20",
+    "barra": "#5c4033",
+    "acento": "#8fc4d9",
+    "acentoClaro": "#b8dceb",
+    "azulProfundo": "#2f6f93",
+    "textoClaro": "#fdf8f0",
+    "tarjeta": "#fffef9",
+    "fondoHechos": "#f7ece7",
+    "texto": "#1a1a2e",
+    "gris": "#4a5568",
+    "rojo": "#8b1a1a",
+    "verde": "#1a4731"
+  },
+  "interfaz": {
+    "botonCasa": {
+      "visible": true,
+      "texto": "🏠",
+      "titulo": "Volver al menú principal",
+      "url": "../index.html"
+    },
+    "botonConfig": {
+      "visible": true,
+      "titulo": "Configuración"
+    },
+    "botonPlegar": {
+      "visible": true,
+      "titulo": "Plegar: ver solo el bloque actual",
+      "plegado": false
+    },
+    "opcionTiempo": {
+      "visible": true,
+      "texto": "Duración del examen (mm:ss)"
+    },
+    "opcionCorregir": {
+      "visible": true,
+      "texto": "Corregir pregunta a pregunta",
+      "activa": false
+    },
+    "opcionUnaEnUna": {
+      "visible": true,
+      "texto": "Ver las preguntas de una en una"
+    },
+    "opcionRepetirRespuestas": {
+      "visible": true,
+      "texto": "🔁 Mismas preguntas y mismo orden"
+    },
+    "opcionRepetirOrden": {
+      "visible": true,
+      "texto": "🎲 Mismas preguntas en otro orden"
+    },
+    "opcionFoco": {
+      "visible": true,
+      "texto": "Modo foco: solo los hechos de cada pregunta",
+      "activa": false
+    },
+    "opcionQtags": {
+      "visible": true,
+      "texto": "Ocultar las etiquetas de pregunta",
+      "activa": false
+    },
+    "btnAnterior": {
+      "visible": true,
+      "texto": "← Anterior"
+    },
+    "btnSiguiente": {
+      "visible": true,
+      "texto": "Siguiente →"
+    },
+    "btnCorregir": {
+      "visible": true,
+      "texto": "✓ Corregir Expediente"
+    },
+    "btnVerCorreccion": {
+      "visible": true,
+      "texto": "✓ Ver Corrección Completa"
+    },
+    "btnImprimir": {
+      "visible": true,
+      "texto": "🖨 Imprimir / PDF"
+    },
+    "btnReintentar": {
+      "visible": true,
+      "texto": "🔀 Nuevo Intento (Aleatorio)"
+    },
+    "btnEnviar": {
+      "visible": true,
+      "texto": "📤 Enviar Resultados"
+    },
+    "btnMenu": {
+      "visible": true,
+      "texto": "🏠 Volver al Menú Principal"
+    }
+  },
+  "envio": {
+    "url": "https://docs.google.com/forms/d/e/1FAIpQLSd9h52UH7XzaRDRSIxSevScmqKZC28Fvtfnp39drKtC5SiwGA/formResponse",
+    "examen": "entry.241409513",
+    "usuario": "entry.1810433543",
+    "tiempoAsignado": "entry.1069013600",
+    "tiempoEmpleado": "entry.815398067",
+    "enviarTotal": true,
+    "total": {
+      "preguntas": "entry.771114786",
+      "aciertos": "entry.1903892811",
+      "fallos": "entry.1155230396",
+      "blancos": "entry.943386498",
+      "puntos": ""
+    }
+  },
+  "envioDetalle": {
+    "url": "https://docs.google.com/forms/d/e/1FAIpQLSfICCUGWcmcJ1zLFtphE1pictGOyfY9epNbSrHtEFfGvvK8HQ/formResponse",
+    "nombre": "entry.315726614",
+    "tiempo": "entry.1329722701",
+    "aciertos": "entry.979170555",
+    "fallos": "entry.1962238201",
+    "preguntas": [
+      "entry.712361381",
+      "entry.709874002",
+      "entry.661924675",
+      "entry.1030651222",
+      "entry.200283712",
+      "entry.134789499",
+      "entry.966701265",
+      "entry.2110630525",
+      "entry.1056110206",
+      "entry.960222499",
+      "entry.1846963224",
+      "entry.900211285",
+      "entry.1003793269",
+      "entry.263573841",
+      "entry.784118366",
+      "entry.1588074600",
+      "entry.1770731044",
+      "entry.211278072",
+      "entry.1659967631",
+      "entry.1690155252",
+      "entry.2143039054",
+      "entry.1904113686",
+      "entry.1470800200",
+      "entry.1255018865",
+      "entry.1513500",
+      "entry.1854371083",
+      "entry.1620187954",
+      "entry.729113678",
+      "entry.293340307",
+      "entry.1724050220",
+      "entry.1062380832",
+      "entry.2085402594",
+      "entry.950414350",
+      "entry.602730095",
+      "entry.614220064",
+      "entry.1856632108",
+      "entry.909455125",
+      "entry.693661547",
+      "entry.632847159",
+      "entry.335441030",
+      "entry.1456618893",
+      "entry.852090648",
+      "entry.589626122",
+      "entry.183473563",
+      "entry.1217213161",
+      "entry.1968115194",
+      "entry.531136136",
+      "entry.1209534835",
+      "entry.1577734057",
+      "entry.312691398",
+      "entry.1116760340",
+      "entry.768501311",
+      "entry.694863628",
+      "entry.673940089",
+      "entry.1533606077",
+      "entry.253021395",
+      "entry.1326657452",
+      "entry.2041886464",
+      "entry.1051043932",
+      "entry.1809273037",
+      "entry.1108878147",
+      "entry.1471749573",
+      "entry.1082014329",
+      "entry.2112539399",
+      "entry.15417682",
+      "entry.2104298979",
+      "entry.949437792",
+      "entry.2071397813",
+      "entry.2001115340",
+      "entry.1445602013",
+      "entry.911131704",
+      "entry.1517320485",
+      "entry.548517073",
+      "entry.932772700",
+      "entry.1987322673",
+      "entry.529360562",
+      "entry.2050801750",
+      "entry.82935037",
+      "entry.48912348",
+      "entry.1553896761",
+      "entry.1016698177",
+      "entry.1584638604",
+      "entry.1327257853",
+      "entry.1726180779",
+      "entry.574614711",
+      "entry.2070952397",
+      "entry.1752221665",
+      "entry.203467465",
+      "entry.470537063",
+      "entry.1753285763",
+      "entry.1200176677",
+      "entry.1600805991",
+      "entry.1986998899",
+      "entry.1552574829",
+      "entry.290117084",
+      "entry.1429046308",
+      "entry.1510972535",
+      "entry.281414865",
+      "entry.673373891",
+      "entry.2071377334"
+    ]
+  },
+  "bloques": [
+    {
+      "id": "B1",
+      "tipo": "supuesto",
+      "titulo": "Casos prácticos · Cotización a la Seguridad Social 2026",
+      "color": "#8fc4d9",
+      "modo": "individual",
+      "cabeceraSobreEnunciado": true,
+      "opcionUnaEnUna": true,
+      "porIntento": 0,
+      "acierto": 1.0,
+      "fallo": 0.25,
+      "blanco": 0.0,
+      "envio": {
+        "preguntas": "",
+        "aciertos": "",
+        "fallos": "",
+        "blancos": "",
+        "puntos": ""
+      }
+    }
+  ],
+  "enunciados": [],
+  "preguntas": [
+    {
+      "bloqueId": "B1",
+      "statementId": null,
+      "factIds": [],
+      "tag": "Caso Práctico 1",
+      "q": "\u003cspan class=\"al-j\">La empresa «SinWordNoTrabajo, S.L.» contrata en enero de 2026 a un analista informático mediante un contrato de indefinido a jornada completa. A la hora de calcular la liquidación mensual de cuotas, el departamento de Recursos Humanos debe aplicar el tipo de cotización por contingencias comunes sobre la base correspondiente.\u003c/span>\n\u003cspan class=\"al-j\">\u003cb>¿Qué porcentajes deben aplicarse a cargo de la empresa y del trabajador?\u003c/b>\u003c/span>",
+      "a": [
+        "24,00 % a cargo de la empresa y 4,80 % a cargo del trabajador (Total: 28,80 %).",
+        "23,60 % a cargo de la empresa y 4,70 % a cargo del trabajador (Total: 28,30 %).",
+        "28,30 % a cargo exclusivo de la empresa (Total: 28,30 %).",
+        "20,00 % a cargo de la empresa y 8,30 % a cargo del trabajador (Total: 28,30 %)."
+      ],
+      "c": 1,
+      "correctas": [
+        1
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "\u003cb>Art 4, Orden PJC/297/2026:\u003c/b> El tipo de cotización por contingencias comunes en el Régimen General de la Seguridad Social es único y asciende al 28,30 %, distribuyéndose en un 23,60 % a cargo de la empresa y un 4,70 % a cargo del trabajador.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": null,
+      "factIds": [],
+      "tag": "Caso Práctico 2",
+      "q": "La gestoría contratada por la empresa «ConstruccionesPapel, S.A.» opera mediante el Sistema de Liquidación Directa ante la Tesorería General de la Seguridad Social (TGSS). Para la liquidación ordinaria correspondiente a los salarios devengados en el mes de marzo de 2026, \u003cb>¿hasta qué plazo tiene la empresa para solicitar a la TGSS el cálculo de la liquidación y transmitir los datos necesarios?\u003c/b>",
+      "a": [
+        "Hasta el último día laborable del mes de abril de 2026.",
+        "Hasta el último día natural del mes de marzo de 2026.",
+        "Hasta el penúltimo día natural del respectivo plazo reglamentario de ingreso (mes de abril de 2026).",
+        "Hasta el día 15 del mes de abril de 2026."
+      ],
+      "c": 2,
+      "correctas": [
+        2
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "Art 22.1.b LGSS; Art 15.2.b Real Decreto 2064/1995: En el Sistema de Liquidación Directa, los sujetos responsables deben solicitar a la TGSS el cálculo de la liquidación de cada trabajador y transmitir los datos correspondientes por medios electrónicos hasta el penúltimo día natural del respectivo plazo reglamentario de ingreso. Tratándose de la mensualidad de marzo, el plazo reglamentario de ingreso finaliza en abril, por lo que el trámite debe hacerse hasta su penúltimo día natural.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": null,
+      "factIds": [],
+      "tag": "Caso Práctico 3",
+      "q": "Debido a una inundación imprevista en las instalaciones del almacén logístico de «CorreManolo, S.L.», varios operarios tuvieron que realizar horas extraordinarias para achicar agua y reparar los daños urgentes producidos por el siniestro, devengando por dicho concepto un importe de 300 €.\u003cb> ¿Qué tipo de cotización adicional procede aplicar a la remuneración de estas horas extraordinarias por fuerza mayor?\u003c/b>",
+      "a": [
+        "Un 28,30 % en total (23,60 % a cargo de la empresa y 4,70 % a cargo del trabajador).",
+        "Un 14,00 % en total (12,00 % a cargo de la empresa y 2,00 % a cargo del trabajador).",
+        "Un 14,00 % a cargo exclusivo del empresario.",
+        "Quedan exentas de toda cotización al tratarse de daños catastróficos."
+      ],
+      "c": 1,
+      "correctas": [
+        1
+      ],
+      "multiple": false,
+      "respuestas": 3,
+      "law": "\u003cb>Art 5, Orden PJC/297/2026:\u003c/b>La cotización adicional por horas extraordinarias motivadas por fuerza mayor se efectúa aplicando un tipo especial del 14,00 %, del cual el 12,00 % es a cargo de la empresa y el 2,00 % a cargo del trabajador.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": null,
+      "factIds": [],
+      "tag": "Caso Práctico 4",
+      "q": "Un restaurante formaliza un contrato de trabajo de duración determinada por circunstancias de la producción durante un fin de semana (duración total: 3 días) con un camarero. Al finalizar la relación laboral, la empresa debe ingresar la cotización adicional prevista en la normativa para contratos temporales de muy corta duración\u003cb>. ¿Cuál es la cuantía fija establecida para dicha cotización adicional en 2026 y quién debe asumirla?\u003c/b>",
+      "a": [
+        "33,62 €, a cargo exclusivo del empresario.",
+        "33,62 €, repartida a partes iguales entre empresario y trabajador.",
+        "11,21 €, a cargo exclusivo del empresario.",
+        "47,48 €, distribuida proporcionalmente según el tipo general."
+      ],
+      "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "\u003cb>Art 18, Orden PJC/297/2026:\u003c/b>En los contratos de duración determinada de duración inferior a 30 días se aplica a su finalización una cotización adicional fija de 33,62 €, la cual está única y exclusivamente a cargo del empresario. Dicha cantidad es el resultado de triplicar la cuota resultante de aplicar el 23,60 % a la base mínima diaria del grupo 8 (47,48 €).",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": null,
+      "factIds": [],
+      "tag": "Caso Práctico 5",
+      "q": "La empresa «Textil Hogar, S.A.» remitió a la TGSS por medios electrónicos los datos para la liquidación directa de cuotas. No obstante, existían errores en los datos que impedían realizar el cálculo. Según la normativa reguladora, \u003cb>¿de qué plazo dispone la TGSS para informar a la empresa de dicha causa impeditiva y hasta cuándo puede la empresa comunicar los datos subsanados?\u003c/b>",
+      "a": [
+        "La TGSS tiene 24 horas y la empresa hasta el último día natural del mes.",
+        "La TGSS tiene 48 horas y la empresa hasta el penúltimo día natural del plazo reglamentario de ingreso.",
+        "La TGSS tiene 5 días hábiles y la empresa dispone de 10 días para subsanar.",
+        "La TGSS tiene 72 horas y la empresa hasta el día 20 del mes natural."
+      ],
+      "c": 1,
+      "correctas": [
+        1
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "\u003cb>Art 18.2.e Real Decreto 2064/1995:\u003c/b> La TGSS dispone de un plazo máximo de 48 horas a contar desde la aportación de datos para informar al sujeto responsable sobre la causa que impide el cálculo, debiendo este solventarla y comunicar los datos correctos hasta el penúltimo día natural del plazo reglamentario de ingreso.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": null,
+      "factIds": [],
+      "tag": "Caso Práctico 6",
+      "q": "La empresa «Consultores Aficionados, S.L.» formaliza un contrato indefinido ordinario a tiempo completo con un nuevo técnico profesional. Al confeccionar la nómina y liquidar las aportaciones por desempleo,\u003cb> ¿qué tipo general de cotización corresponde aplicar y cómo se distribuye?\u003c/b>",
+      "a": [
+        "8,30 % (6,70 % a cargo de la empresa y 1,60 % a cargo del trabajador).",
+        "7,05 % (5,50 % a cargo de la empresa y 1,55 % a cargo del trabajador).",
+        "7,05 % (6,00 % a cargo de la empresa y 1,05 % a cargo del trabajador).",
+        "5,50 % a cargo exclusivo de la empresa."
+      ],
+      "c": 1,
+      "correctas": [
+        1
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "\u003cb>Art 33.2.a.1, Orden PJC/297/2026: \u003c/b>Para la \u003cb>\u003cu>contratación indefinida\u003c/u>\u003c/b>, el tipo de cotización por desempleo asciende al 7,05 %, siendo el 5,50 % a cargo del empresario y el 1,55 % a cargo del trabajador.\nEl tipo del 8,30 % se reserva a contratos de \u003cb>duración determinada\u003c/b>, del que el 6,70 por ciento será a cargo del empresario y el 1,60 por ciento, a cargo de la persona trabajadora.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": null,
+      "factIds": [],
+      "tag": "Caso Práctico 7",
+      "q": "Al revisar los costes mensuales de Seguridad Social de su plantilla, el gerente de una empresa industrial observa una deducción correspondiente a la cotización destinada al Fondo de Garantía Salarial (FOGASA). \u003cb>¿Cuál es el tipo de cotización aplicable por este concepto y qué sujeto está obligado a su pago?\u003c/b>",
+      "a": [
+        "El 0,20 %, a cargo exclusivo de la empresa.",
+        "El 0,40 %, distribuido en un 0,20 % la empresa y un 0,20 % el trabajador.",
+        "El 0,70 %, del que el 0,60 % es a cargo de la empresa y el 0,10 % del trabajador.",
+        "El 0,10 %, a cargo exclusivo del trabajador."
+      ],
+      "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "\u003cb>Art 33.2, Orden PJC/297/2026:\u003c/b> El tipo de cotización para el FOGASA es del 0,20 % y se financia con aportaciones a cargo exclusivo del empresario. (El 0,70 % con reparto 0,60 % y 0,10 % corresponde a Formación Profesional).",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": null,
+      "factIds": [],
+      "tag": "Caso Práctico 8",
+      "q": "En noviembre de 2026, la Inspección de Trabajo y la TGSS inician actuaciones de comprobación sobre una mercantil e identifican diferencias de cotización no liquidadas ni ingresadas correspondientes al ejercicio 2021, cuyo plazo reglamentario de ingreso finalizó en junio de 2021. \u003cb>¿Ha prescrito la potestad de la Administración para determinar y reclamar dichas deudas por cuotas?\u003c/b>",
+      "a": [
+        "No, porque las deudas por cuotas con la Seguridad Social prescriben a los 5 años.",
+        "Sí, porque el derecho de la Administración de la Seguridad Social para determinar y exigir deudas por cuotas prescribe a los 4 años.",
+        "No, puesto que la obligación de cotizar a la Seguridad Social es imprescriptible.",
+        "Sí, porque las cuotas no reclamadas prescriben transcurrido 1 año natural."
+      ],
+      "c": 1,
+      "correctas": [
+        1
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "Conforme al artículo \u003cb>art 24.1 del TRLGSS\u003c/b> y el \u003cb>art 42 del Reglamento General de Recaudación\u003c/b>, la obligación de pago de las cuotas de la Seguridad Social y el derecho de la Administración para determinar las deudas prescriben a los 4 años, a contar desde el día en que finalice el plazo reglamentario de ingreso. Al haber transcurrido más de 4 años desde junio de 2021, la deuda ha prescrito.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": null,
+      "factIds": [],
+      "tag": "Caso Práctico 9",
+      "q": "El 1 de julio de 2026 se publica en el Boletín Oficial del Estado un convenio colectivo de ámbito sectorial que reconoce incrementos salariales con carácter retroactivo desde enero del mismo año, sin fijar en su articulado una fecha concreta para hacer efectivo el abono de dichos atrasos a la plantilla. ¿\u003cb>Cuándo finaliza el plazo reglamentario de ingreso de las cuotas derivadas de la liquidación complementaria correspondiente?\u003c/b>",
+      "a": [
+        "El 31 de julio de 2026 (último día del mismo mes de la publicación).",
+        "El 31 de agosto de 2026 (último día del mes siguiente al de la publicación en el boletín oficial).",
+        "A los 3 meses desde la fecha de publicación del convenio.",
+        "En el mes de enero de 2027 coincidiendo con la regularización anual."
+      ],
+      "c": 1,
+      "correctas": [
+        1
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "\u003cb>Art 56.1.c.2º Real Decreto 1415/2004: \u003c/b>Cuando deban abonarse salarios con carácter retroactivo y el documento no establezca una fecha específica de pago, el plazo reglamentario para el ingreso de las cuotas finalizará el último día del mes siguiente al de la publicación en el boletín oficial correspondiente (en este supuesto, el 31 de agosto de 2026).",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": null,
+      "factIds": [],
+      "tag": "Caso Práctico 10",
+      "q": "Una trabajadora de 68 años con una dilatada carrera de cotización decide acogerse a la modalidad de jubilación activa regulada en el artículo 214 del TRLGSS, compatibilizando el cobro del 65 % de su pensión contributiva con su puesto de trabajo por cuenta ajena. ¿Qué cotización especial de solidaridad corresponde ingresar por su actividad laboral y cómo se reparte?",
+      "a": [
+        "Un 10 % sobre la base de contingencias comunes (8 % empresa y 2 % trabajadora).",
+        "Un 9 % sobre la base de cotización por contingencias comunes (7 % a cargo de la empresa y 2 % a cargo de la trabajadora).",
+        "Un 9 % a cargo exclusivo del empresario.",
+        "Queda totalmente exenta de cuotas de solidaridad al superar la edad ordinaria de jubilación."
+      ],
+      "c": 1,
+      "correctas": [
+        1
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "\u003cb>Art 153 LGSS\u003c/b>: En los supuestos de compatibilidad entre trabajo por cuenta ajena y pensión de jubilación (jubilación activa), se aplica una cotización especial de solidaridad del 9 % sobre la base de cotización por contingencias comunes, no computable a efectos de prestaciones, distribuida en un 7 % a cargo del empresario y un 2 % a cargo del trabajador.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": null,
+      "factIds": [],
+      "tag": "Caso Práctico 11",
+      "q": "\u003cspan class=\"al-j\">Una empresa que se encuentra al corriente en el pago de sus obligaciones con la Seguridad Social advierte que, por un error propio no imputable a la TGSS, no se aplicó en su liquidación una bonificación a la cotización a la que tenía pleno derecho. \u003c/span>\n\u003cspan class=\"al-j\">\u003cb>¿De qué plazo dispone la mercantil para solicitar el reintegro del beneficio no deducido antes de que se extinga su derecho?\u003c/b>\u003c/span>",
+      "a": [
+        "3 meses, a contar desde la fecha de presentación de la liquidación en que debió descontarse.",
+        "6 meses, a contar desde la finalización del ejercicio económico.",
+        "4 años, coincidiendo con el plazo general de prescripción de ingresos indebidos.",
+        "30 días naturales desde la notificación de la liquidación provisional."
+      ],
+      "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "\u003cb>Art 20.4 LGSS: \u003c/b>Cuando por causa no imputable a la Administración los beneficios en la cotización no se hubieran deducido reglamentariamente, podrá solicitarse el reintegro de su importe dentro del plazo de 3 meses, a contar desde la fecha de presentación de la liquidación en que el respectivo beneficio debió descontarse; de no formularse en dicho plazo, el derecho se extingue.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": null,
+      "factIds": [],
+      "tag": "Caso Práctico 12",
+      "q": "Un trabajador con categoría profesional de oficial administrativo (grupo de cotización 5) percibe mensualmente en 2026 un salario base de 1.500 € y tiene reconocido por contrato el derecho a 2 gratificaciones extraordinarias anuales por importe de 1.500 € cada una. No realiza horas extraordinarias ni percibe otros complementos.\n\u003cb>¿Cuál es el importe de la base mensual de cotización por contingencias comunes de este trabajador?\u003c/b>",
+      "a": [
+        "1.500,00 €.",
+        "1.625,00 €.",
+        "1.750,00 €.",
+        "1.808,33 €."
+      ],
+      "c": 2,
+      "correctas": [
+        2
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "La base de cotización por contingencias comunes se calcula sumando a la remuneración devengada en el mes la prorrata de las pagas extraordinarias.\n\u003cspan class=\"sg-1\">\u003cu>\u003cb>-Prorrata mensual\u003c/b>\u003c/u> = (1.500 € × 2) / 12 = 3.000 / 12 = 250 €.\u003c/span>\n\u003cspan class=\"sg-1\">\u003cu>\u003cb>-Base mensual \u003c/b>\u003c/u>= 1.500 € + 250 € = 1.750,00 €.\u003c/span>\n\u003cspan class=\"sg-1\">-Esta cuantía queda comprendida entre la base mínima y máxima del grupo 5 para 2026 (1.424,40 € y 5.101,20 €).\u003c/span>",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": null,
+      "factIds": [],
+      "tag": "Caso Práctico 13",
+      "q": "Una empresa suscribe un convenio de colaboración académica para incorporar a un estudiante universitario que realizará prácticas formativas no remuneradas. Conforme a la Disposición Adicional 52ª del TRLGSS, \u003cb>¿qué beneficio se aplica a la cuota empresarial por contingencias comunes generada por dicho estudiante?\u003c/b>",
+      "a": [
+        "Una exención del 50 % en la cuota patronal.",
+        "Una bonificación del 75 % condicionada al mantenimiento del empleo.",
+        "Una reducción del 95 % en la cuota empresarial por contingencias comunes.",
+        "Una reducción total del 100 % en todas las contingencias sin excepción."
+      ],
+      "c": 2,
+      "correctas": [
+        2
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "En las prácticas formativas (tanto remuneradas como no remuneradas) reguladas en la\u003cb> DA 52ª del \u003cb>TRLG\u003c/b>S\u003c/b>, se establece expresamente una reducción del 95 % en la cuota empresarial por contingencias comunes, además de la exclusión de Desempleo, FOGASA, Formación Profesional y MEI.",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": null,
+      "factIds": [],
+      "tag": "Caso Práctico 14",
+      "q": "Un centro de formación acoge en prácticas académicas curriculares no remuneradas a varios alumnos durante los meses de abril, mayo y junio de 2026. Teniendo en cuenta la periodicidad especial prevista para la liquidación de cuotas en este colectivo, \u003cb>¿cuándo finaliza el plazo reglamentario para el ingreso de las cuotas devengadas por dichas prácticas?\u003c/b>",
+      "a": [
+        "El 30 de junio de 2026.",
+        "El 31 de julio de 2026.",
+        "El 31 de octubre de 2026.",
+        "El último día del mes siguiente a cada mes de realización (mayo, junio y julio respectivamente)."
+      ],
+      "c": 1,
+      "correctas": [
+        1
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "A tenor de la\u003cb> Disposición Adicional 52ª (apartado 7.b) del TRLGSS\u003c/b>, la cotización de las prácticas no remuneradas es trimestral, estableciéndose que el plazo reglamentario de ingreso de las cuotas correspondientes a los meses de abril, mayo y junio es el mes de julio (finalizando el 31 de julio de 2026).",
+      "tip": ""
+    },
+    {
+      "bloqueId": "B1",
+      "statementId": null,
+      "factIds": [],
+      "tag": "Caso Práctico 15",
+      "q": "Al confeccionar la liquidación de cotizaciones correspondiente al ejercicio 2026 para una persona trabajadora del Régimen General, la empresa debe aplicar el porcentaje fijado para el Mecanismo de Equidad Intergeneracional (MEI) sobre la base de contingencias comunes. Conforme a la normativa reguladora para 2026, ¿cuál es el porcentaje aplicable y cómo se distribuye entre la empresa y la persona trabajadora?",
+      "a": [
+        "0,90 puntos porcentuales (0,75 % a cargo de la empresa y 0,15 % a cargo de la persona trabajadora). En 2027 sera 1 punto (0,83 % a cargo de la empresa y 0,17 % a cargo de la persona trabajadora).",
+        "0,60 puntos porcentuales (0,50 % empresa y 0,10 % persona trabajadora).\nEn 2027 sera 0,90 puntos (0,75 % a cargo de la empresa y 0,15 % a cargo de la persona trabajadora).",
+        "1,20 puntos porcentuales (1,00 % empresa y 0,20 % persona trabajadora). Finaliza con esta cifras la disposicion transitoria.",
+        "1,00 punto porcentual (0,83 % empresa y 0,17 % persona trabajadora).\nEn 2027 sera 1,20 puntos (1,00 % empresa y 0,20 % persona trabajadora)"
+      ],
+      "c": 0,
+      "correctas": [
+        0
+      ],
+      "multiple": false,
+      "respuestas": 0,
+      "law": "De conformidad con la D\u003cb>isposición Transitoria 43ª del TRLGSS\u003c/b> y la \u003cb>Art 16 \u003cb>Orde\u003c/b>n PJC/297/2026\u003c/b>, a partir del 1 de enero de 2026 la cotización al MEI asciende a 0,90 puntos porcentuales, correspondiendo el 0,75 % a cargo de la empresa y el 0,15 % a cargo del trabajador. (El tipo del 1,00 % con desglose 0,83 % / 0,17 % corresponde al año 2027).",
+      "tip": ""
+    }
+  ]
+}
+</script>
+
+<!-- ══════════════════════════════════════════
+     JAVASCRIPT (MOTOR) — no hace falta tocar nada de aquí abajo
+══════════════════════════════════════════ -->
+<script src="../js/motor-supuesto.js"></script>
+
+<script src="../datos/normas-datos.js"></script>
+<script src="../config/telemetria-config.js"></script>
+<script src="../config/impugnaciones-config.js"></script>
+<script src="../config/sync-config.js"></script>
+<script src="../js/app-supuesto.js" defer></script>
+<script src="../js/app-sync.js" defer></script>
+<script src="../js/app-uso.js" defer></script>
+<script src="../js/app-subrayado.js" defer></script>
+<script src="../js/app-telemetria.js" defer></script>
+<script src="../js/app-impugnar.js" defer></script>
+</body>
+</html>
