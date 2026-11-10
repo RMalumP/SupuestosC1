@@ -1,4 +1,4 @@
-/* ════════════════════════════════════════════════════════════════
+﻿/* ════════════════════════════════════════════════════════════════
    LISTA DE SUPUESTOS DEL MENÚ
    El menú principal (index.html) y el modo sin conexión se montan
    a partir de este archivo. Hay UNA LÍNEA por supuesto.
@@ -33,11 +33,7 @@
   {"seccion": "temas", "grupo": "iniciales", "archivo": "supuesto_tema4I", "letra": "T4I", "ref": "Tema 4 Inicial.", "titulo": "Tema 4 Inicial. Cotización a la Seguridad Social 2026", "desc": "15 preguntas · 30 minutos · TRLGSS · Orden de cotización 2026  · Legilación a 10 de noviembre de 2026."},
   {"seccion": "temas", "grupo": "avanzados", "archivo": "supuesto_T2", "letra": "T2", "ref": "T2", "titulo": "SUPUESTO TEMA 2. Encuadramientos y dolores de cabeza", "desc": "15 preguntas · 30 minutos · Legislación a 10 de octubre de 2026 · Tema 2."},
   {"seccion": "temas", "grupo": "avanzados", "archivo": "supuesto_tema3", "letra": "T3", "ref": "Tema 3", "titulo": "Tema 3 · Casos avanzados", "desc": "15 preguntas · 30 minutos · Legislación a 27 de octubre de 2026 · Tema 3."},
-<<<<<<< Updated upstream
-  {"seccion": "temas", "grupo": "avanzados", "archivo": "supuesto_tema4", "letra": "TEMA", "ref": "Tema 4. Cotización 2026", "titulo": "Tema 4. Cotización a la Seguridad Social 2026", "desc": "15 preguntas · 30 minutos · TRLGSS · RD 2064/1995 · Orden PJC/297/2026 ·Legilación a 10 de noviembre de 2026."},
-=======
-  {"seccion": "temas", "grupo": "avanzados", "archivo": "supuesto_tema4", "letra": "T4", "ref": "Tema 4. Cotización 2026", "titulo": "Tema 4. Cotización a la Seguridad Social 2026", "desc": "15 preguntas · 30 minutos · TRLGSS · RD 2064/1995 · Orden PJC/297/2026 ·Legilación a 10 de noviembre de 2026."},
->>>>>>> Stashed changes
+  {"seccion": "temas", "grupo": "avanzados", "archivo": "supuesto_tema4", "letra": "T4", "ref": "Tema 4. Cotización 2026", "titulo": "Tema 4. Cotización a la Seguridad Social 2026", "desc": "15 preguntas · 30 minutos · TRLGSS · RD 2064/1995 · Orden PJC/297/2026 · Legislación a 10 de noviembre de 2026."},
   {"seccion": "generales", "grupo": "iniciales", "archivo": "supuesto_1I", "letra": "I1", "ref": "S01I", "titulo": "SUPUESTO 1 Inicial. Conceptos básicos de temas 2 y 3", "desc": "15 preguntas · 30 minutos · Legislación a 27 de Septiembre de 2026 · Temas 2 y 3."},
   {"seccion": "generales", "grupo": "iniciales", "archivo": "supuesto_2I", "letra": "I2", "ref": "S02I", "titulo": "SUPUESTO 2 Inicial. Conceptos básicos de temas 4 y 7", "desc": "15 preguntas · 30 minutos · Legislación a 4 de octubre de 2026 · Temas 4 y 7."},
   {"seccion": "generales", "grupo": "avanzados", "archivo": "supuesto_0", "letra": "0", "ref": "S000", "titulo": "Supuesto 0 · Hay que espabilar que el verano se os va a comer", "desc": "15 preguntas · 30 minutos · Legislación a 28 de agosto de 2026 · Temas 1 al 13"},
