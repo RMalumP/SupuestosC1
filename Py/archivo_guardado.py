@@ -5,6 +5,7 @@ ABRIR, GUARDAR Y CERRAR
 Parte del editor de supuestos: los métodos de esta parte de la ventana viven aquí
 y EditorApp (editor_supuestos.py) los hereda. No se ejecuta solo.
 """
+import exportar_autonomo
 import herramientas_datos as herr
 import json
 import menu_datos
@@ -470,6 +471,37 @@ class ArchivoGuardado:
         self._previas = getattr(self, "_previas", set()) | {previa}
         webbrowser.open(previa.resolve().as_uri())
         self.estado("Vista previa SIN GUARDAR en el navegador (el archivo no se ha tocado).")
+
+    def exportar_autonomo(self):
+        """Exporta el supuesto (con los cambios sin guardar) como UN solo .html que lleva
+        dentro motor, estilos, fuentes y datos: funciona suelto, sin las carpetas de la web.
+        No toca el supuesto ni lo que se publica."""
+        self.volcar_todo()
+        carpeta = self.ruta.parent if self.ruta else Path(sincronizar_local.RAIZ_DEFECTO) / "supuestos"
+        nombre = (self.ruta.stem if self.ruta else "supuesto")
+        destino = filedialog.asksaveasfilename(
+            parent=self, title="Exportar HTML autónomo…",
+            initialfile="%s_autonomo.html" % nombre, defaultextension=".html",
+            filetypes=[("Páginas HTML", "*.html"), ("Todos los archivos", "*.*")])
+        if not destino:
+            return
+        temporal = carpeta / ("%s%s_exportar.htm" % (self.PREFIJO_PREVIA, nombre))
+        try:
+            escribir_html(temporal, self.html_base, self.datos, self.modo, copia=False)
+            faltan = exportar_autonomo.exportar_archivo(temporal, destino)
+        except (OSError, ValueError) as err:
+            messagebox.showerror("Exportar HTML autónomo", "No he podido exportarlo:\n\n%s" % err, parent=self)
+            return
+        finally:
+            try:
+                temporal.unlink()
+            except OSError:
+                pass
+        if faltan:
+            messagebox.showwarning("Exportar HTML autónomo",
+                                   "Exportado, pero no encontré estos archivos (se han quitado):\n\n" + "\n".join(faltan),
+                                   parent=self)
+        self.estado("Exportado como HTML autónomo: %s" % Path(destino).name)
 
     def _borrar_previas(self):
         for previa in getattr(self, "_previas", set()):

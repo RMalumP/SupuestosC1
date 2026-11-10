@@ -195,6 +195,7 @@ class EditorApp(PestanaGeneral,
         ttk.Separator(barra, orient="vertical").pack(side="left", fill="y", padx=10)
         ttk.Button(barra, text="🌐  Ver", command=self.ver_navegador).pack(side="left")
         ttk.Button(barra, text="✔  Comprobar", command=self.comprobar).pack(side="left", padx=(6, 0))
+        ttk.Button(barra, text="📄  Exportar autónomo…", command=self.exportar_autonomo).pack(side="left", padx=(6, 0))
         ttk.Separator(barra, orient="vertical").pack(side="left", fill="y", padx=10)
         ttk.Button(barra, text="☁  Publicar…", style="Accion.TButton",
                    command=lambda: ventana_extra.publicar_todo(self)).pack(side="left")
@@ -216,6 +217,7 @@ class EditorApp(PestanaGeneral,
         archivo.add_separator()
         self._menu_recientes = tk.Menu(archivo, tearoff=False, postcommand=self._pintar_recientes)
         archivo.add_cascade(label="Abrir reciente", menu=self._menu_recientes)
+        archivo.add_command(label="Exportar HTML autónomo (un solo archivo)…", command=self.exportar_autonomo)
         archivo.add_command(label="Duplicar este supuesto como uno nuevo…", command=self.duplicar_supuesto)
         archivo.add_command(label="Generar simulacro…", command=lambda: ventana_extra.generar_simulacro(self))
         archivo.add_command(label="Volver a una versión anterior de este archivo…",

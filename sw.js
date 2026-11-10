@@ -34,7 +34,6 @@ const PRECACHE_BASE = [
   "js/app-menu.js",
   "js/app-supuesto.js",
   "js/motor-supuesto.js",
-  "css/motor-supuesto.css",
   "datos/supuestos-datos.js",
   "fuentes/fuentes.css",
   "fuentes/caveat-normal-500-latin-ext.woff2",
