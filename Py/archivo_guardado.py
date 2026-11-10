@@ -6,6 +6,7 @@ Parte del editor de supuestos: los métodos de esta parte de la ventana viven aq
 y EditorApp (editor_supuestos.py) los hereda. No se ejecuta solo.
 """
 import exportar_autonomo
+import imagenes
 import herramientas_datos as herr
 import json
 import menu_datos
@@ -355,11 +356,22 @@ class ArchivoGuardado:
             herr_pub.guardar_copia(destino, PREFS.parent)
         except OSError:
             pass                                  # sin historial no se bloquea el guardado
+        # Las imágenes añadidas en el editor se reparten ahora: cada una a la carpeta
+        # complementaria del supuesto (supuestos/img/NOMBRE/), que es lo que se sube.
         try:
+            _copiadas, _retiradas, faltan_img = imagenes.repartir(
+                self.datos, destino, ruta_anterior=self.ruta, raiz=PREFS.parent)
             self.html_base = escribir_html(destino, self.html_base, self.datos, self.modo)
         except (OSError, ValueError) as err:
             messagebox.showerror("No se ha podido guardar", str(err), parent=self)
             return False
+        if faltan_img:
+            messagebox.showwarning(
+                "Imágenes que faltan",
+                "El supuesto se ha guardado, pero no encuentro estas imágenes (no se verán "
+                "hasta que las vuelvas a añadir):\n\n  · " + "\n  · ".join(faltan_img[:10]), parent=self)
+        if hasattr(self, "refrescar_imagenes"):
+            self.refrescar_imagenes()
         self.ruta = Path(destino)
         self._huella = huella_disco(self.ruta)
         self._aviso_disco = None
@@ -393,8 +405,10 @@ class ArchivoGuardado:
             if grupo:
                 for it in lista_de_grupo(menu, grupo):
                     if it.get("archivo") == archivo:
-                        it.update({k: v for k, v in ficha_menu(archivo, self.datos).items()
-                                   if k != "letra"})
+                        ficha = ficha_menu(archivo, self.datos)
+                        it.update({k: v for k, v in ficha.items() if k != "letra"})
+                        if "imagenes" not in ficha:
+                            it.pop("imagenes", None)     # ya no lleva imágenes
                 escribir_menu(ruta_menu, texto, menu)
                 self.estado(self.lbl_estado.cget("text") + "   ·   menú actualizado")
                 return
@@ -464,7 +478,9 @@ class ArchivoGuardado:
         nombre = (self.ruta.stem if self.ruta else "sin_guardar")
         previa = carpeta / ("%s%s.htm" % (self.PREFIJO_PREVIA, nombre))
         try:
-            escribir_html(previa, self.html_base, self.datos, self.modo, copia=False)
+            # Las imágenes aún sin repartir se enseñan desde donde están en el ordenador.
+            datos_previa, _ = imagenes.para_vista(self.datos, carpeta)
+            escribir_html(previa, self.html_base, datos_previa, self.modo, copia=False)
         except (OSError, ValueError) as err:
             messagebox.showerror("Vista previa", "No he podido preparar la vista previa:\n\n%s" % err, parent=self)
             return
@@ -487,8 +503,10 @@ class ArchivoGuardado:
             return
         temporal = carpeta / ("%s%s_exportar.htm" % (self.PREFIJO_PREVIA, nombre))
         try:
-            escribir_html(temporal, self.html_base, self.datos, self.modo, copia=False)
-            faltan = exportar_autonomo.exportar_archivo(temporal, destino)
+            # Las imágenes van dentro del archivo, también las que aún no se han guardado.
+            datos_exp, faltan_img = imagenes.para_vista(self.datos, carpeta, incrustar=True)
+            escribir_html(temporal, self.html_base, datos_exp, self.modo, copia=False)
+            faltan = exportar_autonomo.exportar_archivo(temporal, destino) + faltan_img
         except (OSError, ValueError) as err:
             messagebox.showerror("Exportar HTML autónomo", "No he podido exportarlo:\n\n%s" % err, parent=self)
             return

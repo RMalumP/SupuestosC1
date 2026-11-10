@@ -21,6 +21,8 @@ archivo (el validador lo lee sin normalizar).
 import re
 from collections import Counter, namedtuple
 
+import imagenes
+
 MIN_OPCIONES = 2
 LETRAS = "ABCDEFG"
 
@@ -38,10 +40,11 @@ def _correctas(q):
     return list(cor or [])
 
 
-def revisar(d, normas=None, parecidas=False):
+def revisar(d, normas=None, parecidas=False, carpeta=None):
     """Todos los problemas del supuesto, errores primero dentro de cada sitio.
     normas: lista de normas_enlaces (para avisar de citas que no se enlazarán).
-    parecidas: buscar también preguntas casi iguales (más lento)."""
+    parecidas: buscar también preguntas casi iguales (más lento).
+    carpeta: la del .html, para comprobar que sus imágenes existen y no pesan demasiado."""
     res = []
 
     def error(texto, n=None, corto=""):
@@ -224,6 +227,10 @@ def revisar(d, normas=None, parecidas=False):
             orden.append(sid)
             if sid:
                 vistos.add(sid)
+
+    for texto in imagenes.avisos(d, carpeta):
+        m = re.match(r"Pregunta (\d+)", texto)
+        aviso(texto, int(m.group(1)) - 1 if m else None, "imagen")
 
     # errores antes que avisos, sin perder el orden de cada grupo
     return [h for h in res if h.nivel == "error"] + [h for h in res if h.nivel == "aviso"]

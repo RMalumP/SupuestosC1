@@ -887,6 +887,54 @@ function getStatement(id) {
     return STATEMENTS_BANK.find(s => s.id === id) || null;
 }
 
+/* IMÁGENES. Cada bloque de hechos (fb.imgs), cada pregunta (q.imgs) y cada
+   motivación legal (q.imgsLaw) admiten hasta 3: { src, pie }. «src» es
+   relativa al .html del supuesto (carpeta complementaria img/NOMBRE/) o,
+   en el HTML autónomo, una imagen incrustada (data:). Sin lista no se
+   pinta nada, así que los supuestos sin imágenes quedan como siempre. */
+const MAX_IMAGENES = 3;
+function escAtributo(t) {
+    return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+                                     .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+function imagenesHTML(lista) {
+    const v = (Array.isArray(lista) ? lista : []).filter(im => im && im.src).slice(0, MAX_IMAGENES);
+    if (!v.length) return '';
+    return `<div class="sup-imgs sup-imgs-${v.length}">` + v.map(im => {
+        const alt = String(im.pie || '').replace(/<[^<>]*>/g, '') || 'Imagen del supuesto';
+        return `<figure class="sup-img">
+                    <img src="${escAtributo(im.src)}" alt="${escAtributo(alt)}" title="Pulsa para ampliar"
+                         tabindex="0" role="button" onclick="ampliarImagen(this)"
+                         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();ampliarImagen(this);}">
+                    ${im.pie ? `<figcaption>${im.pie}</figcaption>` : ''}
+                </figure>`;
+    }).join('') + '</div>';
+}
+// Imagen a pantalla completa; se cierra al pulsar en cualquier sitio o con Escape.
+function ampliarImagen(img) {
+    cerrarImagenAmpliada();
+    const capa = document.createElement('div');
+    capa.id = 'sup-img-ampliada';
+    capa.setAttribute('role', 'dialog');
+    capa.setAttribute('aria-label', 'Imagen ampliada. Pulsa para cerrar.');
+    const grande = document.createElement('img');
+    grande.src = img.currentSrc || img.src;
+    grande.alt = img.alt;
+    capa.appendChild(grande);
+    capa.addEventListener('click', cerrarImagenAmpliada);
+    document.body.appendChild(capa);
+}
+function cerrarImagenAmpliada() {
+    const capa = document.getElementById('sup-img-ampliada');
+    if (capa) capa.remove();
+}
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && document.getElementById('sup-img-ampliada')) {
+        e.stopPropagation();
+        cerrarImagenAmpliada();
+    }
+}, true);
+
 /* Pinta un enunciado entero o, en MODO FOCO, solo los bloques de hechos
    vinculados a la pregunta actual (opciones.factIds): así el alumno lee
    únicamente el hecho desencadenante del que depende esa pregunta. El
@@ -909,7 +957,7 @@ function renderStatementHTML(stmt, opciones) {
         const cls   = fb.red ? 'fact-block red' : 'fact-block';
         const icon  = fb.red ? '⚠️' : '📋';
         const paras = (fb.paragraphs || []).map(p => `<p>${p}</p>`).join('');
-        return `<div class="${cls}"><div class="fact-title">${icon} ${fb.title}</div>${paras}</div>`;
+        return `<div class="${cls}"><div class="fact-title">${icon} ${fb.title}</div>${paras}${imagenesHTML(fb.imgs)}</div>`;
     }).join('');
 
     // En modo foco la cronología se calla: es contexto de todo el expediente.
@@ -1463,12 +1511,14 @@ function init(mode = 'default', sourceBank = null, opcionesFijas = null) {
                     <div class="q-text">${q.q}</div>
                 </div>
             </div>
+            ${imagenesHTML(q.imgs)}
             ${multiple ? '<div class="multi-aviso">Marca todas las respuestas que procedan</div>' : ''}
             <div class="options-grid" role="${multiple ? 'group' : 'radiogroup'}" aria-label="Opciones de la pregunta ${i + 1}">${optHtml}</div>
             <div class="feedback" id="feed-${i}">
                 <div class="feedback-header"><span>⚖️ MOTIVACIÓN LEGAL Y NORMATIVA APLICABLE</span></div>
                 <div class="feedback-body">
                     <p>${q.law}</p>
+                    ${imagenesHTML(q.imgsLaw)}
                     ${q.tip ? `<div class="tip">${q.tip}</div>` : ''}
                 </div>
             </div>`;
@@ -2054,6 +2104,7 @@ function showCorrectionPanel() {
                 <div class="ci-badge ${badgeClass}">${badgeText}</div>
                 <div class="ci-q"><strong>Pregunta ${i+1}.</strong> ${q.q}</div>
             </div>
+            ${imagenesHTML(q.imgs)}
             <div class="ci-answers">
                 ${!isSkipped ? `<div class="given ${isCorrect?'':'wrong'}">
                     <strong>${varias ? 'Respuestas elegidas:' : 'Respuesta elegida:'}</strong><br>${listar(dadas)}
@@ -2062,7 +2113,7 @@ function showCorrectionPanel() {
                     <strong>${varias ? 'Respuestas correctas:' : 'Respuesta correcta:'}</strong><br>${listar(correctas)}
                 </div>` : ''}
             </div>
-            <div class="ci-law"><strong>⚖️ Normativa aplicable:</strong><br>${q.law}</div>
+            <div class="ci-law"><strong>⚖️ Normativa aplicable:</strong><br>${q.law}${imagenesHTML(q.imgsLaw)}</div>
             ${q.tip ? `<div class="ci-tip">${q.tip}</div>` : ''}
         </div>`;
     });

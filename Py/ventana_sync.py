@@ -6,6 +6,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 
 import git_sync as gs
+import imagenes
 import segundo_plano as sp
 import sincronizar_local as sl
 
@@ -165,6 +166,8 @@ def abrir(app, antes_de_subir=None):
             extra = antes_de_subir()
             if extra and extra not in marcados:
                 marcados.append(extra)
+        # Las imágenes de un supuesto marcado van siempre con él, aunque no se hayan marcado.
+        marcados += imagenes.acompanantes(marcados, [r for _tipo, r in rutas])
         dest, texto_msg = destino.get(), msg.get()
 
         def hecho(res):

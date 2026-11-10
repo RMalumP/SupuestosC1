@@ -18,6 +18,7 @@ sys.path.insert(0, str(RAIZ / "tests" / "stub_tkinter"))   # tkinter falso solo 
 import menu_datos          # noqa: E402
 import datos_html          # noqa: E402
 import exportar_autonomo  # noqa: E402
+import imagenes           # noqa: E402
 import sincronizar_local as sl  # noqa: E402
 
 MOTOR_ACTUAL = datos_html.version_motor((PY / datos_html.PLANTILLA_BASE).read_text(encoding="utf-8"))
@@ -186,6 +187,131 @@ class DatosHtml(unittest.TestCase):
                 self.assertEqual(datos2, datos, p.name)
             finally:
                 shutil.rmtree(d, ignore_errors=True)
+
+
+class Imagenes(unittest.TestCase):
+    """Imágenes de los supuestos (imagenes.py): datos, reparto al guardar, menú y exportación."""
+
+    PNG = (RAIZ / "icons" / "icon-192.png")
+
+    def setUp(self):
+        self.t = Path(tempfile.mkdtemp(prefix="supc1_img_"))
+        self.addCleanup(shutil.rmtree, self.t, True)
+        (self.t / "supuestos").mkdir()
+        self.fuera = self.t / "mis fotos"
+        self.fuera.mkdir()
+        self.foto = self.fuera / "Nómina de marzo (2).PNG"
+        shutil.copy(self.PNG, self.foto)
+        self.otra = self.fuera / "otra.png"
+        self.otra.write_bytes(self.PNG.read_bytes() + b"x")
+
+    def datos(self):
+        d = datos_html.datos_vacios()
+        e = datos_html.enunciado_vacio("E1")
+        e["factBlocks"] = [datos_html.bloque_hechos_vacio("H1")]
+        d["enunciados"] = [e]
+        d["preguntas"] = [datos_html.pregunta_vacia("E1", d["bloques"][0]["id"])]
+        return d
+
+    def test_normalizar_limita_a_tres_y_un_supuesto_sin_imagenes_se_guarda_igual(self):
+        d = self.datos()
+        d["preguntas"][0]["imgs"] = [{"src": "img/x/%d.png" % i} for i in range(5)] + ["basura", {"pie": "sin archivo"}]
+        n = datos_html.normalizar(d)
+        self.assertEqual(len(n["preguntas"][0]["imgs"]), imagenes.MAXIMO)
+        self.assertEqual(n["preguntas"][0]["imgsLaw"], [])
+        self.assertEqual(n["enunciados"][0]["factBlocks"][0]["imgs"], [])
+        texto = datos_html.datos_a_json(datos_html.normalizar(self.datos()))
+        self.assertNotIn("imgs", texto)                       # sin imágenes no aparece ni la clave
+        for p in sorted((RAIZ / "supuestos").glob("*.html")):  # y los supuestos de siempre no cambian
+            datos, _modo, html = datos_html.leer_html(p)
+            self.assertNotIn('"imgs', datos_html.datos_a_json(datos), p.name)
+
+    def test_repartir_copia_al_guardar_renombra_y_aparta_las_que_sobran(self):
+        d = self.datos()
+        destino = self.t / "supuestos" / "supuesto_9.html"
+        d["enunciados"][0]["factBlocks"][0]["imgs"] = [{"src": "", "pie": "Pie", "origen": str(self.foto)}]
+        d["preguntas"][0]["imgs"] = [{"src": "", "origen": str(self.foto)}]            # la misma: un solo archivo
+        d["preguntas"][0]["imgsLaw"] = [{"src": "", "origen": str(self.otra)}, {"src": "", "origen": str(self.t / "no.png")}]
+        copiadas, retiradas, faltan = imagenes.repartir(d, destino, raiz=self.t)
+        carpeta = self.t / "supuestos" / "img" / "supuesto_9"
+        self.assertEqual(sorted(f.name for f in carpeta.iterdir()), ["nomina-de-marzo-2.png", "otra.png"])
+        self.assertEqual((copiadas, retiradas, len(faltan)), (["nomina-de-marzo-2.png", "otra.png"], [], 1))
+        self.assertEqual(d["enunciados"][0]["factBlocks"][0]["imgs"][0],
+                         {"src": "img/supuesto_9/nomina-de-marzo-2.png", "pie": "Pie"})
+        self.assertEqual(d["preguntas"][0]["imgsLaw"].pop()["origen"], str(self.t / "no.png"))   # la que falta sigue anotada
+        self.assertNotIn("origen", json.dumps(d))
+        self.assertNotIn("no.png", datos_html.datos_a_json(d))
+        self.assertEqual(imagenes.en_proyecto(d, destino)[0], "supuestos/img/supuesto_9/nomina-de-marzo-2.png")
+        # guardar otra vez no copia nada; quitar una imagen la aparta en .historial y deshacer la recupera
+        self.assertEqual(imagenes.repartir(d, destino, ruta_anterior=destino, raiz=self.t)[:2], ([], []))
+        quitada = d["preguntas"][0]["imgsLaw"].pop(0)
+        self.assertEqual(imagenes.repartir(d, destino, ruta_anterior=destino, raiz=self.t)[1], ["otra.png"])
+        self.assertFalse((carpeta / "otra.png").exists())
+        d["preguntas"][0]["imgsLaw"].insert(0, quitada)
+        self.assertEqual(imagenes.repartir(d, destino, ruta_anterior=destino, raiz=self.t), (["otra.png"], [], []))
+        # mismo nombre con otro contenido: no pisa la que ya había
+        distinta = self.t / "otra.png"
+        distinta.write_bytes(b"otra cosa")
+        d["preguntas"][0]["imgs"] = [{"src": "", "origen": str(distinta)}]
+        imagenes.repartir(d, destino, ruta_anterior=destino, raiz=self.t)
+        self.assertEqual(d["preguntas"][0]["imgs"][0]["src"], "img/supuesto_9/otra-2.png")
+        # «Guardar como»: las imágenes se van con el supuesto nuevo y el viejo conserva las suyas
+        nuevo = self.t / "supuestos" / "supuesto_10.html"
+        imagenes.repartir(d, nuevo, ruta_anterior=destino, raiz=self.t)
+        self.assertTrue(all(src.startswith("img/supuesto_10/") for src in imagenes.rutas(d)))
+        self.assertTrue((self.t / "supuestos" / "img" / "supuesto_10" / "otra-2.png").is_file())
+        self.assertTrue((carpeta / "otra-2.png").is_file())
+
+    def test_guardar_leer_menu_avisos_y_subida(self):
+        d = datos_html.normalizar(self.datos())
+        destino = self.t / "supuestos" / "supuesto_9.html"
+        d["preguntas"][0]["imgsLaw"] = [{"src": "", "pie": "Tabla <b>2026</b>", "origen": str(self.foto)}]
+        self.assertEqual(imagenes.avisos(d), [])               # recién añadida y con su archivo: sin avisos
+        imagenes.repartir(d, destino, raiz=self.t)
+        plantilla = (PY / datos_html.PLANTILLA_BASE).read_text(encoding="utf-8")
+        datos_html.escribir_html(destino, plantilla, d, "json", copia=False)
+        leido, _modo, _html = datos_html.leer_html(destino)
+        self.assertEqual(leido["preguntas"][0]["imgsLaw"],
+                         [{"src": "img/supuesto_9/nomina-de-marzo-2.png", "pie": "Tabla <b>2026</b>"}])
+        ficha = menu_datos.ficha("supuesto_9", leido)
+        self.assertEqual(ficha["imagenes"], ["supuestos/img/supuesto_9/nomina-de-marzo-2.png"])
+        self.assertNotIn("imagenes", menu_datos.ficha("supuesto_9", self.datos()))
+        self.assertEqual(imagenes.avisos(leido, destino.parent), [])
+        (destino.parent / "img" / "supuesto_9" / "nomina-de-marzo-2.png").unlink()
+        self.assertIn("no encuentro", imagenes.avisos(leido, destino.parent)[0])
+        import revision
+        self.assertTrue(any(h.corto == "imagen" and h.pregunta == 0 for h in revision.revisar(leido, carpeta=destino.parent)))
+        cambios = ["supuestos/supuesto_9.html", "supuestos/img/supuesto_9/a.png", "supuestos/img/supuesto_90/b.png", "js/x.js"]
+        self.assertEqual(imagenes.acompanantes(["supuestos/supuesto_9.html"], cambios), ["supuestos/img/supuesto_9/a.png"])
+        self.assertEqual(imagenes.acompanantes(["js/x.js"], cambios), [])
+
+    def test_vista_previa_y_html_autonomo_llevan_las_imagenes(self):
+        d = datos_html.normalizar(self.datos())
+        d["preguntas"][0]["imgs"] = [{"src": "", "origen": str(self.foto)}]
+        previa, faltan = imagenes.para_vista(d)
+        self.assertEqual(faltan, [])
+        self.assertTrue(previa["preguntas"][0]["imgs"][0]["src"].startswith("file:"))
+        dentro, _ = imagenes.para_vista(d, incrustar=True)
+        self.assertTrue(dentro["preguntas"][0]["imgs"][0]["src"].startswith("data:image/png;base64,"))
+        self.assertIn("data:image/png;base64,", datos_html.datos_a_json(dentro))
+        self.assertEqual(d["preguntas"][0]["imgs"][0]["src"], "")          # los datos del editor no se tocan
+        # un supuesto ya guardado: el exportador incrusta las imágenes que van en los datos
+        p = copia_del_proyecto()
+        self.addCleanup(shutil.rmtree, p, True)
+        destino = p / "supuestos" / "supuesto_0.html"
+        datos, modo, html = datos_html.leer_html(destino)
+        datos["preguntas"][0]["imgs"] = [{"src": "", "origen": str(self.foto)}]
+        imagenes.repartir(datos, destino, raiz=p)
+        datos_html.escribir_html(destino, html, datos, modo, copia=False)
+        salida, faltan = exportar_autonomo.exportar_html(destino.read_text(encoding="utf-8"), destino.parent)
+        self.assertEqual(faltan, [])
+        self.assertNotIn("img/supuesto_0/", salida)
+        self.assertIn('"src": "data:image/png;base64,', salida)
+
+    def test_el_service_worker_guarda_las_imagenes_sin_bloquear_la_instalacion(self):
+        sw = (RAIZ / "sw.js").read_text(encoding="utf-8")
+        self.assertIn("it.imagenes", sw)
+        self.assertIn("c.add(u).catch", sw)                   # una imagen que falte no impide instalar
 
 
 class SincronizarLocal(unittest.TestCase):

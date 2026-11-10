@@ -11,6 +11,7 @@ import operaciones
 import revision
 import tkinter as tk
 import webbrowser
+from imagenes_ui import RecuadroImagenes
 from tkinter import messagebox, ttk
 from editor_comun import (  # noqa: F401
     C_FONDO, C_VERDE, LETRAS, MAX_OPCIONES, MIN_OPCIONES, MarcoScroll, OPCIONES_POR_DEFECTO,
@@ -198,8 +199,12 @@ class PestanaPreguntas:
                "Lo que se lee en negrita dentro de la tarjeta de la pregunta."
                ).pack(anchor="w", padx=10, pady=(6, 2))
         marco, self.txt_preg_q = caja_texto(caja, alto=4)
-        marco.pack(fill="x", padx=10, pady=(0, 10))
+        marco.pack(fill="x", padx=10, pady=(0, 6))
         self._vigilar(self.txt_preg_q)
+        self.imgs_preg = RecuadroImagenes(
+            caja, self, "Imágenes de la pregunta", "preguntas[].imgs[]  →  <figure class=\"sup-img\">",
+            "Hasta 3 imágenes que salen entre el texto de la pregunta y las respuestas.")
+        self.imgs_preg.pack(fill="x", padx=10, pady=(0, 10))
 
         # --- respuestas ---
         caja = ttk.LabelFrame(m, text=" Respuestas — marca cuál (o cuáles) es la correcta ")
@@ -282,6 +287,10 @@ class PestanaPreguntas:
         self.marco_boe.pack(fill="x", padx=10, pady=(0, 6))
         for evento in ("<KeyRelease>", "<<TextoTocado>>"):
             self.txt_preg_law.bind(evento, lambda e: self._boe_luego(), add="+")
+        self.imgs_law = RecuadroImagenes(
+            caja, self, "Imágenes de la motivación", "preguntas[].imgsLaw[]  →  <figure class=\"sup-img\">",
+            "Hasta 3 imágenes que salen debajo de la motivación legal: solo se ven al corregir.")
+        self.imgs_law.pack(fill="x", padx=10, pady=(0, 6))
 
         rotulo(caja, "Consejo o matiz práctico", "preguntas[].tip",
                '<div class="tip">  ·  <div class="ci-tip">',
@@ -680,6 +689,8 @@ class PestanaPreguntas:
         poner_texto(self.txt_preg_law, "" if p is None else p["law"])
         self._pintar_boe()
         poner_texto(self.txt_preg_tip, "" if p is None else p["tip"])
+        self.imgs_preg.poner(p.get("imgs") if p else [])
+        self.imgs_law.poner(p.get("imgsLaw") if p else [])
         self._pintar_correctas()
         self._sincronizar_combo_bloque()
         self._sincronizar_combo()
@@ -705,6 +716,8 @@ class PestanaPreguntas:
 
         p["law"] = limpiar_texto(sacar_texto(self.txt_preg_law))
         p["tip"] = limpiar_texto(sacar_texto(self.txt_preg_tip))
+        p["imgs"] = self.imgs_preg.sacar()
+        p["imgsLaw"] = self.imgs_law.sacar()
         if getattr(self, "_ids_bloque", None) and self.combo_bloque["values"]:
             p["bloqueId"] = self._ids_bloque[self.combo_bloque.current()]
         if hasattr(self, "_ids_combo") and self.combo_stmt["values"]:
@@ -720,6 +733,15 @@ class PestanaPreguntas:
                             for e in self.datos["enunciados"]
                             if e["id"] == p["statementId"]), set())
             p["factIds"] = [x for x in p.get("factIds", []) if x in propios]
+
+    def refrescar_imagenes(self):
+        """Tras guardar: las imágenes ya están en su carpeta, así que los recuadros
+        vuelven a leerlas de los datos (dejan de figurar como «nuevas»)."""
+        b = self.bloque_actual()
+        self.imgs_bloque.poner(b.get("imgs") if b else [])
+        p = self.pregunta_actual()
+        self.imgs_preg.poner(p.get("imgs") if p else [])
+        self.imgs_law.poner(p.get("imgsLaw") if p else [])
 
     def anadir_pregunta(self, cuantas=1, respuestas=None):
         self.volcar_pregunta()

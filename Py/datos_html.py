@@ -14,6 +14,7 @@ import sys
 import unicodedata
 from pathlib import Path
 
+import imagenes
 import menu_datos
 from archivos import escribir_seguro
 
@@ -464,7 +465,7 @@ def bloque_hechos_vacio(ident="H1"):
     ve en la página: sirve para que una pregunta pueda vincularse a este
     hecho concreto y el modo foco recorte el enunciado a esa parte."""
     return {"id": ident, "title": "Título del bloque de hechos", "paragraphs": [""],
-            "red": False, "hidden": False}
+            "red": False, "hidden": False, "imgs": []}
 
 
 def nuevo_id_hecho(enunciado):
@@ -500,6 +501,9 @@ def pregunta_vacia(statement_id=None, bloque_id="B1"):
         "respuestas": 0,
         "law": "",
         "tip": "",
+        # Imágenes (hasta 3): bajo el texto de la pregunta y bajo la motivación
+        "imgs": [],
+        "imgsLaw": [],
     }
 
 
@@ -659,6 +663,7 @@ def normalizar(datos):
             b["paragraphs"] = [str(p) for p in parr] if isinstance(parr, list) else [str(parr)]
             b["red"] = bool(fb.get("red"))
             b["hidden"] = bool(fb.get("hidden"))
+            b["imgs"] = imagenes.normalizar_lista(fb.get("imgs"))
             bloques_hechos.append(b)
         n["factBlocks"] = bloques_hechos
         hitos = []
@@ -697,6 +702,8 @@ def normalizar(datos):
         normalizar_respuestas(q, p)
         q["law"] = str(p.get("law") or "")
         q["tip"] = str(p.get("tip") or "")
+        for clave in imagenes.CLAVES_PREGUNTA:
+            q[clave] = imagenes.normalizar_lista(p.get(clave))
         preguntas.append(q)
 
     # Las preguntas se guardan en el orden del examen: bloque a bloque.
@@ -997,7 +1004,7 @@ def leer_html(ruta):
 
 def datos_a_json(datos):
     """JSON legible; se escapa '<' para que ningún texto pueda cerrar el <script>."""
-    return json.dumps(datos, ensure_ascii=False, indent=2).replace("<", "\\u003c")
+    return json.dumps(imagenes.para_guardar(datos), ensure_ascii=False, indent=2).replace("<", "\\u003c")
 
 
 def _bt(valor):
