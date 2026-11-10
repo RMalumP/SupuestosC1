@@ -1,0 +1,137 @@
+/* Solo lo propio de esta versión del motor: lo común a todos los supuestos
+   está en ../css/base-supuesto.css y el diseño en ../css/tema-supuesto.css. */
+
+/* Cabecera plegada: la fila del bloque actual ocupa UNA sola línea, por
+   largo que sea el bloque; las casillas que no caben se alcanzan deslizando
+   la fila. Al cambiar de pregunta, la activa se centra sola
+   (ver centrarCasillaActiva). */
+body.nav-plegada .nav-row.fila-actual .nav-row-boxes {
+    flex-wrap: nowrap;
+    overflow-x: auto; overflow-y: hidden;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(var(--gold-rgb),0.45) transparent;
+    padding-bottom: 4px;
+}
+body.nav-plegada .nav-row.fila-actual .nav-row-boxes::-webkit-scrollbar { height: 5px; }
+body.nav-plegada .nav-row.fila-actual .nav-row-boxes::-webkit-scrollbar-track { background: transparent; }
+body.nav-plegada .nav-row.fila-actual .nav-row-boxes::-webkit-scrollbar-thumb {
+    background: rgba(var(--gold-rgb),0.45); border-radius: 3px;
+}
+/* Sin esto las casillas se encogerían hasta deformarse al no caber */
+body.nav-plegada .nav-row.fila-actual .nav-box { flex: 0 0 auto; }
+
+/* ── FORMATO DEL TEXTO ────────────────────────────────────────
+   Negrita, cursiva, subrayado, tachado, resaltado y tamaños de
+   letra que se pueden usar dentro de cualquier texto del supuesto
+   (narración de los hechos, hitos, preguntas, respuestas,
+   motivación legal y consejo). Las escribe el editor de Python
+   con sus botones, pero también valen escritas a mano:
+
+       <b>negrita</b>   <i>cursiva</i>   <u>subrayado</u>
+       <s>tachado</s>   <mark>resaltado</mark>
+       <mark class="mk-verde">resaltado en verde</mark>
+       <span class="fs-l">letra más grande</span>
+─────────────────────────────────────────────────────────────── */
+b, strong { font-weight: 700; }
+i, em     { font-style: italic; }
+u         { text-decoration: underline; text-underline-offset: 2px; }
+s, del, strike { text-decoration: line-through; }
+
+/* Rotulador. El color de la letra se fija a oscuro porque hay
+   sitios (la cronología, las opciones marcadas) donde el texto es
+   claro y sobre el resaltado no se leería. */
+mark { background: #ffe9a8; color: #1f2937; padding: 0 3px; border-radius: 3px;
+       box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+mark.mk-verde { background: #c9f0d2; }
+mark.mk-azul  { background: #cfe4fb; }
+mark.mk-rosa  { background: #fbd0e2; }
+
+/* Tamaños de letra, relativos al texto que los rodea: así una
+   pregunta y un párrafo del enunciado guardan su proporción. */
+.fs-xs  { font-size: 0.75em; }
+.fs-s   { font-size: 0.875em; }
+.fs-m   { font-size: 1em; }
+.fs-l   { font-size: 1.15em; }
+.fs-xl  { font-size: 1.35em; }
+.fs-xxl { font-size: 1.6em; }
+
+/* ── PÁRRAFOS Y JUSTIFICADO ───────────────────────────────────
+   Los saltos de línea (Enter) que se escriben en el editor se
+   respetan en la página: sin esto el navegador los trata como un
+   espacio y junta todo el texto en un solo párrafo.
+   pre-line conserva los saltos pero sigue colapsando los espacios
+   repetidos, así que el resto del texto se ve igual que antes. */
+.q-text, .statement p, .feedback-body p, .feedback-body .tip,
+.tl-item, .ci-q, .ci-law, .ci-tip, .option > span:last-child { white-space: pre-line; }
+
+/* Justificado: ajusta el párrafo al ancho de la línea. Lo escribe
+   el editor con el botón «Just.»:  <span class="al-j">…</span>
+   (la última línea de cada párrafo queda alineada a la izquierda,
+   como en cualquier procesador de textos). Es un span en bloque y
+   no un div para que sea válido también dentro de un <p>. */
+.al-j { display: block; text-align: justify; text-justify: inter-word; }
+/* En la lista de respuestas de la corrección va en línea, para que
+   «A)» no quede solo en una línea y el texto debajo. */
+.ci-answers .al-j { display: inline; text-align: inherit; }
+
+/* ── SANGRÍA ──────────────────────────────────────────────────
+   Mete un párrafo más hacia dentro que el anterior, hasta tres
+   niveles. La escribe el editor con los botones «Sang+» y
+   «Sang-» (o con Tab y Mayús+Tab):
+       <span class="sg-1">…</span>   (sg-2, sg-3: más adentro)
+   Puede ir junto al justificado:  class="al-j sg-1" */
+.sg-1 { display: block; margin-left: 1.5em; }
+.sg-2 { display: block; margin-left: 3em; }
+.sg-3 { display: block; margin-left: 4.5em; }
+.ci-answers .sg-1, .ci-answers .sg-2, .ci-answers .sg-3 { display: inline; margin-left: 0; }
+
+/* ── TIPOGRAFÍAS ──────────────────────────────────────────────
+   Se eligen en el editor con el menú «Fuente». Las tres últimas
+   ya se cargan arriba desde Google Fonts; cada una lleva una
+   fuente de reserva por si no hubiera conexión. */
+.ff-sans   { font-family: 'Segoe UI', Helvetica, Arial, sans-serif; }
+.ff-titulo { font-family: 'Playfair Display', Georgia, serif; }
+.ff-mono   { font-family: 'JetBrains Mono', Consolas, monospace; font-size: 0.9em; }
+.ff-mano   { font-family: 'Caveat', 'Segoe Script', cursive; font-size: 1.2em; }
+
+@media print {
+    body { background: white !important; color: black !important; }
+    #nav-header, #timer, #overlay, #random-modal, .btn-zone, body::before { display:none !important; }
+    .container { max-width:100%; padding:20px; }
+    .statement { box-shadow:none; border:1px solid #ccc; }
+    .question-card { display:block !important; box-shadow:none; border:1px solid #ccc; page-break-inside:avoid; margin-bottom:16px; }
+    .block-header { display:flex !important; box-shadow:none; border:1px solid #ccc; page-break-after:avoid; }
+    .stmt-panel { display:block !important; page-break-after:avoid; }
+    .stmt-foco { display:none !important; }
+    .block-header h3 { color:#000 !important; }
+    .score-bloques .sb-fila { background:#f3f4f6 !important; }
+    .score-bloques .sb-nombre, .score-bloques .sb-detalle, .score-bloques .sb-puntos { color:#111827 !important; }
+    .question-card::before { display:none; }
+    .feedback { display:block !important; }
+    .inst-header { background:#f0f0f0 !important; color:black !important; }
+    .inst-header h1, .inst-header .organismo { color:black !important; }
+    .inst-header::before { display:none; }
+    .progress-bar-wrap { display:none; }
+    .fact-block { border-left-color:#999; }
+    /* El resaltado tiene que salir también en el PDF: por
+       defecto el navegador quita los fondos al imprimir. */
+    mark { -webkit-print-color-adjust: exact; print-color-adjust: exact;
+           background:#ffe9a8 !important; color:#1f2937 !important; }
+    mark.mk-verde { background:#c9f0d2 !important; }
+    mark.mk-azul  { background:#cfe4fb !important; }
+    mark.mk-rosa  { background:#fbd0e2 !important; }
+    .timeline { display:none; }
+    .option { border-color:#ccc; color:black !important; background:white !important; }
+    .option.correct { background:#e6f4ea !important; border-color:#2d8c5a !important; color:#1a4731 !important; }
+    .option.wrong   { background:#fde8e8 !important; border-color:#8b1a1a !important; color:#8b1a1a !important; }
+    .option.selected:not(.correct):not(.wrong) { background:#f0f4ff !important; border-color:#3b5bdb !important; }
+    .feedback-body { background:#fafafa !important; }
+    .feedback-body .tip { background:#e9f5ee !important; color:#1a4731 !important; }
+    .q-num { color:#ddd !important; }
+    #print-title { display:block !important; }
+}
+
+
