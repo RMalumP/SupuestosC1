@@ -17,6 +17,7 @@ sys.path.insert(0, str(RAIZ / "tests" / "stub_tkinter"))   # tkinter falso solo 
 
 import menu_datos          # noqa: E402
 import datos_html          # noqa: E402
+import exportar_autonomo  # noqa: E402
 import sincronizar_local as sl  # noqa: E402
 
 MOTOR_ACTUAL = datos_html.version_motor((PY / datos_html.PLANTILLA_BASE).read_text(encoding="utf-8"))
@@ -966,6 +967,18 @@ class ListasYSangria(unittest.TestCase):
         for pieza in (".cg {", ".cg > .vi", "inline-block", ".sg-3 { width"):
             self.assertIn(pieza, css)
 
+
+
+class ExportarAutonomo(unittest.TestCase):
+    def test_no_queda_nada_enlazado(self):
+        html, faltan = exportar_autonomo.exportar_html(
+            (RAIZ / "supuestos" / "supuesto_1.html").read_text(encoding="utf-8"), RAIZ / "supuestos")
+        self.assertEqual(faltan, [])
+        import re
+        self.assertEqual(re.findall(r'(?:src|href)=["\'](?:\.\./)[^"\']+', html), [])
+        self.assertNotIn("url(caveat", html)
+        self.assertIn('id="datos-supuesto"', html)
+        self.assertIn("CARGA DE LOS DATOS DEL SUPUESTO", html)
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

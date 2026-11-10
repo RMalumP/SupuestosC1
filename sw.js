@@ -33,6 +33,7 @@ const PRECACHE_BASE = [
   "js/pwa.js",
   "js/app-menu.js",
   "js/app-supuesto.js",
+  "js/motor-supuesto.js",
   "datos/supuestos-datos.js",
   "fuentes/fuentes.css",
   "fuentes/caveat-normal-500-latin-ext.woff2",

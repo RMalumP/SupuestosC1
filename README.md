@@ -40,7 +40,7 @@ El sitio está disponible en:
 - **Sincronizar entre dispositivos (Google Drive, apagado hasta poner el «clientId» en `sync-config.js`):** cada persona guarda su copia en una carpeta oculta de su propio Drive; ventana explicativa antes de empezar. Ver `Py/INSTRUCCIONES.txt`.
 - **Pruebas y validación:** `python3 Py/validar_supuestos.py` revisa los supuestos y el menú; `npm test` abre las páginas en un navegador y comprueba envíos, aspecto y funciones (ver `tests/LEEME.txt`). En GitHub corren solas en cada subida.
 - **Datos anónimos de intentos a medias:** preparado pero apagado; se activa en `telemetria-config.js` (pasos en `Py/INSTRUCCIONES.txt`).
-- **Estilos:** `base-supuesto.css` (reglas comunes de todos los supuestos), `tema-supuesto.css` (diseño de los supuestos), `tema-menu.css` (menú) y `tema-resultados.css` (resultados). Las funciones comunes están en `app-supuesto.js` y `app-menu.js`.
+- **Estilos:** `base-supuesto.css` (reglas comunes de todos los supuestos), `tema-supuesto.css` (diseño de los supuestos), `tema-menu.css` (menú) y `tema-resultados.css` (resultados). El motor de los supuestos está en `motor-supuesto.js` (cada HTML solo lleva su bloque de datos) y las funciones comunes en `app-supuesto.js` y `app-menu.js`.
 
 ---
 

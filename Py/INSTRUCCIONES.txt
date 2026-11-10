@@ -109,6 +109,8 @@
                            (ver apartado 9).
     🌐 Ver en el navegador  Guarda y abre el supuesto para verlo de verdad.
     ✔ Comprobar            Revisa despistes (opciones vacías, repetidas...).
+    📄 Exportar autónomo   Crea UN solo .html con motor, estilos, fuentes y datos dentro:
+                           funciona suelto, sin las carpetas de la web.
     🗂 Menú de inicio…      Ordena y edita las tarjetas del menú de la web.
     📦 Para subir a GitHub… Prepara la carpeta PARA_SUBIR (ver más abajo).
 
