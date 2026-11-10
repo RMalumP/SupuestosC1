@@ -18,5 +18,6 @@ window.NORMAS = [
     { siglas: ["RIA", "Real Decreto 84/1996", "RD 84/1996"], boe: "BOE-A-1996-4447" },   // RD 84/1996, inscripción de empresas, afiliación, altas y bajas
     { siglas: ["Orden TAS/2865/2003", "TAS/2865/2003"], boe: "BOE-A-2003-19281" },   // Orden TAS/2865/2003, convenio especial
     { siglas: ["RD 1993/1995", "Real Decreto 1993/1995"], boe: "BOE-A-1995-26716" },   // RD 1993/1995, colaboración de las Mutuas
-    { siglas: ["RGR", "RD 1415/2004", "Real Decreto 1415/2004"], boe: "BOE-A-2004-11836" }   // RD 1415/2004, Reglamento General de Recaudación
+    { siglas: ["RGR", "RD 1415/2004", "Real Decreto 1415/2004", "Reglamento General de Recaudación"], boe: "BOE-A-2004-11836" },   // RD 1415/2004, Reglamento General de Recaudación
+    { siglas: ["Orden PJC/297/2026", "Orden de cotización de 2026"], boe: "BOE-A-2026-7296" }   // Orden PJC/297/2026, por la que se desarrollan las normas legales de cotización a la Seguridad Social
 ];
