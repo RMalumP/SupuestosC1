@@ -82,6 +82,42 @@ class PestanaPreguntas:
         self.lbl_filtro_preg = ttk.Label(izq, text="", style="Tec.TLabel")
         self.lbl_filtro_preg.pack(anchor="w")
 
+        # Botones de la lista, como en las demás pestañas. Duplicar, Borrar, Subir y
+        # Bajar actúan sobre todas las preguntas marcadas.
+        bot = ttk.Frame(izq)
+        bot.pack(fill="x", pady=(6, 2))
+        ttk.Button(bot, text="＋ Añadir", command=self.anadir_pregunta,
+                   style="Accion.TButton", width=10).grid(row=0, column=0, padx=1, pady=1)
+        ttk.Button(bot, text="⧉ Duplicar", command=self.duplicar_pregunta,
+                   width=10).grid(row=0, column=1, padx=1, pady=1)
+        ttk.Button(bot, text="🗑 Borrar", command=self.borrar_pregunta,
+                   width=10).grid(row=0, column=2, padx=1, pady=1)
+        ttk.Button(bot, text="▲ Subir", command=lambda: self.mover_pregunta(-1),
+                   width=10).grid(row=1, column=0, padx=1, pady=1)
+        ttk.Button(bot, text="▼ Bajar", command=lambda: self.mover_pregunta(1),
+                   width=10).grid(row=1, column=1, padx=1, pady=1)
+
+        # Crear varias preguntas de golpe, ya con su número de respuestas.
+        varias = ttk.Frame(izq)
+        varias.pack(fill="x", pady=(2, 4))
+        ttk.Label(varias, text="Crear").pack(side="left")
+        self.var_crear_cuantas = tk.StringVar(value="5")
+        sp_c = ttk.Spinbox(varias, from_=1, to=operaciones.MAX_CREAR, width=4,
+                           textvariable=self.var_crear_cuantas)
+        sp_c.pack(side="left", padx=4)
+        ttk.Label(varias, text="preg. con").pack(side="left")
+        self.var_crear_respuestas = tk.StringVar(value=str(OPCIONES_POR_DEFECTO))
+        sp_r = ttk.Spinbox(varias, from_=MIN_OPCIONES, to=MAX_OPCIONES, width=3,
+                           textvariable=self.var_crear_respuestas)
+        sp_r.pack(side="left", padx=4)
+        ttk.Label(varias, text="resp.").pack(side="left")
+        b_crear = ttk.Button(varias, text="＋ Crear", width=9, style="Accion.TButton",
+                             command=self.crear_varias_preguntas)
+        b_crear.pack(side="left", padx=(6, 0))
+        _consejo(b_crear, "Añade de una vez ese número de preguntas vacías, cada una con "
+                          "ese número de respuestas, detrás de la pregunta seleccionada y "
+                          "en su mismo bloque y enunciado.")
+
         cont = MarcoScroll(divisor)
         divisor.add(cont, weight=1)
         m = cont.interior
@@ -685,9 +721,9 @@ class PestanaPreguntas:
                             if e["id"] == p["statementId"]), set())
             p["factIds"] = [x for x in p.get("factIds", []) if x in propios]
 
-    def anadir_pregunta(self):
+    def anadir_pregunta(self, cuantas=1, respuestas=None):
         self.volcar_pregunta()
-        # La nueva pregunta hereda el bloque y el enunciado de la anterior
+        # Las nuevas heredan el bloque y el enunciado de la pregunta seleccionada
         anterior = self.pregunta_actual()
         if anterior:
             bid = anterior["bloqueId"]
@@ -698,14 +734,36 @@ class PestanaPreguntas:
         if self.tipo_de_bloque(bid) == "test":
             sid = None
         destino = (self.i_preg + 1) if self.i_preg is not None else len(self.datos["preguntas"])
-        self.datos["preguntas"].insert(destino, pregunta_vacia(sid, bid))
+        nuevas = operaciones.preguntas_nuevas(sid, bid, cuantas, respuestas)
+        self.datos["preguntas"][destino:destino] = nuevas
         self.ordenar_preguntas_por_bloque()
-        self.refrescar_lista_preg(destino)
+        # Tras ordenar por bloque pueden no estar donde se insertaron: se buscan.
+        donde = [i for i, p in enumerate(self.datos["preguntas"]) if any(p is n for n in nuevas)]
+        self.refrescar_lista_preg(donde[0], marcadas=donde if len(donde) > 1 else None)
         self.refrescar_lista_sec(self.i_sec)
         self.cuaderno.select(3)
         self.txt_preg_q.focus_set()
         self._tocado()
-        self.estado("Pregunta nº %d añadida al bloque %s." % (destino + 1, bid))
+        if len(nuevas) == 1:
+            self.estado("Pregunta nº %d añadida al bloque %s." % (donde[0] + 1, bid))
+        else:
+            self.estado("%d preguntas (nº %d a %d) añadidas al bloque %s, con %d respuestas cada una."
+                        % (len(nuevas), donde[0] + 1, donde[-1] + 1, bid, len(nuevas[0]["a"])))
+
+    def crear_varias_preguntas(self):
+        try:
+            cuantas = int(self.var_crear_cuantas.get())
+            respuestas = int(self.var_crear_respuestas.get())
+        except ValueError:
+            self.estado("Escribe números en «Crear … preguntas con … respuestas».")
+            return
+        if not 1 <= cuantas <= operaciones.MAX_CREAR:
+            self.estado("Se pueden crear de 1 a %d preguntas de una vez." % operaciones.MAX_CREAR)
+            return
+        if not MIN_OPCIONES <= respuestas <= MAX_OPCIONES:
+            self.estado("Una pregunta lleva de %d a %d respuestas." % (MIN_OPCIONES, MAX_OPCIONES))
+            return
+        self.anadir_pregunta(cuantas, respuestas)
 
     def duplicar_pregunta(self):
         marcadas = self.preguntas_marcadas()

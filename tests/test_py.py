@@ -658,6 +658,20 @@ class ListaDePreguntas(unittest.TestCase):
         self.assertIsNone(op.mover_varias(d["preguntas"], [3], 1))              # la 4 es de otro bloque
         self.assertEqual(op.mover_varias(d["preguntas"], [0, 2], 1), [1, 3])     # no seguidas
 
+    def test_preguntas_nuevas_con_respuestas(self):
+        import operaciones as op
+        una = op.preguntas_nuevas("E1", "B1")
+        self.assertEqual(len(una), 1)
+        self.assertEqual(len(una[0]["a"]), datos_html.OPCIONES_POR_DEFECTO)
+        varias = op.preguntas_nuevas("E1", "B2", 5, 3)
+        self.assertEqual(len(varias), 5)
+        self.assertTrue(all(len(p["a"]) == 3 and p["correctas"] == [0] for p in varias))
+        self.assertTrue(all(p["bloqueId"] == "B2" and p["statementId"] == "E1" for p in varias))
+        self.assertIsNot(varias[0]["a"], varias[1]["a"])                          # no comparten lista
+        self.assertEqual(len(op.preguntas_nuevas(None, "B1", 2, 99)[0]["a"]), datos_html.MAX_OPCIONES)
+        self.assertEqual(len(op.preguntas_nuevas(None, "B1", 2, 1)[0]["a"]), datos_html.MIN_OPCIONES)
+        self.assertEqual(len(op.preguntas_nuevas(None, "B1", 999, 4)), op.MAX_CREAR)
+
     def test_borrar_duplicar_y_filtrar(self):
         import operaciones as op
         d = self.datos()
