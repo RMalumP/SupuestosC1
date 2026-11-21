@@ -346,7 +346,8 @@ class Imagenes(unittest.TestCase):
     def test_el_service_worker_guarda_las_imagenes_sin_bloquear_la_instalacion(self):
         sw = (RAIZ / "sw.js").read_text(encoding="utf-8")
         self.assertIn("it.imagenes", sw)
-        self.assertIn("c.add(u).catch", sw)                   # una imagen que falte no impide instalar
+        self.assertIn("c.add(fresco(u)).catch", sw)           # una imagen que falte no impide instalar
+        self.assertIn('cache: "reload"', sw)                  # y se piden sin la caché HTTP del navegador
 
 
 class SincronizarLocal(unittest.TestCase):
