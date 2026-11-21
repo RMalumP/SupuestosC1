@@ -51,4 +51,16 @@
     }
     var f = S.get('fuente', 'normal');
     if (f !== 'normal') d.setAttribute('data-fuente', f);
+
+    // Al imprimir se usa siempre el tema claro: en oscuro las tarjetas salían
+    // con fondo negro en el papel. Al terminar vuelve el tema que hubiera.
+    var oscuroAntesDeImprimir = false;
+    window.addEventListener('beforeprint', function () {
+        // (puede llegar dos veces seguidas: solo se apunta si de verdad estaba en oscuro)
+        if (d.getAttribute('data-tema') === 'oscuro') { oscuroAntesDeImprimir = true; d.removeAttribute('data-tema'); }
+    });
+    window.addEventListener('afterprint', function () {
+        if (oscuroAntesDeImprimir) d.setAttribute('data-tema', 'oscuro');
+        oscuroAntesDeImprimir = false;
+    });
 })();

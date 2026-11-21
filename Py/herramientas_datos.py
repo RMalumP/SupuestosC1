@@ -579,6 +579,10 @@ def comparar_versiones(antes, ahora):
         if isinstance(ca.get(k), (str, int, float, bool)) or isinstance(cb.get(k), (str, int, float, bool)):
             if ca.get(k) != cb.get(k):
                 lineas.append("Datos generales · %s: «%s» → «%s»" % (k, plano(ca.get(k))[:60], plano(cb.get(k))[:60]))
+                if k == "titulo" and plano(ca.get(k)):
+                    # La tabla de resultados agrupa los intentos por el título enviado
+                    lineas.append("   Ojo: el ranking agrupa por título. Si el supuesto ya tiene resultados, "
+                                  "añade el título antiguo a NOMBRES_ANTIGUOS en resultados/resultados.html.")
     ids_a = [b.get("id") for b in antes.get("bloques") or []]
     ids_b = [b.get("id") for b in ahora.get("bloques") or []]
     for i in ids_b:

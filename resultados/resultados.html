@@ -298,7 +298,7 @@
     <div class="hero-inner">
         <div class="logo-wrap">
             <img src="https://academia.ecap.es/pluginfile.php?file=%2F1%2Fcore_admin%2Flogo%2F0x200%2F1782109950%2FACADEMIA%20VIRTUAL%20%281%29.png" alt="ECAP - Escuela Ciudadana de Administración Pública" onerror="this.style.display='none'">
-            <span class="logo-subtitle">Comunidad ECAP ASS C1 | NO RELACIONADO CON LA PLATFORMA OFICIAL </span>
+            <span class="logo-subtitle">Comunidad ECAP ASS C1 | NO RELACIONADO CON LA PLATAFORMA OFICIAL</span>
         </div>
         <h1>Tabla de<strong>resultados</strong></h1>
         <p>Clasificación dinámica de las puntuaciones de la comunidad</p>
@@ -338,7 +338,7 @@
         </div>
     </div>
 
-    <footer>DATOS CARGADOS EN TIEMPO REAL DESDE GOOGLE SHEETS · REALIZADO DESDE LA COMUNIDAD DE ECAP · NO RELACIONADO CON LA PLATFORMA OFICIAL</footer>
+    <footer>DATOS CARGADOS EN TIEMPO REAL DESDE GOOGLE SHEETS · REALIZADO DESDE LA COMUNIDAD DE ECAP · NO RELACIONADO CON LA PLATAFORMA OFICIAL</footer>
 
 </div>
 
@@ -382,6 +382,32 @@
     var COL_COMB_T_ASIGNADO = 11; // L
     var COL_COMB_T_REAL     = 12; // M
 
+    // Penalización por fallo con la que se calcula la nota de la tabla. La hoja
+    // no guarda los puntos de cada intento, así que se recalculan aquí con el
+    // baremo de los supuestos (1 por acierto, −0,25 por fallo). Si algún
+    // supuesto usara otro, se añade su nombre (tal y como sale en la hoja) a
+    // PENALIZACION_POR_TEST.
+    var PENALIZACION_FALLO = 0.25;
+    var PENALIZACION_POR_TEST = {};
+
+    // La hoja guarda cada intento con el título que tenía el supuesto al
+    // enviarlo. Si se corrige un título, sus resultados se partían en dos: aquí
+    // se apunta el nombre antiguo (con los espacios dobles ya reducidos a uno)
+    // y el nuevo, y la tabla los junta bajo el nuevo.
+    var NOMBRES_ANTIGUOS = {
+        'SUPUESTO TEMA 2. Encuadramientos y mas encuadramietos': 'SUPUESTO TEMA 2. Encuadramientos y más encuadramientos',
+        'SUPUESTO TEMA 2 Inicial. Encuadramientos y mas encuadramietos': 'SUPUESTO TEMA 2 Inicial. Encuadramientos y más encuadramientos',
+        'SUPUESTO 1 Inicial. Conceptos basicos de temas 2 y 3': 'SUPUESTO 1 Inicial. Conceptos básicos de temas 2 y 3',
+        'TEMA 3 INICAL · NORMAS SOBRE AFILIACIÓN. ALTAS Y BAJAS. EL CONVENIO ESPECIAL Y SITUACIONES ASIMILADAS AL ALTA · PARTE 1':
+            'TEMA 3 INICIAL · NORMAS SOBRE AFILIACIÓN. ALTAS Y BAJAS. EL CONVENIO ESPECIAL Y SITUACIONES ASIMILADAS AL ALTA · PARTE 1',
+        'TEMA 3 INICAL B · AFILIACIÓN. ALTAS Y BAJAS. CONVENIO ESPECIAL Y ASIMILADAS AL ALTA':
+            'TEMA 3 INICIAL B · AFILIACIÓN. ALTAS Y BAJAS. CONVENIO ESPECIAL Y ASIMILADAS AL ALTA'
+    };
+    function nombreTest(t) {
+        t = String(t || '').replace(/\s+/g, ' ').trim();
+        return Object.prototype.hasOwnProperty.call(NOMBRES_ANTIGUOS, t) ? NOMBRES_ANTIGUOS[t] : t;
+    }
+
     var allRows = [];
     var selectedTest = null; // null => "todos"
     var sortField = 'nota';
@@ -414,7 +440,7 @@
         for (var i = 0; i < rows.length; i++) {
             var c = rows[i].c || [];
             var marca = cellText(c[COL_MARCA]);
-            var test = cellText(c[COL_TEST]);
+            var test = nombreTest(cellText(c[COL_TEST]));
             var nombre = cellText(c[COL_NOMBRE]);
             if (!marca && !test && !nombre) continue; // fila vacía
 
@@ -437,7 +463,9 @@
                 tReal     = cellText(c[COL_T_REAL]);
             }
 
-            var resultado = aciertos - 0.25 * fallos;
+            var penal = Object.prototype.hasOwnProperty.call(PENALIZACION_POR_TEST, test)
+                ? PENALIZACION_POR_TEST[test] : PENALIZACION_FALLO;
+            var resultado = aciertos - penal * fallos;
             if (resultado < 0) resultado = 0;
             var nota10 = preguntas > 0 ? round2((resultado / preguntas) * 10) : 0;
 
@@ -664,12 +692,14 @@
 
     function showError() {
         document.getElementById('tests-grid').innerHTML =
-            '<div class="state-msg error" style="grid-column: 1 / -1;">No se han podido cargar los datos de la hoja de cálculo.<br>' +
-            'Comprueba que el enlace para compartir esté como "Cualquier persona con el enlace puede ver".<br>' +
-            '<a class="retry" id="retry-link">Reintentar</a></div>';
+            '<div class="state-msg error" style="grid-column: 1 / -1;">No se han podido cargar los resultados.<br>' +
+            'Comprueba tu conexión y vuelve a intentarlo en un momento.<br>' +
+            '<a class="retry" id="retry-link" href="#" role="button">Reintentar</a></div>';
+        // Pista para quien mantiene la hoja (no para el alumno)
+        if (window.console) console.warn('Resultados: la hoja no respondió. ¿Está compartida como «Cualquier persona con el enlace puede ver»?');
         document.getElementById('results-body').innerHTML = '';
         var retry = document.getElementById('retry-link');
-        if (retry) retry.addEventListener('click', loadData);
+        if (retry) retry.addEventListener('click', function (e) { e.preventDefault(); loadData(); });
     }
 
     function loadData() {
@@ -679,8 +709,14 @@
             '<div class="state-msg"><div class="spinner"></div>Cargando resultados desde la hoja de cálculo…</div>';
 
         callbackCounter++;
-        var cbName = 'onSheetData_' + callbackCounter;
+        var peticion = callbackCounter;
+        var cbName = 'onSheetData_' + peticion;
+        // Si se cambia de categoría antes de que llegue la respuesta, la
+        // petición anterior queda vieja: su respuesta, su error o su tiempo
+        // de espera ya no deben pintar nada encima de la categoría nueva.
+        function esVieja() { return peticion !== callbackCounter; }
         var timeoutId = setTimeout(function () {
+            if (esVieja()) return;
             if (window[cbName]) { showError(); delete window[cbName]; }
         }, 12000);
 
@@ -688,6 +724,7 @@
 
         window[cbName] = function (json) {
             clearTimeout(timeoutId);
+            if (esVieja()) { delete window[cbName]; return; }
             try {
                 allRows = processTable(json.table, category.format);
                 buildTestCards();
@@ -714,7 +751,7 @@
             '&_=' + Date.now();
         script.onerror = function () {
             clearTimeout(timeoutId);
-            showError();
+            if (!esVieja()) showError();
         };
         document.body.appendChild(script);
     }

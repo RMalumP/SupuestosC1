@@ -272,6 +272,10 @@ let alerted5             = false;
 let alerted5b            = false;
 let alerted1             = false;
 let instantFeedback      = false;    // Modo "corregir pregunta a pregunta"
+// Preguntas cuya solución ya se ha enseñado con la corrección pregunta a
+// pregunta: quedan cerradas (aunque luego se apague la opción), porque si no
+// se podría cambiar a la respuesta buena y contaría como acierto.
+let solucionVista        = new Set();
 // ⚙ "Ver las preguntas de una en una": una casilla por bloque.
 //    { B1: true, B2: false } → B1 de una en una, B2 en cadena.
 let unaEnUnaPorBloque    = {};
@@ -372,6 +376,9 @@ function dialogo(op) {
         caja.appendChild(fila);
         fondo.appendChild(caja);
         fondo.addEventListener('click', e => { if (e.target === fondo) cerrar(cancelar ? valorDe(cancelar) : null); });
+        // Para cerrarla desde fuera (p. ej. al agotarse el tiempo) quitando
+        // también su atajo de teclado: si no, el primer Esc se perdía.
+        fondo.cerrarDialogo = () => cerrar(cancelar ? valorDe(cancelar) : null);
         const teclas = e => {
             if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cerrar(cancelar ? valorDe(cancelar) : null); }
             else if (e.key === 'Enter' && campo && e.target === campo) {
@@ -431,6 +438,21 @@ function hexARgb(hex) {
     return [(n >> 16) & 255, (n >> 8) & 255, n & 255].join(',');
 }
 
+// El color de un bloque mezclado con blanco, para el texto sobre el marrón de
+// la barra superior y del marcador: el color puro se quedaba en un contraste de
+// 3 a 4,3. Se aclara al menos en t y, si el color es muy oscuro, lo que haga
+// falta para que el texto pase de 4,5 sobre esos marrones.
+function aclararColor(hex, t) {
+    const lin = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+    const base = hexARgb(hex).split(',').map(Number);
+    let c;
+    for (; t <= 0.9; t += 0.05) {
+        c = base.map(v => Math.round(v + (255 - v) * t));
+        if (0.2126 * lin(c[0]) + 0.7152 * lin(c[1]) + 0.0722 * lin(c[2]) >= 0.58) break;
+    }
+    return 'rgb(' + c.join(',') + ')';
+}
+
 // Números con coma decimal y sin decimales inútiles: 1 → "1", 0.33 → "0,33"
 function nUm(x) {
     const r = Math.round(x * 100) / 100;
@@ -450,7 +472,7 @@ function inyectarEstilosBloques() {
         const rgb = hexARgb(b.color);
         return `
         .nav-box.blq-${b.id}:not(.answered):not(.nav-wrong) {
-            border-color: rgba(${rgb},0.45); color: rgba(${rgb},0.95); background: rgba(${rgb},0.10);
+            border-color: rgba(${rgb},0.45); color: ${aclararColor(b.color, 0.4)}; background: rgba(${rgb},0.10);
         }
         .nav-box.blq-${b.id}:not(.answered):not(.nav-wrong):hover {
             border-color: ${b.color}; background: rgba(${rgb},0.22); color: #ffffff;
@@ -464,7 +486,7 @@ function inyectarEstilosBloques() {
         .block-header.blq-${b.id} { border-left-color: ${b.color}; }
         .block-header.blq-${b.id} .bh-tipo { color: ${b.color}; border-color: rgba(${rgb},0.55); background: rgba(${rgb},0.10); }
         .score-bloques .sb-fila.blq-${b.id} { border-left-color: ${b.color}; }
-        .score-bloques .sb-fila.blq-${b.id} .sb-nombre { color: ${b.color}; }
+        .score-bloques .sb-fila.blq-${b.id} .sb-nombre { color: ${aclararColor(b.color, 0.4)}; }
         .corr-bloque.blq-${b.id} { color: ${b.color}; border-bottom-color: rgba(${rgb},0.5); }`;
     }).join('\n');
 }
@@ -515,23 +537,24 @@ function medirCabecera() {
 }
 window.addEventListener('resize', medirCabecera);
 
-/* En el móvil el reloj va DENTRO de la barra superior (flotando tapaba el
-   texto de la pregunta); en pantallas anchas vuelve a su sitio de siempre,
-   flotando bajo la barra. */
-const MOVIL = window.matchMedia ? window.matchMedia('(max-width: 600px)') : { matches: false };
+/* En el móvil, la tablet y el portátil pequeño el reloj va DENTRO de la
+   barra superior: flotando tapaba el final de las líneas del texto (hasta
+   unos 1.200 px de ancho no le queda margen al lado del contenido). En
+   pantallas anchas vuelve a su sitio de siempre, flotando bajo la barra. */
+const RELOJ_EN_BARRA = window.matchMedia ? window.matchMedia('(max-width: 1279px)') : { matches: false };
 function colocarReloj() {
     const reloj = document.getElementById('timer');
     const cab   = document.getElementById('nav-header');
     if (!reloj || !cab) return;
-    if (MOVIL.matches) {
+    if (RELOJ_EN_BARRA.matches) {
         if (reloj.parentNode !== cab) cab.insertBefore(reloj, document.getElementById('fold-btn'));
     } else if (reloj.parentNode === cab) {
         cab.parentNode.insertBefore(reloj, cab.nextSibling);
     }
     medirCabecera();
 }
-if (MOVIL.addEventListener) MOVIL.addEventListener('change', colocarReloj);
-else if (MOVIL.addListener) MOVIL.addListener(colocarReloj);
+if (RELOJ_EN_BARRA.addEventListener) RELOJ_EN_BARRA.addEventListener('change', colocarReloj);
+else if (RELOJ_EN_BARRA.addListener) RELOJ_EN_BARRA.addListener(colocarReloj);
 
 // Contador de la barra superior: pregunta actual / total y cuántas van respondidas
 function actualizarContador() {
@@ -1342,6 +1365,7 @@ function init(mode = 'default', sourceBank = null, opcionesFijas = null) {
     timeLeft   = examDurationSeconds;
     current    = 0;
     userAns    = {};
+    solucionVista = new Set();
     evaluated  = false;
     detalleEnviado = false;
     alerted10  = false;
@@ -1414,9 +1438,18 @@ function init(mode = 'default', sourceBank = null, opcionesFijas = null) {
 
             const rotulo = document.createElement('span');
             rotulo.className = 'nav-group-label';
-            rotulo.style.color = bloque.color;
-            rotulo.textContent = bloque.titulo;
+            rotulo.style.color = aclararColor(bloque.color, 0.4);
             rotulo.title = 'Ir al principio de: ' + bloque.titulo;
+            // Nombre completo en pantallas anchas; en el móvil, el código corto
+            // del bloque (B1, B2…): el nombre largo salía partido y cortado.
+            const largo = document.createElement('span');
+            largo.className = 'rotulo-largo';
+            largo.textContent = bloque.titulo;
+            const corto = document.createElement('span');
+            corto.className = 'rotulo-corto';
+            corto.setAttribute('aria-hidden', 'true');
+            corto.textContent = bloque.id;
+            rotulo.append(largo, corto);
             rotulo.onclick = () => jump(primera);
 
             filaCasillas = document.createElement('div');
@@ -1590,6 +1623,8 @@ function esAcierto(qIdx) {
 ═══════════════════════════════════════════ */
 function selectAnswer(qIdx, optIdx) {
     if (evaluated) return;
+    // Ya se ha visto la solución de esta pregunta: no se puede cambiar
+    if (solucionVista.has(qIdx)) return;
 
     // En pantallas táctiles, un "clic" que en realidad es un desplazamiento
     // (o que llega mientras la página aún se está moviendo) no debe cambiar
@@ -1664,6 +1699,10 @@ function pintarRespuesta(qIdx) {
     marcarSolucion(qIdx);
     if (!esAcierto(qIdx)) navBox.classList.add('nav-wrong');
     if (feed) feed.style.display = 'block';
+    // Vista la solución, la pregunta queda cerrada hasta el próximo intento
+    solucionVista.add(qIdx);
+    const card = document.getElementById(`qcard-${qIdx}`);
+    if (card) card.classList.add('solucion-vista');
 }
 
 /* ═══════════════════════════════════════════
@@ -1869,7 +1908,7 @@ function triggerTimeUp() {
     // Se cierra lo que estuviera abierto a medias
     closeSettings();
     closeRandomModal();
-    document.querySelectorAll('.supc1-dialogo').forEach(d => d.remove());
+    document.querySelectorAll('.supc1-dialogo').forEach(d => (d.cerrarDialogo ? d.cerrarDialogo() : d.remove()));
     const overlay = document.getElementById('overlay');
     overlay.classList.add('show');
     overlay.scrollTop = 0;

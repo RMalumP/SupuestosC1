@@ -40,6 +40,35 @@ def _correctas(q):
     return list(cor or [])
 
 
+NOMBRES_ENVIO = {"examen": "Examen", "usuario": "Alumno", "tiempoAsignado": "Tiempo asignado",
+                 "tiempoEmpleado": "Tiempo empleado", "preguntas": "Preguntas", "aciertos": "Aciertos",
+                 "fallos": "Fallos", "blancos": "En blanco", "puntos": "Puntos"}
+
+
+def casillas_repetidas(d):
+    """[(casilla, [«Bloque B1 · Fallos», …]), …] de las casillas del formulario de resultados
+    que usa más de un dato. Sin dirección del formulario no se envía nada: no hay nada que mirar."""
+    envio = d.get("envio") or {}
+    if not str(envio.get("url") or "").strip():
+        return []
+    usos = {}
+
+    def anota(casilla, donde):
+        c = str(casilla or "").strip()
+        if c:
+            usos.setdefault(c, []).append(donde)
+
+    for k in ("examen", "usuario", "tiempoAsignado", "tiempoEmpleado"):
+        anota(envio.get(k), "«%s»" % NOMBRES_ENVIO[k])
+    if envio.get("enviarTotal") is not False and isinstance(envio.get("total"), dict):
+        for k, v in envio["total"].items():
+            anota(v, "«Total · %s»" % NOMBRES_ENVIO.get(k, k))
+    for b in d.get("bloques") or []:
+        for k, v in (b.get("envio") or {}).items():
+            anota(v, "«Bloque %s · %s»" % (b.get("id"), NOMBRES_ENVIO.get(k, k)))
+    return [(c, u) for c, u in usos.items() if len(u) > 1]
+
+
 def revisar(d, normas=None, parecidas=False, carpeta=None):
     """Todos los problemas del supuesto, errores primero dentro de cada sitio.
     normas: lista de normas_enlaces (para avisar de citas que no se enlazarán).
@@ -67,6 +96,13 @@ def revisar(d, normas=None, parecidas=False, carpeta=None):
     for i, n in Counter(ids_b).items():
         if n > 1:
             error("El bloque «%s» está repetido." % i)
+
+    # Dos datos del envío en la misma casilla del formulario: el segundo pisa
+    # al primero y el primero no llega nunca (así se perdían los fallos del
+    # bloque 1 del EX03E, que iban en la casilla de «preguntas»).
+    for casilla, usos in casillas_repetidas(d):
+        error("Envío de resultados: la casilla %s está puesta en %s. Cada dato necesita la suya "
+              "(míralas en el formulario de Google)." % (casilla, " y en ".join(usos)))
 
     enunciados = d.get("enunciados") or []
     ids_e = [str(e.get("id") or "") for e in enunciados]

@@ -218,8 +218,10 @@
     <link rel="stylesheet" href="../css/tema-menu.css">
     <link rel="stylesheet" href="../css/subrayado.css">
 <style>
-.tabs-imp{display:flex;gap:8px;margin:14px 0}.tabs-imp button{font:inherit;font-weight:600;padding:8px 14px;border-radius:999px;border:1px solid var(--tan);background:transparent;color:inherit;cursor:pointer}
+.tabs-imp,.tabs-imp [role="tablist"]{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.tabs-imp{margin:14px 0}.tabs-imp button{font:inherit;font-weight:600;padding:8px 14px;border-radius:999px;border:1px solid var(--tan);background:transparent;color:inherit;cursor:pointer}
 .tabs-imp button[aria-selected="true"]{background:var(--brown);color:#fff;border-color:var(--brown)}
+/* En oscuro --brown es un beige claro: el texto blanco no se leía (contraste 1,7) */
+:root[data-tema="oscuro"] .tabs-imp button[aria-selected="true"],:root[data-tema="oscuro"] .imp-form button{color:#2b2118}
 .imp-meta{font-size:.8rem;opacity:.75;margin:0 0 6px}.imp-msg{border-left:3px solid var(--tan);padding:4px 10px;margin:8px 0;font-size:.9rem;white-space:pre-wrap}
 .imp-msg b{font-size:.8rem}.imp-form{display:grid;gap:6px;margin-top:10px}.imp-form textarea,.imp-form input[type=text]{font:inherit;padding:8px;border-radius:8px;border:1px solid var(--tan);background:transparent;color:inherit;width:100%;box-sizing:border-box}
 .imp-form button{font:inherit;font-weight:600;padding:8px 14px;border-radius:8px;border:1px solid var(--brown);background:var(--brown);color:#fff;cursor:pointer;justify-self:start}
@@ -243,14 +245,16 @@
         <span>Las impugnaciones se envían desde cada supuesto con «Impugnar esta pregunta». Las que se resuelven aparecen aquí (sin nombre si no se marcó «Publicar»). Lo que escribas en el foro es público.</span>
     </div>
 
-    <div class="tabs-imp" role="tablist">
-        <button type="button" role="tab" id="tab-pub" aria-selected="true">Resueltas</button>
-        <button type="button" role="tab" id="tab-foro" aria-selected="false">Foro</button>
+    <div class="tabs-imp">
+        <div role="tablist" aria-label="Impugnaciones">
+            <button type="button" role="tab" id="tab-pub" aria-selected="true" aria-controls="imp-pub">Resueltas</button>
+            <button type="button" role="tab" id="tab-foro" aria-selected="false" aria-controls="imp-foro">Foro</button>
+        </div>
         <button type="button" class="btn-link" id="imp-actualizar">↻ Actualizar</button>
     </div>
     <div id="imp-estado" class="grupo-desc"></div>
-    <div id="imp-pub"></div>
-    <div id="imp-foro" hidden></div>
+    <div id="imp-pub" role="tabpanel" aria-labelledby="tab-pub"></div>
+    <div id="imp-foro" role="tabpanel" aria-labelledby="tab-foro" hidden></div>
 
     <a class="back-link boton" href="../index.html">&larr; Volver al menú de supuestos</a>
 

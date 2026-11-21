@@ -64,6 +64,10 @@ body::before { display: none; }
 .btn-success { background: var(--forest);    color: #fff; border-color: var(--forest); }
 .btn-info    { background: var(--navy-mid);  color: #fff; border-color: var(--navy-mid); }
 .btn-send    { background: var(--blue-deep); color: #fff; border-color: var(--blue-deep); }
+/* Al pasar por encima, la regla antigua dejaba los botones informativos casi
+   transparentes con el texto crema (y en el móvil el toque deja puesto el
+   «hover»): «Más» abierto casi no se veía. */
+.btn-info:hover, body.mas-abierto #more-btn { background: var(--navy); color: #fff; border-color: var(--navy); }
 
 @media (min-width: 1000px) { .container { max-width: 1000px; } }
 
@@ -193,6 +197,7 @@ body.intento-parcial #send-btn { display: none !important; }
 :root[data-tema="oscuro"] .option.correct { background: rgba(60, 160, 100, .22); color: #8be0b0; border-color: #3ca064; }
 :root[data-tema="oscuro"] .option.wrong { background: rgba(200, 70, 70, .2); color: #fca5a5; border-color: #c84646; }
 :root[data-tema="oscuro"] .fact-block { background: rgba(255,255,255,.05); color: var(--t-ink); }
+:root[data-tema="oscuro"] .statement-title-block .ref, :root[data-tema="oscuro"] .fact-block:not(.red) .fact-title { color: var(--gold); }
 :root[data-tema="oscuro"] .btn-marcar.on { background: #5b3d0a; color: #fde68a; }
 :root[data-tema="oscuro"] .btn-primary { background: var(--navy-mid); border-color: var(--navy-mid); }
 :root[data-tema="oscuro"] .question-card::before { background: linear-gradient(90deg, var(--gold), var(--navy-mid)) !important; }
@@ -307,7 +312,7 @@ html, body { overscroll-behavior-x: none; }
     .nav-row { gap: 6px; }
     .nav-row + .nav-row { padding-top: 6px; }
     body.un-bloque .nav-group-label { display: none; }
-    .nav-group-label { flex-basis: 64px; font-size: 0.68rem; letter-spacing: 0.04em; }
+    .nav-group-label { flex: 0 0 auto; min-width: 26px; font-size: 0.75rem; letter-spacing: 0.04em; }
     .nav-row-boxes { padding: 2px 0; }
     .nav-row-boxes.desborda-dcha { -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent); mask-image: linear-gradient(90deg, #000 85%, transparent); }
     .nav-row-boxes.desborda-izda { -webkit-mask-image: linear-gradient(90deg, transparent, #000 15%); mask-image: linear-gradient(90deg, transparent, #000 15%); }
@@ -390,4 +395,48 @@ html, body { overscroll-behavior-x: none; }
 }
 @media (max-width: 360px) {
     .btn-zone .btn { font-size: 0.8rem; padding: 6px 4px; }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   ARREGLOS (v29.9)
+════════════════════════════════════════════════════════════════ */
+/* Rótulo del bloque en la barra: el nombre entero en pantallas anchas; en
+   pantallas estrechas solo el código (B1, B2…), porque el nombre largo salía
+   partido en cuatro líneas y cortado. El nombre completo queda en el título. */
+.nav-group-label { opacity: 1; }
+.nav-group-label .rotulo-corto { display: none; }
+@media (max-width: 680px) {
+    .nav-group-label { white-space: nowrap; text-align: left; font-weight: 700; }
+    .nav-group-label .rotulo-largo { display: none; }
+    .nav-group-label .rotulo-corto { display: inline; }
+}
+@media (min-width: 601px) and (max-width: 680px) {
+    .nav-group-label { flex: 0 0 auto; min-width: 26px; font-size: 0.75rem; letter-spacing: 0.04em; }
+}
+
+/* Reloj dentro de la barra en tablets y portátiles pequeños (601–1279 px):
+   flotando tapaba el final de las líneas del texto (motor: colocarReloj). */
+@media (min-width: 601px) and (max-width: 1279px) {
+    #nav-header #timer {
+        position: static; flex: 0 0 auto; align-self: center;
+        font-size: 1.25rem; padding: 7px 12px; min-width: 0;
+        box-shadow: none; border-width: 1.5px;
+    }
+    #nav-header #timer .timer-label { display: none; }
+}
+
+/* Corrección pregunta a pregunta: vista la solución, la pregunta ya no se
+   puede cambiar (motor: solucionVista) */
+.question-card.solucion-vista .option { cursor: default; }
+.question-card.solucion-vista .option:hover { transform: none; }
+
+/* Impresión: cada tarjeta con su motivación ocupa algo más de media hoja y,
+   con «no partir tarjetas», salía una pregunta por hoja. Ahora la tarjeta se
+   puede partir, pero no la pregunta, ni una opción, ni la cabecera de la
+   motivación separada de su texto. (El tema oscuro se quita al imprimir:
+   prefs.js.) */
+@media print {
+    .question-card { page-break-inside: auto !important; break-inside: auto !important; }
+    .q-header, .q-text, .option, .sup-img { page-break-inside: avoid; break-inside: avoid; }
+    .q-header, .feedback-header { page-break-after: avoid; break-after: avoid; }
 }

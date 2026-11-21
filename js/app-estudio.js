@@ -136,7 +136,8 @@
         if (!Object.keys(pa).length) ma.appendChild(el('p', 'grupo-desc vacio', 'Aún no has marcado preguntas ni escrito notas. En un supuesto, usa «Marcar para más tarde» (o la tecla M) y «Añadir nota» (tecla N).'));
         Object.keys(pa).forEach(function (a) {
             var nMarc = pa[a].filter(function (k) { return marcadas[k]; }).length;
-            var g = grupoCabecera(a, pa[a].length, nMarc ? 'Practicar marcadas' : null, 'supuestos/' + a + '.html?practicar=marcadas');
+            // El número del botón es el de marcadas: la práctica no abre las que solo tienen nota
+            var g = grupoCabecera(a, pa[a].length, nMarc ? 'Practicar marcadas' : null, 'supuestos/' + a + '.html?practicar=marcadas', nMarc);
             pa[a].forEach(function (k) {
                 var base = marcadas[k] || notas[k], li = el('div', 'item');
                 li.appendChild(textoPregunta(marcadas[k] ? '🚩 ' : '', base.t, k, base.f));
@@ -192,12 +193,13 @@
         p.appendChild(z); return p;
     }
 
-    function grupoCabecera(arch, n, textoBoton, href) {
+    // nBoton: cuántas preguntas abre el botón, si no son todas las del grupo
+    function grupoCabecera(arch, n, textoBoton, href, nBoton) {
         var g = el('section', 'grupo-estudio');
         var cab = el('div', 'grupo-estudio-cab');
         cab.appendChild(el('h3', null, nombre(arch)));
         cab.appendChild(el('span', 'contador', n + (n === 1 ? ' pregunta' : ' preguntas')));
-        if (textoBoton) { var a = el('a', 'btn-practicar', textoBoton + ' (' + n + ')'); a.href = href; cab.appendChild(a); }
+        if (textoBoton) { var a = el('a', 'btn-practicar', textoBoton + ' (' + (nBoton != null ? nBoton : n) + ')'); a.href = href; cab.appendChild(a); }
         g.appendChild(cab); return g;
     }
     window.SupC1Estudio = { repintar: pintar };
