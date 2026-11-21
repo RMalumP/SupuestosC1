@@ -175,7 +175,7 @@
         S.leerHoja(C.sheetId, C.hojaImpugnaciones, function (filas) {
             imp = filas;
             cargarForo(function () { fin(); }, function () { foro = {}; fin('No se pudo leer el foro de GitHub (puede que haya demasiadas consultas; prueba más tarde).'); });
-        }, function () { est.textContent = 'No se pudo leer la hoja. Comprueba la conexión y que la hoja sea pública.'; });
+        }, function () { est.textContent = 'No se han podido cargar las impugnaciones. Comprueba tu conexión y vuelve a intentarlo.'; });
     }
     // Refresco automático mientras la pestaña del foro está a la vista (solo se repintan los mensajes, no los formularios)
     function refrescarMsgs() {

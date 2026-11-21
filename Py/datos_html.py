@@ -7,6 +7,7 @@ tkinter: se puede usar y probar sin ventana (por ejemplo desde
 sincronizar_local.py). Contiene los valores por defecto, la normalización
 de los datos (normalizar), leer_html, escribir_html y el alta en el menú.
 """
+import html as html_mod
 import json
 import os
 import re
@@ -1165,6 +1166,14 @@ def escribir_html(ruta_destino, html_base, datos, modo, copia=True):
             while fin < len(html_base) and html_base[fin] in " \t\r\n;":
                 fin += 1
         nuevo = html_base[:ini] + datos_a_js(datos) + "\n\n" + html_base[fin:]
+
+    # La pestaña del navegador (y la vista previa al compartir el enlace) lleva
+    # el título del supuesto, no el «[TÍTULO DE LA EVALUACIÓN]» de la plantilla.
+    titulo = str((datos.get("config") or {}).get("titulo") or "").strip()
+    if titulo:
+        nuevo = re.sub(r"<title>.*?</title>",
+                       lambda _m: "<title>" + html_mod.escape(titulo, quote=False) + "</title>",
+                       nuevo, count=1, flags=re.S | re.I)
 
     destino = Path(ruta_destino)
     if copia and destino.exists():             # copia de seguridad .bak

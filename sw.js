@@ -65,8 +65,12 @@ const IMAGENES = LISTA.reduce((todas, it) => todas.concat(Array.isArray(it.image
 self.addEventListener("install", e => {
   // Primera instalación: se activa ya. Si había una versión anterior, espera a
   // que la persona pulse «Actualizar» (ver pwa.js) para no cambiar nada a mitad de un examen.
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(PRECACHE)
-    .then(() => Promise.all(IMAGENES.map(u => c.add(u).catch(() => {}))))).then(() => {
+  // Cada archivo se pide a la red saltándose la caché HTTP del navegador
+  // (cache: "reload"): GitHub Pages deja copias de hasta 10 minutos y, justo
+  // después de publicar, la versión nueva podía guardar archivos de la vieja.
+  const fresco = u => new Request(u, { cache: "reload" });
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(PRECACHE.map(fresco))
+    .then(() => Promise.all(IMAGENES.map(u => c.add(fresco(u)).catch(() => {}))))).then(() => {
     if (!self.registration.active) self.skipWaiting();
   }));
 });

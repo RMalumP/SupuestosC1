@@ -188,6 +188,41 @@ class DatosHtml(unittest.TestCase):
             finally:
                 shutil.rmtree(d, ignore_errors=True)
 
+    def test_el_titulo_de_la_pestana_sigue_al_del_supuesto(self):
+        plantilla = (PY / datos_html.PLANTILLA_BASE).read_text(encoding="utf-8")
+        datos = datos_html.datos_vacios()
+        datos["config"]["titulo"] = "Supuesto <5> · Más casos"
+        d = Path(tempfile.mkdtemp(prefix="supc1_"))
+        try:
+            nuevo = datos_html.escribir_html(d / "s.html", plantilla, datos, "json", copia=False)
+            self.assertIn("<title>Supuesto &lt;5&gt; · Más casos</title>", nuevo)
+            self.assertNotIn("[TÍTULO DE LA EVALUACIÓN]</title>", nuevo)
+        finally:
+            shutil.rmtree(d, ignore_errors=True)
+
+
+class EnvioSinCasillasRepetidas(unittest.TestCase):
+    def test_dos_datos_en_la_misma_casilla_es_un_error(self):
+        import revision
+        d = datos_html.datos_vacios()
+        d["envio"] = dict(datos_html.ENVIO_DEFECTO)
+        d["bloques"][0]["envio"] = {"preguntas": "entry.1", "aciertos": "entry.2", "fallos": "entry.1", "blancos": "", "puntos": ""}
+        rep = revision.casillas_repetidas(d)
+        self.assertEqual(rep, [("entry.1", ["«Bloque B1 · Preguntas»", "«Bloque B1 · Fallos»"])])
+        self.assertTrue(any("entry.1" in t for t in revision.errores(revision.revisar(d))))
+
+    def test_sin_formulario_no_se_mira(self):
+        import revision
+        d = datos_html.datos_vacios()
+        d["envio"] = {"url": "", "examen": "entry.1", "usuario": "entry.1"}
+        self.assertEqual(revision.casillas_repetidas(d), [])
+
+    def test_ningun_supuesto_tiene_casillas_repetidas(self):
+        import revision
+        for p in sorted((RAIZ / "supuestos").glob("*.html")):
+            datos, _, _ = datos_html.leer_html(p)
+            self.assertEqual(revision.casillas_repetidas(datos), [], p.name)
+
 
 class Imagenes(unittest.TestCase):
     """Imágenes de los supuestos (imagenes.py): datos, reparto al guardar, menú y exportación."""
@@ -311,7 +346,8 @@ class Imagenes(unittest.TestCase):
     def test_el_service_worker_guarda_las_imagenes_sin_bloquear_la_instalacion(self):
         sw = (RAIZ / "sw.js").read_text(encoding="utf-8")
         self.assertIn("it.imagenes", sw)
-        self.assertIn("c.add(u).catch", sw)                   # una imagen que falte no impide instalar
+        self.assertIn("c.add(fresco(u)).catch", sw)           # una imagen que falte no impide instalar
+        self.assertIn('cache: "reload"', sw)                  # y se piden sin la caché HTTP del navegador
 
 
 class SincronizarLocal(unittest.TestCase):

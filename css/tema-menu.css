@@ -101,6 +101,8 @@ table.results-table thead th:last-child  { border-radius: 0 10px 0 0; }
 :root[data-tema="oscuro"] .category-btn { background: var(--t-surface); color: var(--brown); }
 :root[data-tema="oscuro"] .category-btn.active { background: var(--blue); color: #2b2118; border-color: var(--blue); }
 :root[data-tema="oscuro"] table.results-table tbody td { color: var(--t-ink); }
+/* Enlaces dentro de los textos de explicación (Mi estudio): el color del tema, no el azul del navegador */
+.grupo-desc a { color: var(--brown); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
 
 /* ════════════════════════════════════════════════════════════════
    TIPOGRAFÍA · Public Sans (sin serif) y tarjetas con el círculo junto al título

@@ -271,7 +271,8 @@
         });
         if (!ok) return;
         S.set(K_CURSO, { v: 1, ts: Date.now(), n: QUESTIONS_BANK.length, q: q, o: cards, a: userAns,
-                         cur: current, t: timeLeft, dur: examDurationSeconds, m: Array.from(marcas), parcial: parcial });
+                         cur: current, t: timeLeft, dur: examDurationSeconds, m: Array.from(marcas), parcial: parcial,
+                         sv: typeof solucionVista !== 'undefined' ? Array.from(solucionVista) : [] });
     }
 
     function restaurar(st) {
@@ -282,6 +283,11 @@
         // Cada pregunta vuelve con sus opciones en el mismo orden en que se dejó
         init('answers', st.q.map(function (i) { return QUESTIONS_BANK[i]; }), st.o);
         userAns = st.a;
+        // Las preguntas cuya solución ya se vio siguen cerradas al continuar
+        if (st.sv && typeof solucionVista !== 'undefined') st.sv.forEach(function (i) {
+            solucionVista.add(i);
+            var c = $('qcard-' + i); if (c) c.classList.add('solucion-vista');
+        });
         timeLeft = st.t;
         $('timer-display').textContent = formatTime(timeLeft);
         if (typeof colorReloj === 'function') colorReloj();
